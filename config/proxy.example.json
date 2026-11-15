@@ -1,0 +1,86 @@
+{
+  "$comment": "bixku-proxy example config. PLACEHOLDERS ONLY. Copy to /etc/bixku-proxy/proxy.json on bixku-homelab. No secret values here: accounts reference secret ids stored in the encrypted secrets.enc (see packages/proxy/scripts/secrets.ts). Keys starting with '$' are comments.",
+  "listen": { "host": "100.64.0.10", "port": 8318 },
+  "legacyProxy": { "listen": "100.64.0.10:8317", "retired": false },
+  "machineId": "bixku-homelab",
+  "secrets": {
+    "file": "/var/lib/bixku-proxy/secrets.enc",
+    "masterKeyFile": "/run/credentials/bixku-proxy.service/master-key",
+    "adminTokenId": "proxy-admin-token",
+    "clientKeyPepperId": "client-key-pepper"
+  },
+  "records": { "sqlitePath": "/var/lib/bixku-proxy/usage.sqlite" },
+  "routing": {
+    "strategy": "round-robin",
+    "sessionAffinity": { "enabled": true, "ttlSec": 3600, "header": "x-session-id" },
+    "maxAttempts": 4,
+    "upstreamHeadersTimeoutMs": 120000,
+    "cooldown": { "backoffBaseMs": 1000, "backoffMaxMs": 1800000, "serverErrorMs": 60000, "modelNotFoundMs": 43200000 },
+    "injectStreamUsage": true
+  },
+  "providers": {
+    "anthropic": { "baseUrl": "https://api.anthropic.com" },
+    "openai": { "baseUrl": "https://api.openai.com" }
+  },
+  "accounts": [
+    {
+      "$comment": "PLACEHOLDER account. OAuth subscription tokens need refresh, which is phase 2 (see docs/notes/proxy.md).",
+      "id": "anthropic-max-1",
+      "provider": "anthropic",
+      "label": "Claude Max (placeholder)",
+      "plan": "Claude Max 20x",
+      "planPriceUsd": 200,
+      "authKind": "oauth-subscription",
+      "priority": 0,
+      "role": "active",
+      "secretId": "anthropic-max-1-oauth"
+    },
+    {
+      "id": "anthropic-api-1",
+      "provider": "anthropic",
+      "label": "Anthropic API (placeholder)",
+      "plan": "API pay-as-you-go",
+      "planPriceUsd": 0,
+      "authKind": "api-key",
+      "priority": 10,
+      "role": "standby",
+      "secretId": "anthropic-api-1-key"
+    },
+    {
+      "id": "openai-api-1",
+      "provider": "openai",
+      "label": "OpenAI API (placeholder)",
+      "plan": "API pay-as-you-go",
+      "planPriceUsd": 0,
+      "authKind": "api-key",
+      "priority": 0,
+      "secretId": "openai-api-1-key",
+      "models": ["gpt-*", "o*"]
+    }
+  ],
+  "routes": [
+    { "match": "opus", "provider": "anthropic", "upstreamModel": "claude-opus-5-5", "accounts": [] },
+    { "match": "claude-*", "provider": "anthropic", "upstreamModel": null, "accounts": ["anthropic-max-1", "anthropic-api-1"] },
+    { "match": "gpt-*", "provider": "openai", "upstreamModel": null, "accounts": ["openai-api-1"] }
+  ],
+  "clients": [
+    {
+      "$comment": "keyHash = HMAC-SHA256(pepper, client key). Generate with packages/proxy/scripts/hash-client-key.ts. The zeros are a placeholder.",
+      "id": "t3-vps",
+      "label": "T3 Code - bixku-vps (placeholder)",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "allowedModels": [],
+      "migration": "bixku-proxy",
+      "keyHash": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "bot-telegram",
+      "label": "Bot (placeholder)",
+      "createdAt": "2026-11-15T00:00:00.000Z",
+      "allowedModels": ["claude-sonnet-*", "claude-haiku-*"],
+      "migration": "cliproxyapi",
+      "keyHash": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "models": []
+}
