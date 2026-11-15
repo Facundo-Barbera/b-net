@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TailscaleLink } from "../src/index.ts";
 import {
   createCliSource, createLocalApiSource, indexByHostName, linkPathFromStatus, parseCliPing, parseStatusJson,
-  pingFromLocalApi, toTailscaleLink, type ExecFn, type LocalApiRequest,
+  pingFromLocalApi, toTailscaleLink, TailscalePingResult, type ExecFn, type LocalApiRequest,
 } from "../src/clients/tailscale/index.ts";
 
 const read = (p: string) => readFileSync(new URL(`./fixtures/tailscale/${p}`, import.meta.url), "utf8");
@@ -60,10 +60,10 @@ describe("tailscale ping parsing", () => {
   });
 
   it("maps LocalAPI PingResult", () => {
-    expect(pingFromLocalApi(pings["bixku-vps"] as object)).toEqual({ ok: true, latencyMs: 148, path: "direct", relay: null, error: null });
-    expect(pingFromLocalApi(pings["pc-bixku"] as object)).toMatchObject({ path: "derp", relay: "mia", latencyMs: 87 });
-    expect(pingFromLocalApi(pings["bixku-mba"] as object)).toMatchObject({ path: "peer-relay", latencyMs: 34 });
-    expect(pingFromLocalApi(pings["bixku-mbp"] as object)).toMatchObject({ ok: false, error: "timeout waiting for pong" });
+    expect(pingFromLocalApi(TailscalePingResult.parse(pings["bixku-vps"]))).toEqual({ ok: true, latencyMs: 148, path: "direct", relay: null, error: null });
+    expect(pingFromLocalApi(TailscalePingResult.parse(pings["pc-bixku"]))).toMatchObject({ path: "derp", relay: "mia", latencyMs: 87 });
+    expect(pingFromLocalApi(TailscalePingResult.parse(pings["bixku-mba"]))).toMatchObject({ path: "peer-relay", latencyMs: 34 });
+    expect(pingFromLocalApi(TailscalePingResult.parse(pings["bixku-mbp"]))).toMatchObject({ ok: false, error: "timeout waiting for pong" });
     expect(pingFromLocalApi({ IsLocalIP: true })).toMatchObject({ path: "self", latencyMs: 0 });
   });
 });
