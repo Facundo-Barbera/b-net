@@ -1,4 +1,4 @@
-# bixku-hub
+# b-net
 
 Hub propio del homelab: mapa de máquinas (Tailscale + Beszel/agente), hilos de T3 por máquina, suscripciones y consumo de IA, y un proxy de modelos propio que reemplaza a CLIProxyAPI.
 
@@ -30,3 +30,12 @@ Todas las pruebas corren contra fixtures. No abren puertos ni tocan la red.
 | `packages/proxy` | Proxy OpenAI/Anthropic con pool de cuentas y medición |
 | `packages/agent` | Agente ligero opcional (métricas + exportador T3 de solo lectura) |
 | `packages/web` | UI (React + Vite), temas claro y oscuro |
+
+## Antes de cada push (repo público)
+
+```bash
+pnpm test && pnpm typecheck
+pnpm check:public   # busca credenciales, IPs/dominios reales del tailnet (comparando con `tailscale status`) y emails reales en el árbol y el historial; nunca imprime los valores
+```
+
+Las fixtures usan solo datos falsos: IPs `100.64.0.0/10` inventadas, dominios `.invalid` y el tailnet `tail0fake`.

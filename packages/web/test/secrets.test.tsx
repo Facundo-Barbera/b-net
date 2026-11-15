@@ -88,7 +88,7 @@ describe("SecretsView", () => {
   });
 
   it("renders only SecretMeta fields: injected extra properties never reach the DOM", () => {
-    const poisoned = "sk-ant-oat01-THIS-MUST-NEVER-RENDER-0123456789abcdef0123456789abcdef";
+    const poisoned = "sk-ant-oat01-FAKE-0000000000-not-a-real-token-for-tests-only";
     const secrets = snapshotFixture.secrets.map((s) => ({ ...s, value: poisoned, token: poisoned, secret: poisoned, plaintext: poisoned })) as unknown as HubSnapshot["secrets"];
     const { container } = render(<SecretsView snapshot={{ ...snapshotFixture, secrets }} now={NOW} />);
     const html = container.innerHTML;

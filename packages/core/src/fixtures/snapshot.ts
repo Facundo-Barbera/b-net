@@ -105,9 +105,9 @@ const threads: T3ThreadView[] = [
   thread({ id: "th_05", machineId: "bixku-vps", title: "Notas de Tailscale ACL", state: "dormant", projectTitle: "homelab-ops", updatedAt: ago(60 * 30) }),
   thread({ id: "th_06", machineId: "bixku-vps", title: "Bot de Telegram: comandos", state: "dormant", projectTitle: "bixku-bot", provider: "codex", model: "gpt-5.5", updatedAt: ago(60 * 52), lastRunStatus: "failed" }),
   thread({ id: "th_07", machineId: "bixku-vps", title: "Refactor scripts fleet", state: "dormant", projectTitle: "fleet", updatedAt: ago(60 * 80), lastRunStatus: "interrupted" }),
-  thread({ id: "th_08", machineId: "bixku-focaltec", title: "Facturación CFDI: validaciones", state: "active", projectTitle: "focaltec-api", lastRunStatus: "running", runningSince: ago(3), updatedAt: ago(0), branch: "fix/cfdi-40" }),
-  thread({ id: "th_09", machineId: "bixku-focaltec", title: "Migración Postgres 17", state: "dormant", projectTitle: "focaltec-api", updatedAt: ago(60 * 20) }),
-  thread({ id: "th_10", machineId: "bixku-focaltec", title: "Spike: OCR de facturas", state: "dormant", projectTitle: "focaltec-ocr", provider: "cursor", model: null, updatedAt: ago(60 * 140) }),
+  thread({ id: "th_08", machineId: "bixku-focaltec", title: "API de trabajo: validaciones", state: "active", projectTitle: "work-api", lastRunStatus: "running", runningSince: ago(3), updatedAt: ago(0), branch: "fix/validations" }),
+  thread({ id: "th_09", machineId: "bixku-focaltec", title: "Migración Postgres 17", state: "dormant", projectTitle: "work-api", updatedAt: ago(60 * 20) }),
+  thread({ id: "th_10", machineId: "bixku-focaltec", title: "Spike: extracción de PDFs", state: "dormant", projectTitle: "work-spike", provider: "cursor", model: null, updatedAt: ago(60 * 140) }),
   thread({ id: "th_11", machineId: "pc-bixku", title: "Juego Godot: inventario", state: "idle", projectTitle: "godot-rpg", model: "claude-sonnet-5-5", updatedAt: ago(180) }),
   thread({ id: "th_12", machineId: "pc-bixku", title: "Limpiar disco D:", state: "dormant", projectTitle: "pc-maint", updatedAt: ago(60 * 47) }),
   thread({ id: "th_13", machineId: "bixku-mbp", title: "Omarchy: hyprland config", state: "dormant", projectTitle: "dotfiles", updatedAt: ago(60 * 27) }),
@@ -129,7 +129,7 @@ const accounts: HubSnapshot["accounts"] = [
     last30d: totals(15_480, 301_000_000, 22_400_000, 2_610_000_000, 72_000_000, 3_980.2),
   },
   {
-    id: "anthropic-max-2", provider: "anthropic", label: "Claude Max · Focaltec", plan: "Claude Max 5x", planPriceUsd: 100,
+    id: "anthropic-max-2", provider: "anthropic", label: "Claude Max · trabajo", plan: "Claude Max 5x", planPriceUsd: 100,
     authKind: "oauth-subscription", poolState: "cooldown", cooldownUntil: ahead(38), priority: 1, lastUsedAt: ago(22), lastError: "429 rate_limit_error (5h window exhausted)",
     windows: [
       { kind: "5h", scope: null, startedAt: ago(262), resetsAt: ahead(38), usedPct: 100, source: "provider-headers", totals: totals(198, 4_100_000, 260_000, 30_200_000, 900_000, 46.9) },
@@ -237,7 +237,7 @@ export const snapshotFixture: HubSnapshot = {
   },
   secrets: [
     { id: "sec-anthropic-max-1", kind: "oauth-token", label: "Claude Max · personal", provider: "anthropic", accountId: "anthropic-max-1", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 20), rotatedAt: ago(60 * 7), expiresAt: ahead(60 * 7), lastUsedAt: ago(0), fingerprint: "3fa9c1d2", status: "ok" },
-    { id: "sec-anthropic-max-2", kind: "oauth-token", label: "Claude Max · Focaltec", provider: "anthropic", accountId: "anthropic-max-2", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 20), rotatedAt: ago(60 * 2), expiresAt: ahead(30), lastUsedAt: ago(22), fingerprint: "a07e44b9", status: "expiring" },
+    { id: "sec-anthropic-max-2", kind: "oauth-token", label: "Claude Max · trabajo", provider: "anthropic", accountId: "anthropic-max-2", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 20), rotatedAt: ago(60 * 2), expiresAt: ahead(30), lastUsedAt: ago(22), fingerprint: "a07e44b9", status: "expiring" },
     { id: "sec-openai-pro-1", kind: "oauth-token", label: "ChatGPT Pro · Codex", provider: "openai", accountId: "openai-pro-1", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 12), rotatedAt: ago(60 * 24), expiresAt: ahead(60 * 24 * 9), lastUsedAt: ago(9), fingerprint: "c4d1e8f0", status: "ok" },
     { id: "sec-anthropic-api-1", kind: "api-key", label: "Anthropic API key", provider: "anthropic", accountId: "anthropic-api-1", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 60), rotatedAt: null, expiresAt: null, lastUsedAt: ago(60 * 30), fingerprint: "9b2266aa", status: "ok" },
     { id: "sec-openrouter-1", kind: "api-key", label: "OpenRouter key", provider: "openrouter", accountId: "openrouter-1", storage: "encrypted-file", machineId: "bixku-homelab", createdAt: ago(60 * 24 * 90), rotatedAt: null, expiresAt: null, lastUsedAt: ago(60 * 24 * 9), fingerprint: "5e10d7c3", status: "unknown" },

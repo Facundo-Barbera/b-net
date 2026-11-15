@@ -40,10 +40,10 @@ describe("SubscriptionsView", () => {
     const total = 3980.2 + 1201.0 + 256.0 + 8.74 + 2.11;
     expect(within(screen.getByTestId("sum-cost")).getByText(`$${Math.round(total).toLocaleString("en-US")}`)).toBeTruthy();
     expect(within(screen.getByTestId("sum-cooldown")).getByText("1 / 5")).toBeTruthy();
-    expect(within(screen.getByTestId("sum-cooldown")).getByText(/Focaltec/)).toBeTruthy();
+    expect(within(screen.getByTestId("sum-cooldown")).getByText(/trabajo/)).toBeTruthy();
     const reset = screen.getByTestId("sum-reset");
     expect(within(reset).getByText("38m")).toBeTruthy();
-    expect(within(reset).getByText(/Focaltec · 5 h/)).toBeTruthy();
+    expect(within(reset).getByText(/trabajo · 5 h/)).toBeTruthy();
   });
 
   it("anthropic-max-2: cooldown with countdown, last error and a 100% 5h window", () => {

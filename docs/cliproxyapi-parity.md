@@ -1,6 +1,6 @@
-# Paridad CLIProxyAPI ↔ bixku-proxy
+# Paridad CLIProxyAPI ↔ b-net-proxy
 
-> Fuente de CLIProxyAPI: `docs/research/cliproxyapi-inventory.md` (repo público `router-for-me/CLIProxyAPI`, v8.0.73, commit `43806c8`). No se tocó la instancia real. Estado de bixku-proxy: rama del paquete `packages/proxy`, solo probado con fixtures.
+> Fuente de CLIProxyAPI: `docs/research/cliproxyapi-inventory.md` (repo público `router-for-me/CLIProxyAPI`, v8.0.73, commit `43806c8`). No se tocó la instancia real. Estado de b-net-proxy: rama del paquete `packages/proxy`, solo probado con fixtures.
 >
 > Leyenda: ✅ hecho y con tests · 🟡 parcial · ⏳ fase 2 · ❌ no se hará · — no aplica.
 
@@ -10,7 +10,7 @@ Proxy en Go (gin), puerto 8317. Expone APIs compatibles con OpenAI, Anthropic, G
 
 ## Matriz
 
-| Funcionalidad | CLIProxyAPI | bixku-proxy fase 1 | Fase 2 | No se hará (por qué) |
+| Funcionalidad | CLIProxyAPI | b-net-proxy fase 1 | Fase 2 | No se hará (por qué) |
 |---|---|---|---|---|
 | **Endpoints OpenAI** `/v1/chat/completions`, `/v1/responses`, `/v1/models` | Sí | ✅ passthrough al mismo formato, SSE incluido | | |
 | `/v1/completions` (legacy) | Sí | — | ⏳ si algún cliente lo usa | |
@@ -65,7 +65,7 @@ Proxy en Go (gin), puerto 8317. Expone APIs compatibles con OpenAI, Anthropic, G
 
 CLIProxyAPI reescribe las peticiones para que el proveedor crea que vienen de Claude Code aunque el cliente sea otro. Eso es suplantar a un cliente y probablemente va contra los términos de Anthropic (y, de forma análoga, contra los de OpenAI para las suscripciones ChatGPT/Codex).
 
-**Propuesta para bixku-proxy:**
+**Propuesta para b-net-proxy:**
 - **No** implementar cloaking, ni reescribir `user-agent`/`system`/headers para hacerse pasar por otro cliente, ni falsificar huellas.
 - Reenviar con honestidad: se pasan los headers que manda el propio cliente (`anthropic-beta`, `user-agent`, `anthropic-version`) y nada inventado.
 - Suscripciones (OAuth) solo detrás de sus clientes oficiales (Claude Code, Codex CLI). El resto de clientes (bot, opencode, scripts) usa **API keys** de pago por uso.

@@ -35,7 +35,7 @@ describe("machine detail panel", () => {
     expect(ids("dormant").sort()).toEqual(["thread-th_05", "thread-th_06", "thread-th_07"]);
     expect(group(panel, "archived")).toBeNull();
     // thread belonging to another machine does not leak in
-    expect(within(panel).queryByText("Facturación CFDI: validaciones")).toBeNull();
+    expect(within(panel).queryByText("API de trabajo: validaciones")).toBeNull();
     expect(within(panel).getByText("T3 threads · 7")).toBeTruthy();
   });
 

@@ -1,15 +1,15 @@
 {
-  "$comment": "bixku-proxy example config. PLACEHOLDERS ONLY. Copy to /etc/bixku-proxy/proxy.json on bixku-homelab. No secret values here: accounts reference secret ids stored in the encrypted secrets.enc (see packages/proxy/scripts/secrets.ts). Keys starting with '$' are comments.",
+  "$comment": "b-net-proxy example config. PLACEHOLDERS ONLY. Copy to /etc/b-net-proxy/proxy.json on bixku-homelab. No secret values here: accounts reference secret ids stored in the encrypted secrets.enc (see packages/proxy/scripts/secrets.ts). Keys starting with '$' are comments.",
   "listen": { "host": "100.64.0.10", "port": 8318 },
   "legacyProxy": { "listen": "100.64.0.10:8317", "retired": false },
   "machineId": "bixku-homelab",
   "secrets": {
-    "file": "/var/lib/bixku-proxy/secrets.enc",
-    "masterKeyFile": "/run/credentials/bixku-proxy.service/master-key",
+    "file": "/var/lib/b-net-proxy/secrets.enc",
+    "masterKeyFile": "/run/credentials/b-net-proxy.service/master-key",
     "adminTokenId": "proxy-admin-token",
     "clientKeyPepperId": "client-key-pepper"
   },
-  "records": { "sqlitePath": "/var/lib/bixku-proxy/usage.sqlite" },
+  "records": { "sqlitePath": "/var/lib/b-net-proxy/usage.sqlite" },
   "routing": {
     "strategy": "round-robin",
     "sessionAffinity": { "enabled": true, "ttlSec": 3600, "header": "x-session-id" },

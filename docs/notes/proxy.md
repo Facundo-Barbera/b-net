@@ -1,4 +1,4 @@
-# Notas · packages/proxy (bixku-proxy)
+# Notas · packages/proxy (b-net-proxy)
 
 Estado: fase 1 implementada y probada **solo con fixtures** (sin puertos ni red). `src/serve.ts` está escrito y nunca se ejecutó.
 
@@ -59,7 +59,7 @@ Estado: fase 1 implementada y probada **solo con fixtures** (sin puertos ni red)
 
 ## Preguntas abiertas para Facundo
 
-1. **Cloaking/ToS**: ¿confirmas que bixku-proxy no suplanta clientes y que las suscripciones se usan solo desde Claude Code y Codex oficiales? (propuesta en `docs/cliproxyapi-parity.md`)
+1. **Cloaking/ToS**: ¿confirmas que b-net-proxy no suplanta clientes y que las suscripciones se usan solo desde Claude Code y Codex oficiales? (propuesta en `docs/cliproxyapi-parity.md`)
 2. **OAuth**: ¿quieres que la fase 2 implemente login y refresh de Claude/Codex dentro del proxy, o prefieres cargar los tokens con una herramienta aparte y que el proxy solo los refresque?
 3. **Headers reales de rate-limit**: ¿puedes capturar headers de respuesta (sin tokens) de una cuenta Max y de una Codex? Los formatos `anthropic-ratelimit-unified-*` y `x-codex-*` son supuestos (por ejemplo, ¿utilization es una fracción 0–1 o un porcentaje? ¿el reset es epoch o ISO?).
 4. **Precios de OpenAI/otros**: ¿qué modelos usas? Hay que cargar sus precios verificados con fuente y fecha.

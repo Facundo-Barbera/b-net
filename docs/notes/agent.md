@@ -6,7 +6,7 @@
 - **Colector de métricas** (`src/metrics/`): parsers puros (`parsers.ts`) + `createCollector(deps)` con todo el I/O inyectado (`readFile`, `statfs`, `exec`, `os`, reloj). Anillo de historial `MetricHistoryBuffer` (30 puntos, `stepSec` 60 por defecto). `Sampler` guarda la última muestra y el historial; el timer vive solo en `serve.ts`.
 - **Handler** `createAgentHandler(deps) => (req: Request) => Promise<Response>` para `AgentRoutes`. **Todas** las rutas (también `health`) exigen `Authorization: Bearer`, comparado en tiempo constante (sha256 de ambos + `timingSafeEqual`). Sin token configurado el constructor lanza (falla cerrado). 401 no ejecuta ningún trabajo (no lee métricas ni la base de T3).
 - **`src/serve.ts`**: monta el handler en `node:http` sobre `AGENT_LISTEN_HOST`. **Nunca se ejecutó aquí.** Rechaza hosts wildcard (`0.0.0.0`, `::`), exige una IP literal y un token de ≥16 chars (`AGENT_TOKEN_FILE`, pensado para `LoadCredential` de systemd).
-- **`deploy/`**: `bixku-agent.service.example` (systemd, endurecido, token por credencial) y `dev.bixku.agent.plist.example` (launchd). Solo ejemplos con placeholders `<…>` / `REPLACE_…`.
+- **`deploy/`**: `b-net-agent.service.example` (systemd, endurecido, token por credencial) y `dev.bixku.agent.plist.example` (launchd). Solo ejemplos con placeholders `<…>` / `REPLACE_…`.
 
 ### Configuración (variables de entorno)
 
