@@ -23,7 +23,7 @@ importers:
 
   packages/agent:
     dependencies:
-      '@bixku/core':
+      '@b-net/core':
         specifier: workspace:*
         version: link:../core
 
@@ -35,7 +35,7 @@ importers:
 
   packages/hub:
     dependencies:
-      '@bixku/core':
+      '@b-net/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -44,7 +44,7 @@ importers:
 
   packages/proxy:
     dependencies:
-      '@bixku/core':
+      '@b-net/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -53,7 +53,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@bixku/core':
+      '@b-net/core':
         specifier: workspace:*
         version: link:../core
       react:

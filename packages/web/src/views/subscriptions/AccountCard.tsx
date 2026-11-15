@@ -1,4 +1,4 @@
-import type { AccountView, UsageTotals, UsageWindow } from "@bixku/core";
+import type { AccountView, UsageTotals, UsageWindow } from "@b-net/core";
 import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, Table, Tag, meterTone, toneForPoolState, type Tone } from "../../components/index.ts";
 import { USAGE_DANGER_AT } from "../../lib/thresholds.ts";
 import { formatCountdown, formatInt, formatMoney, formatTokens, formatUsd, formatUsdHeadline, DASH } from "../../lib/format.ts";

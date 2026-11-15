@@ -2,9 +2,9 @@
  * Hub runtime: owns one SourceTracker per source, runs poll cycles (on demand or on timers)
  * and builds the HubSnapshot from fresh data. All I/O is injected so tests drive it with fakes.
  */
-import type { AgentMetrics, HubSnapshot, MachineConfig, T3ThreadView } from "@bixku/core";
-import type { BeszelClient, BeszelMachine } from "@bixku/core/clients/beszel";
-import type { PingOutcome, TailscaleSource, TailscaleStatus } from "@bixku/core/clients/tailscale";
+import type { AgentMetrics, HubSnapshot, MachineConfig, T3ThreadView } from "@b-net/core";
+import type { BeszelClient, BeszelMachine } from "@b-net/core/clients/beszel";
+import type { PingOutcome, TailscaleSource, TailscaleStatus } from "@b-net/core/clients/tailscale";
 import { aggregate } from "./aggregate.ts";
 import { SourceTracker, type Clock } from "./health.ts";
 import { fetchAgentMetrics, fetchAgentThreads, fetchProxy, ingestUsage, pollTailscale, type FetchLike } from "./sources.ts";

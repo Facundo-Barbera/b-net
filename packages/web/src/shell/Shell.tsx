@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import type { HubSnapshot } from "@bixku/core";
+import type { HubSnapshot } from "@b-net/core";
 import type { DataMode } from "../data/useSnapshot.ts";
 import { useTheme } from "../lib/theme.ts";
 import type { RouteDef } from "../routes.tsx";
@@ -21,7 +21,7 @@ export function Shell({ route, snapshot, mode, children }: ShellProps) {
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   useEffect(() => {
-    document.title = `${route.label} · bixku hub`;
+    document.title = `${route.label} · b-net`;
     setDrawerOpen(false);
   }, [route.id, route.label]);
 

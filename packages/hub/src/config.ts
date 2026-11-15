@@ -4,7 +4,7 @@
  * plain env vars are accepted as a fallback. Secret values are never logged or echoed in errors.
  */
 import { z } from "zod";
-import { MachineConfig } from "@bixku/core";
+import { MachineConfig } from "@b-net/core";
 
 export type ReadTextFile = (path: string) => string;
 

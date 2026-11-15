@@ -1,4 +1,4 @@
-import type { MachineView, AccountView, SecretMeta, T3ThreadView } from "@bixku/core";
+import type { MachineView, AccountView, SecretMeta, T3ThreadView } from "@b-net/core";
 import { USAGE_DANGER_AT, USAGE_WARN_AT } from "../lib/thresholds.ts";
 
 type ServiceProbe = MachineView["services"][number];

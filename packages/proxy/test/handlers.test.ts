@@ -1,4 +1,4 @@
-import { UsageRecord } from "@bixku/core";
+import { UsageRecord } from "@b-net/core";
 import { describe, expect, it } from "vitest";
 import { createProxyApp } from "../src/app.ts";
 import { account, baseConfig, CLIENT_KEY, clientRequest, credentialOf, jsonReply, LIMITED_KEY, makeDeps, ScriptedUpstream, sseReply, chunked } from "./helpers.ts";

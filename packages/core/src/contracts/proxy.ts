@@ -43,8 +43,8 @@ export const ClientKeyView = z.object({
   lastUsedAt: IsoTime.nullable(),
   /** Glob patterns; empty = all models. */
   allowedModels: z.array(z.string()),
-  /** Whether this client is migrated to bixku-proxy or still on CLIProxyAPI. */
-  migration: z.enum(["cliproxyapi", "bixku-proxy", "both"]),
+  /** Whether this client is migrated to b-net-proxy or still on CLIProxyAPI. */
+  migration: z.enum(["cliproxyapi", "b-net-proxy", "both"]),
 });
 export type ClientKeyView = z.infer<typeof ClientKeyView>;
 

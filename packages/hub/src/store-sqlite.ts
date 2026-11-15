@@ -3,7 +3,7 @@
  * Rows keep the full record as JSON plus indexed columns for cursor/account queries.
  */
 import { DatabaseSync } from "node:sqlite";
-import { UsageRecord, type UsageRecordsPage } from "@bixku/core";
+import { UsageRecord, type UsageRecordsPage } from "@b-net/core";
 import { MAX_PAGE, type ListQuery, type UsageStore } from "./store.ts";
 
 export class SqliteUsageStore implements UsageStore {

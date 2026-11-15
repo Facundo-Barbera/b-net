@@ -7,7 +7,7 @@
  * ExperimentalWarning on Node 22; only serve.ts and its test import it.
  */
 import { DatabaseSync } from "node:sqlite";
-import type { UsageRecord, UsageRecordsPage, UsageTotals } from "@bixku/core";
+import type { UsageRecord, UsageRecordsPage, UsageTotals } from "@b-net/core";
 import type { RecordStore, TotalsFilter } from "./records.ts";
 
 const SCHEMA = `

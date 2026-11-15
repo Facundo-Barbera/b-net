@@ -1,5 +1,5 @@
 {
-  "name": "@bixku/agent",
+  "name": "@b-net/agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@bixku/core": "workspace:*"
+    "@b-net/core": "workspace:*"
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning src/serve.ts"

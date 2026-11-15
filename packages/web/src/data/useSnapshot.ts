@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HubRoutes, snapshotFixture, type HubSnapshot } from "@bixku/core";
+import { HubRoutes, snapshotFixture, type HubSnapshot } from "@b-net/core";
 
 /**
  * Data access for every view. Mode "fixture" (default in phase 1 / tests) returns the

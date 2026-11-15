@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { HubSnapshot } from "@bixku/core";
+import type { HubSnapshot } from "@b-net/core";
 import { MachinesIcon, ProxyIcon, SecretsIcon, SubscriptionsIcon } from "./components/icons.tsx";
 import { MachinesView } from "./views/machines/MachinesView.tsx";
 import { SubscriptionsView } from "./views/subscriptions/SubscriptionsView.tsx";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
-import { snapshotFixture, type HubSnapshot } from "@bixku/core";
+import { snapshotFixture, type HubSnapshot } from "@b-net/core";
 import { MachinesView } from "../src/views/machines/MachinesView.tsx";
 import { groupThreads } from "../src/views/machines/derive.ts";
 import { formatBps, formatDuration, formatRelative, formatUsedOfGb } from "../src/lib/format.ts";
@@ -71,7 +71,7 @@ describe("machine detail panel", () => {
     snap.threads.find((t) => t.id === "th_02")!.state = "idle";
     const panel = open("bixku-vps", snap);
     const child = within(group(panel, "idle")!).getByTestId("thread-th_02");
-    expect(within(child).getByText(/subagent of “bixku-hub fase 1 \(coordinador\)”/)).toBeTruthy();
+    expect(within(child).getByText(/subagent of “b-net fase 1 \(coordinador\)”/)).toBeTruthy();
   });
 
   it("hides archived threads behind a toggle", () => {

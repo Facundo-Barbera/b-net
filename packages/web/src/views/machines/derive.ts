@@ -1,5 +1,5 @@
 /** View-local derivations over the snapshot: status/tone mapping, summary, link labels, thread grouping. */
-import type { MachineStatus, MachineView, T3ThreadView, ThreadState } from "@bixku/core";
+import type { MachineStatus, MachineView, T3ThreadView, ThreadState } from "@b-net/core";
 import { formatMs, formatRelative } from "../../lib/format.ts";
 
 export const STATUS_LABEL: Record<MachineStatus, string> = {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { snapshotFixture, type HubSnapshot } from "@bixku/core";
+import { snapshotFixture, type HubSnapshot } from "@b-net/core";
 import { App } from "../src/shell/App.tsx";
 import { deriveNavBadges } from "../src/shell/badges.ts";
 import { resolveRoute } from "../src/shell/useHashRoute.ts";
@@ -28,7 +28,7 @@ const theme = () => document.documentElement.getAttribute("data-theme");
 describe("shell navigation", () => {
   it("renders brand, one nav link per route and defaults to machines", () => {
     render(<App mode="fixture" />);
-    expect(screen.getByText("bixku hub")).toBeTruthy();
+    expect(document.querySelector(".sh-brand__name")?.textContent).toBe("b-net");
     const nav = screen.getByRole("navigation", { name: "Primary" });
     const links = within(nav).getAllByRole("link");
     expect(links).toHaveLength(routes.length);
@@ -49,7 +49,7 @@ describe("shell navigation", () => {
     expect(await screen.findByTestId("view-proxy")).toBeTruthy();
     expect(current().map((l) => l.getAttribute("href"))).toEqual(["#/proxy"]);
     expect(screen.getByTestId("page-title").textContent).toBe("Proxy");
-    expect(document.title).toBe("Proxy · bixku hub");
+    expect(document.title).toBe("Proxy · b-net");
 
     act(() => {
       location.hash = "#/secrets";

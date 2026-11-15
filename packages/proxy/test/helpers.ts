@@ -40,7 +40,7 @@ export function baseConfig(over: Record<string, unknown> = {}): ProxyConfig {
     records: { sqlitePath: ":memory:" },
     accounts: [account("anthropic-a"), account("anthropic-b"), account("openai-a", { provider: "openai" })],
     clients: [
-      { id: "t3-test", label: "T3 test", createdAt: "2026-11-01T00:00:00.000Z", allowedModels: [], migration: "bixku-proxy", keyHash: hashClientKey(CLIENT_KEY, DUMMY_PEPPER) },
+      { id: "t3-test", label: "T3 test", createdAt: "2026-11-01T00:00:00.000Z", allowedModels: [], migration: "b-net-proxy", keyHash: hashClientKey(CLIENT_KEY, DUMMY_PEPPER) },
       { id: "bot-test", label: "Bot test", createdAt: "2026-11-01T00:00:00.000Z", allowedModels: ["claude-sonnet-*"], migration: "both", keyHash: hashClientKey(LIMITED_KEY, DUMMY_PEPPER) },
     ],
     ...over,

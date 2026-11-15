@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- EXAMPLE ONLY - placeholders. Copy to ~/Library/LaunchAgents/dev.bixku.agent.plist, then:
-     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.bixku.agent.plist
+<!-- EXAMPLE ONLY - placeholders. Copy to ~/Library/LaunchAgents/dev.b-net.agent.plist, then:
+     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.b-net.agent.plist
      Keep the token in a file readable only by you (chmod 600); it is never put in this plist. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>dev.bixku.agent</string>
+  <key>Label</key><string>dev.b-net.agent</string>
   <key>ProgramArguments</key>
   <array>
     <string>REPLACE_PATH_TO_NODE/bin/node</string>
@@ -18,11 +18,11 @@
     <key>AGENT_MACHINE_ID</key><string>REPLACE_MACHINE_ID</string>
     <key>AGENT_LISTEN_HOST</key><string>REPLACE_TAILSCALE_IP</string>
     <key>AGENT_PORT</key><string>8781</string>
-    <key>AGENT_TOKEN_FILE</key><string>/Users/REPLACE_USER/.config/bixku-agent/token</string>
+    <key>AGENT_TOKEN_FILE</key><string>/Users/REPLACE_USER/.config/b-net-agent/token</string>
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/Users/REPLACE_USER/Library/Logs/bixku-agent.log</string>
-  <key>StandardErrorPath</key><string>/Users/REPLACE_USER/Library/Logs/bixku-agent.log</string>
+  <key>StandardOutPath</key><string>/Users/REPLACE_USER/Library/Logs/b-net-agent.log</string>
+  <key>StandardErrorPath</key><string>/Users/REPLACE_USER/Library/Logs/b-net-agent.log</string>
 </dict>
 </plist>

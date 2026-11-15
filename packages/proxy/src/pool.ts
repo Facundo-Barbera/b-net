@@ -15,7 +15,7 @@
  *   5xx / timeout / network -> cooldown serverErrorMs (60 s)
  *   404          -> per-model cooldown (modelNotFoundMs)
  */
-import type { PoolState, UsageWindow } from "@bixku/core";
+import type { PoolState, UsageWindow } from "@b-net/core";
 import type { AccountConfig, ProxyConfig } from "./config.ts";
 import { cooldownHint, parseUsageWindows } from "./ratelimit.ts";
 import { type Clock, anyGlob } from "./util.ts";

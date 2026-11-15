@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 export type ThemePref = "system" | "dark" | "light";
 export type ResolvedTheme = "dark" | "light";
 
-export const THEME_STORAGE_KEY = "bixku-hub.theme";
+export const THEME_STORAGE_KEY = "b-net.theme";
 export const THEME_PREFS: readonly ThemePref[] = ["system", "dark", "light"];
 
 const isPref = (v: unknown): v is ThemePref => v === "system" || v === "dark" || v === "light";

@@ -2,7 +2,7 @@
  * Usage-record store (hub side). Records come from the proxy (/internal/v1/records) and are
  * stored append-only, idempotent by ULID id. The ingestion cursor is persisted with them.
  */
-import type { UsageRecord, UsageRecordsPage } from "@bixku/core";
+import type { UsageRecord, UsageRecordsPage } from "@b-net/core";
 
 export interface ListQuery {
   /** Exclusive lower bound (ULID). */

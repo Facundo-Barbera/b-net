@@ -11,7 +11,7 @@
  *               the system "down" while Tailscale says it's online (metrics agent dead).
  * 5. online   — otherwise.
  */
-import type { MachineMetrics, MachineStatus } from "@bixku/core";
+import type { MachineMetrics, MachineStatus } from "@b-net/core";
 
 export interface StatusThresholds {
   cpuPct: number;

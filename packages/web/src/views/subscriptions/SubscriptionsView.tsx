@@ -1,4 +1,4 @@
-import type { AccountView, ProviderId } from "@bixku/core";
+import type { AccountView, ProviderId } from "@b-net/core";
 import { Card, EmptyState, PageHeader, Stat, StatStrip, StatusDot, useNow } from "../../components/index.ts";
 import { DASH, formatSpan, formatUsdHeadline } from "../../lib/format.ts";
 import type { ViewProps } from "../../routes.tsx";

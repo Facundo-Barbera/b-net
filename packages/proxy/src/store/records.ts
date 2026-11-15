@@ -6,7 +6,7 @@
  * cursor: a record can never appear "behind" a cursor the hub already passed.
  * `ts` keeps the request start time.
  */
-import type { UsageRecord, UsageRecordsPage, UsageTotals } from "@bixku/core";
+import type { UsageRecord, UsageRecordsPage, UsageTotals } from "@b-net/core";
 
 export interface TotalsFilter {
   accountId?: string;

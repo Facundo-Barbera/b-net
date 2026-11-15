@@ -1,7 +1,7 @@
 /**
  * Production entrypoint: mounts the Fetch-API app on node:http.
  *
- *   node packages/proxy/src/serve.ts /etc/bixku-proxy/proxy.json
+ *   node packages/proxy/src/serve.ts /etc/b-net-proxy/proxy.json
  *
  * NOT run during development on bixku-vps (no services there). Deployed by
  * Facundo on bixku-homelab, binding only to the Tailscale IP from config.
@@ -89,7 +89,7 @@ export function main(configPath: string) {
         res.end();
       });
   });
-  server.listen(config.listen.port, config.listen.host, () => logger.log("info", "bixku-proxy listening", { listen: hostHeader, version: VERSION }));
+  server.listen(config.listen.port, config.listen.host, () => logger.log("info", "b-net-proxy listening", { listen: hostHeader, version: VERSION }));
   const stop = () => server.close(() => (deps.store.close?.(), process.exit(0)));
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);

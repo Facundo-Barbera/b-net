@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { snapshotFixture, type UsageRecord } from "@bixku/core";
+import { snapshotFixture, type UsageRecord } from "@b-net/core";
 import { MemoryUsageStore, type UsageStore } from "../src/store.ts";
 import { SqliteUsageStore } from "../src/store-sqlite.ts";
 import { ingestUsage } from "../src/sources.ts";

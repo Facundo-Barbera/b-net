@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
-import { snapshotFixture, type HubSnapshot } from "@bixku/core";
+import { snapshotFixture, type HubSnapshot } from "@b-net/core";
 import { MachinesView } from "../src/views/machines/MachinesView.tsx";
 import { NOW_MS, renderAt } from "./helpers.tsx";
 

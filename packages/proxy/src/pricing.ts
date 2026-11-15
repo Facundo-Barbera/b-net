@@ -11,7 +11,7 @@
  *  - `verified: false`: placeholder entry. Prices are null -> cost is null.
  *    Do not invent numbers; fill these from the provider's pricing page.
  */
-import type { ProviderId } from "@bixku/core";
+import type { ProviderId } from "@b-net/core";
 
 export interface PriceTier {
   /** Applies while promptTokens (input + cache read + cache write) <= this. null = no upper bound. */

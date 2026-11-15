@@ -8,7 +8,7 @@
  * the shapes below are best guesses, tested only with synthetic fixtures.
  * Anything unparseable is ignored rather than throwing.
  */
-import type { UsageWindow } from "@bixku/core";
+import type { UsageWindow } from "@b-net/core";
 import { iso } from "./util.ts";
 
 type HeaderBag = Headers | Record<string, string | undefined>;

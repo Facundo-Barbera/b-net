@@ -5,7 +5,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@bixku/core";
+import { HubRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@b-net/core";
 import type { UsageStore } from "./store.ts";
 
 export type Handler = (req: Request) => Promise<Response>;

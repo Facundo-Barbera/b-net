@@ -7,8 +7,8 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve } from "node:path";
 import { Readable } from "node:stream";
-import { createBeszelClient } from "@bixku/core/clients/beszel";
-import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@bixku/core/clients/tailscale";
+import { createBeszelClient } from "@b-net/core/clients/beszel";
+import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
 import { loadHubConfig } from "./config.ts";
 import { createHandler, fsStaticReader, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
@@ -90,7 +90,7 @@ async function main() {
 
   const stop = hub.start();
   const server = mount(handler, cfg.listenHost, cfg.listenPort);
-  console.log(`bixku-hub listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"})`);
+  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"})`);
   const shutdown = () => {
     stop();
     server.close(() => {
@@ -104,7 +104,7 @@ async function main() {
 
 if (import.meta.main ?? process.argv[1] === import.meta.filename) {
   main().catch((e) => {
-    console.error(`bixku-hub failed to start: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`b-net failed to start: ${e instanceof Error ? e.message : String(e)}`);
     process.exit(1);
   });
 }

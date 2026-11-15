@@ -1,5 +1,5 @@
 {
-  "name": "@bixku/proxy",
+  "name": "@b-net/proxy",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@bixku/core": "workspace:*",
+    "@b-net/core": "workspace:*",
     "zod": "^4.6.7"
   }
 }

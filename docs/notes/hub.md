@@ -6,8 +6,8 @@ Rama: `t3/hub-api-aggregation-clients`. Todo se validó con fixtures FALSOS (IPs
 
 | Pieza | Archivo |
 |---|---|
-| Cliente Beszel (PocketBase) | `packages/core/src/clients/beszel/index.ts` → `@bixku/core/clients/beszel` |
-| Cliente Tailscale (CLI / LocalAPI + parser de `tailscale ping`) | `packages/core/src/clients/tailscale/index.ts` → `@bixku/core/clients/tailscale` |
+| Cliente Beszel (PocketBase) | `packages/core/src/clients/beszel/index.ts` → `@b-net/core/clients/beszel` |
+| Cliente Tailscale (CLI / LocalAPI + parser de `tailscale ping`) | `packages/core/src/clients/tailscale/index.ts` → `@b-net/core/clients/tailscale` |
 | Fixtures falsos | `packages/core/test/fixtures/{beszel,tailscale}/` |
 | Config (env + machines.json) | `packages/hub/src/config.ts`, `config/hub.example.env` |
 | SourceTracker (SourceHealth + último valor) | `packages/hub/src/health.ts` |

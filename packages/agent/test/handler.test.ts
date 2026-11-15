@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentHealth, AgentMetrics, AgentRoutes, AgentThreads, type T3ThreadView } from "@bixku/core";
-import type { T3ReadResult } from "@bixku/core/clients/t3";
+import { AgentHealth, AgentMetrics, AgentRoutes, AgentThreads, type T3ThreadView } from "@b-net/core";
+import type { T3ReadResult } from "@b-net/core/clients/t3";
 import { createAgentHandler, safeEqual, type AgentHandlerDeps } from "../src/handler.ts";
 import { ConfigError, isWildcardHost, loadConfig } from "../src/config.ts";
 
@@ -36,7 +36,7 @@ function setup(over: Partial<AgentHandlerDeps> = {}) {
     history: { stepSec: 60, cpuPct: [12], memPct: [50] },
   }));
   const handler = createAgentHandler({
-    machineId: "bixku-test",
+    machineId: "b-net-test",
     token: TOKEN,
     version: "0.1.0",
     startedAt: new Date("2026-01-01T00:00:00Z"),
@@ -97,7 +97,7 @@ describe("agent handler: routes", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
     const body = AgentHealth.parse(await res.json());
-    expect(body).toMatchObject({ machineId: "bixku-test", version: "0.1.0", t3Available: true });
+    expect(body).toMatchObject({ machineId: "b-net-test", version: "0.1.0", t3Available: true });
 
     const down = setup({
       readThreads: () => ({ threads: [], health: { ok: false, reason: "db_not_found", detail: "x", degraded: [] } }),
@@ -108,7 +108,7 @@ describe("agent handler: routes", () => {
   it("metrics matches AgentMetrics", async () => {
     const { handler } = setup();
     const body = AgentMetrics.parse(await (await handler(get(AgentRoutes.metrics, auth))).json());
-    expect(body.machineId).toBe("bixku-test");
+    expect(body.machineId).toBe("b-net-test");
     expect(body.at).toBe("2026-01-01T00:01:00.000Z");
     expect(body.history?.cpuPct).toEqual([12]);
   });
@@ -117,7 +117,7 @@ describe("agent handler: routes", () => {
     const { handler } = setup();
     const body = AgentThreads.parse(await (await handler(get(AgentRoutes.t3Threads, auth))).json());
     expect(body.threads).toHaveLength(1);
-    expect(body.threads[0]!.machineId).toBe("bixku-test");
+    expect(body.threads[0]!.machineId).toBe("b-net-test");
   });
 
   it("t3 unavailable still answers 200 with an empty list", async () => {

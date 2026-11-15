@@ -4,7 +4,7 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 
 ## 1. Producto y stack
 
-1. ~~**Nombre final.**~~ Decidido: **b-net** (repo público `Facundo-Barbera/b-net`). Pendiente menor: los paquetes internos siguen con el scope `@bixku/*` y el valor de contrato `migration: "bixku-proxy"`. Propuesta: renombrarlos a `@b-net/*` y `"b-net-proxy"` en un commit aparte. ¿El servicio del proxy se llama `b-net-proxy`?
+1. ~~**Nombre final.**~~ Decidido: **b-net** (repo público `Facundo-Barbera/b-net`). Paquetes `@b-net/*`, servicios `b-net` (hub), `b-net-proxy` y `b-net-agent`. Los hostnames reales (`bixku-*`) no cambian.
 1b. ⭐ **Licencia.** El repo es público y no tiene licencia, así que por defecto nadie puede reutilizar el código. ¿MIT, Apache-2.0, AGPL-3.0, o sin licencia por ahora? No se agregará ninguna hasta que la decidas.
 2. ⭐ **Stack del proxy.** Propuesta: TypeScript, ya implementado (ver `architecture.md §5`). ¿Prefieres Go para tener un único binario y menos RAM en el homelab (7.5 GB)? El contrato `/internal/v1/*` permite reescribirlo sin tocar el hub.
 3. **Puertos.** Propuesta: hub `:8780`, proxy `:8318` (junto a CLIProxyAPI `:8317`) y agentes `:8781`. ¿Chocan con algo en el homelab?

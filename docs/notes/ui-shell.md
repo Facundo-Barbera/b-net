@@ -6,7 +6,7 @@
 
 - **Shell** (`shell/`): `App` (datos + ruta hash + tema) → `Shell` (skip link, `Sidebar`, `Topbar`, `<main id="main-content">`). `App` acepta `mode` para tests (`<App mode="fixture" />`).
 - **Responsive**: ≥900 px sidebar completa (232 px) · 600–899 px riel de iconos (56 px, etiquetas solo para lectores de pantalla) · <600 px cajón con botón de menú (Escape, backdrop y navegar lo cierran).
-- **Tema**: `system | dark | light` en `localStorage["bixku-hub.theme"]` (todo en try/catch), escribe `data-theme` en `<html>`. `index.html` aplica el tema guardado antes del primer paint.
+- **Tema**: `system | dark | light` en `localStorage["b-net.theme"]` (todo en try/catch), escribe `data-theme` en `<html>`. `index.html` aplica el tema guardado antes del primer paint.
 - **Reloj**: `NowProvider`/`useNow()`. En modo fixture "ahora" = `snapshot.generatedAt` (el fixture se ve vivo y los tiempos relativos son deterministas); en modo live es el reloj real con tick cada 30 s. **Regla única para las vistas, ver Convenciones.**
 - **Badges del nav** (`shell/badges.ts`, `deriveNavBadges`): Machines = offline (si no hay, degraded) · Subscriptions = cuentas en cooldown/error · Proxy = errores de la última hora · Secrets = expiring/expired/invalid.
 

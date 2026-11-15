@@ -12,7 +12,7 @@
  *    (and Responses API events), preserving usage for metering
  *  - errors: map error shapes and status codes both ways
  */
-import type { ApiFormat } from "@bixku/core";
+import type { ApiFormat } from "@b-net/core";
 import type { UpstreamFormat } from "./config.ts";
 
 export class TranslationNotImplemented extends Error {

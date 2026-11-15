@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { render, type RenderResult } from "@testing-library/react";
-import { snapshotFixture } from "@bixku/core";
+import { snapshotFixture } from "@b-net/core";
 import { NowProvider } from "../src/components/index.ts";
 
 /** Reference time of the canonical fixture; what the shell uses as "now" in fixture mode. */

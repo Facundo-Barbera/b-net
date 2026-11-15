@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MachineView, SourceHealth, T3ThreadView } from "@bixku/core";
+import type { MachineView, SourceHealth, T3ThreadView } from "@b-net/core";
 import { Badge, Callout, Card, EmptyState, Sparkline, StatusDot, toneForMachineStatus, toneForThreadState } from "../../components/index.ts";
 import { formatDuration } from "../../lib/format.ts";
 import { USAGE_WARN_AT } from "../../lib/thresholds.ts";

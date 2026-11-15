@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { screen, within } from "@testing-library/react";
-import { snapshotFixture } from "@bixku/core";
-import type { HubSnapshot } from "@bixku/core";
+import { snapshotFixture } from "@b-net/core";
+import type { HubSnapshot } from "@b-net/core";
 import { ProxyView } from "../src/views/proxy/ProxyView.tsx";
 import { renderAt } from "./helpers.tsx";
 
@@ -15,7 +15,7 @@ describe("ProxyView", () => {
     const legacy = within(screen.getByTestId("proxy-legacy"));
     expect(legacy.getByText("CLIProxyAPI")).toBeTruthy();
     expect(legacy.getByText("en paralelo")).toBeTruthy();
-    expect(legacy.getByText(/junto a bixku-proxy/)).toBeTruthy();
+    expect(legacy.getByText(/junto a b-net-proxy/)).toBeTruthy();
     expect(legacy.getByText(/aprobación explícita/)).toBeTruthy();
   });
 
@@ -53,7 +53,7 @@ describe("ProxyView", () => {
 
   it("shows each client's migration state and overall progress", () => {
     renderAt(<ProxyView snapshot={snapshotFixture} />);
-    expect(within(screen.getByTestId("client-t3-vps")).getByText("bixku-proxy")).toBeTruthy();
+    expect(within(screen.getByTestId("client-t3-vps")).getByText("b-net-proxy")).toBeTruthy();
     expect(within(screen.getByTestId("client-opencode-mbp")).getByText("En paralelo")).toBeTruthy();
     expect(within(screen.getByTestId("client-bot-telegram")).getByText("CLIProxyAPI")).toBeTruthy();
     expect(screen.getByTestId("migration-count").textContent).toBe("1 de 3 migrados");
@@ -63,7 +63,7 @@ describe("ProxyView", () => {
 
   it("flags readiness to retire CLIProxyAPI only when every client is migrated", () => {
     const proxy = snapshotFixture.proxy!;
-    const snap: HubSnapshot = { ...snapshotFixture, proxy: { ...proxy, clients: proxy.clients.map((c) => ({ ...c, migration: "bixku-proxy" as const })) } };
+    const snap: HubSnapshot = { ...snapshotFixture, proxy: { ...proxy, clients: proxy.clients.map((c) => ({ ...c, migration: "b-net-proxy" as const })) } };
     renderAt(<ProxyView snapshot={snap} />);
     expect(screen.getByTestId("migration-count").textContent).toBe("3 de 3 migrados");
     expect(screen.getByTestId("migration-note").textContent).toMatch(/Todos los clientes/);

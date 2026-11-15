@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, statfs } from "node:fs/promises";
 import os from "node:os";
 import { promisify } from "node:util";
-import type { MachineMetrics } from "@bixku/core";
+import type { MachineMetrics } from "@b-net/core";
 import {
   BYTES_PER_GB,
   clampPct,

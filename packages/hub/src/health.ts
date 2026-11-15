@@ -1,4 +1,4 @@
-import type { SourceHealth } from "@bixku/core";
+import type { SourceHealth } from "@b-net/core";
 
 export type SourceName = SourceHealth["source"];
 export type Clock = () => Date;

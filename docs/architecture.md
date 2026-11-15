@@ -19,11 +19,11 @@ Inspiración visual: dashboard strawhat (oscuro, mapa de máquinas con latencia,
 ```
 b-net/
 ├─ packages/
-│  ├─ core/    @bixku/core   contratos compartidos (zod + tipos), fixtures canónicos, clientes tipados
-│  ├─ hub/     @bixku/hub    API /api/v1 + agregación de fuentes + sirve la UI compilada
-│  ├─ proxy/   @bixku/proxy  proxy de modelos (OpenAI/Anthropic), pool de cuentas, medición
-│  ├─ agent/   @bixku/agent  agente ligero opcional por máquina (métricas + exportador T3)
-│  └─ web/     @bixku/web    UI React (Vite), vistas Machines / Subscriptions / Proxy / Secrets
+│  ├─ core/    @b-net/core   contratos compartidos (zod + tipos), fixtures canónicos, clientes tipados
+│  ├─ hub/     @b-net/hub    API /api/v1 + agregación de fuentes + sirve la UI compilada
+│  ├─ proxy/   @b-net/proxy  proxy de modelos (OpenAI/Anthropic), pool de cuentas, medición
+│  ├─ agent/   @b-net/agent  agente ligero opcional por máquina (métricas + exportador T3)
+│  └─ web/     @b-net/web    UI React (Vite), vistas Machines / Subscriptions / Proxy / Secrets
 ├─ docs/
 └─ config/     ejemplos de configuración (sin secretos)
 ```

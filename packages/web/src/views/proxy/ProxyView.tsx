@@ -1,4 +1,4 @@
-import type { ApiFormat, ClientKeyView, ProxyStatus, UsageRecord } from "@bixku/core";
+import type { ApiFormat, ClientKeyView, ProxyStatus, UsageRecord } from "@b-net/core";
 import { Badge, Card, EmptyState, KV, KeyValue, PageHeader, RelativeTime, Stat, StatStrip, StatusDot, Table, Tag, type Tone } from "../../components/index.ts";
 import { formatInt, formatMs, formatPercent, formatSpan, formatTokens, formatUsd } from "../../lib/format.ts";
 import type { ViewProps } from "../../routes.tsx";
@@ -23,13 +23,13 @@ const OUTCOME_TONE: Record<UsageRecord["outcome"], Tone> = {
   aborted: "idle",
 };
 
-const MIGRATION_STEPS: ClientKeyView["migration"][] = ["cliproxyapi", "both", "bixku-proxy"];
+const MIGRATION_STEPS: ClientKeyView["migration"][] = ["cliproxyapi", "both", "b-net-proxy"];
 const MIGRATION_LABEL: Record<ClientKeyView["migration"], string> = {
   cliproxyapi: "CLIProxyAPI",
   both: "En paralelo",
-  "bixku-proxy": "bixku-proxy",
+  "b-net-proxy": "b-net-proxy",
 };
-const MIGRATION_TONE: Record<ClientKeyView["migration"], Tone> = { cliproxyapi: "idle", both: "warn", "bixku-proxy": "ok" };
+const MIGRATION_TONE: Record<ClientKeyView["migration"], Tone> = { cliproxyapi: "idle", both: "warn", "b-net-proxy": "ok" };
 
 /* ---------------------------------------------------------------- header */
 
@@ -40,7 +40,7 @@ function StatusHeader({ proxy, sourceOk }: { proxy: ProxyStatus; sourceOk: boole
       <div className="px-status-main">
         <div className="px-status-id">
           <StatusDot tone={sourceOk ? "ok" : "danger"} />
-          <h2>bixku-proxy</h2>
+          <h2>b-net-proxy</h2>
           <Tag>{`v${proxy.version}`}</Tag>
           <Badge dot tone={sourceOk ? "ok" : "danger"}>{sourceOk ? "en línea" : "sin respuesta"}</Badge>
         </div>
@@ -63,7 +63,7 @@ function StatusHeader({ proxy, sourceOk }: { proxy: ProxyStatus; sourceOk: boole
         <p className="u-muted">
           {legacy.retired
             ? "CLIProxyAPI ya fue retirado; su configuración se conserva como respaldo."
-            : `CLIProxyAPI sigue corriendo en ${portOf(legacy.listen)} junto a bixku-proxy en ${portOf(proxy.listen)}. No se apaga sin aprobación explícita de Facundo.`}
+            : `CLIProxyAPI sigue corriendo en ${portOf(legacy.listen)} junto a b-net-proxy en ${portOf(proxy.listen)}. No se apaga sin aprobación explícita de Facundo.`}
         </p>
       </div>
     </Card>
@@ -129,12 +129,12 @@ function RoutesTable({ proxy }: { proxy: ProxyStatus }) {
 
 /* ------------------------------------------------------------- migration */
 
-/** Architecture §7: clients move one at a time from CLIProxyAPI to bixku-proxy. */
+/** Architecture §7: clients move one at a time from CLIProxyAPI to b-net-proxy. */
 function Migration({ proxy }: { proxy: ProxyStatus }) {
   const clients = proxy.clients;
   const count = (s: ClientKeyView["migration"]) => clients.filter((c) => c.migration === s).length;
   const total = clients.length;
-  const done = count("bixku-proxy");
+  const done = count("b-net-proxy");
   const allDone = total > 0 && done === total;
   let x = 0;
   const segments = MIGRATION_STEPS.map((state) => {
@@ -151,7 +151,7 @@ function Migration({ proxy }: { proxy: ProxyStatus }) {
       data-testid="proxy-migration"
     >
       <div className="px-migration-bar">
-        <svg viewBox="0 0 100 10" preserveAspectRatio="none" width="100%" height="10" role="img" aria-label={`${done} de ${total} clientes en bixku-proxy`}>
+        <svg viewBox="0 0 100 10" preserveAspectRatio="none" width="100%" height="10" role="img" aria-label={`${done} de ${total} clientes en b-net-proxy`}>
           <rect x="0" y="0" width="100" height="10" className="px-seg-track" />
           {segments.map((s) => (
             <rect key={s.state} x={s.x} y="0" width={s.w} height="10" className={`px-seg px-seg-${s.state}`} />
@@ -199,7 +199,7 @@ function Migration({ proxy }: { proxy: ProxyStatus }) {
       </Table>
       <p className="px-note u-muted" data-testid="migration-note">
         {allDone
-          ? "Todos los clientes están en bixku-proxy. Siguiente paso: 7 días sin tráfico en CLIProxyAPI y pedir aprobación a Facundo para apagarlo."
+          ? "Todos los clientes están en b-net-proxy. Siguiente paso: 7 días sin tráfico en CLIProxyAPI y pedir aprobación a Facundo para apagarlo."
           : "Se mueve un cliente a la vez; si algo falla, el rollback es devolver su base URL a CLIProxyAPI. El apagado requiere 7 días sin tráfico y aprobación explícita."}
       </p>
     </Card>
@@ -295,8 +295,8 @@ export function ProxyView({ snapshot }: ViewProps) {
           <EmptyState
             data-testid="proxy-empty"
             icon={<Badge tone="idle">sin datos</Badge>}
-            title="Sin estado de bixku-proxy"
-            description="El hub no tiene estado de bixku-proxy todavía. Puede que aún no esté desplegado (paso 1 del plan de migración) o que el hub no lo alcance."
+            title="Sin estado de b-net-proxy"
+            description="El hub no tiene estado de b-net-proxy todavía. Puede que aún no esté desplegado (paso 1 del plan de migración) o que el hub no lo alcance."
           >
             {src?.error ? <code className="u-danger">{src.error}</code> : null}
             <p className="u-faint">CLIProxyAPI sigue siendo el proxy en uso mientras no haya aprobación para cambiarlo.</p>

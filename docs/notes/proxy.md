@@ -24,7 +24,7 @@ Estado: fase 1 implementada y probada **solo con fixtures** (sin puertos ni red)
 ## Decisiones tomadas (revisables)
 
 1. **Config en JSON, no YAML.** Node no trae parser de YAML y así no sumamos dependencias. Es coherente con `config/machines.example.json` y zod da errores precisos. Los comentarios van en claves `"$comment"` (se ignoran al validar).
-2. **Dependencia nueva: `zod` en `@bixku/proxy`**, la misma versión que usa core. Valida la config y compone los esquemas de core (`ModelRoute`, `ClientKeyView`). `pnpm-lock.yaml` cambió solo por eso.
+2. **Dependencia nueva: `zod` en `@b-net/proxy`**, la misma versión que usa core. Valida la config y compone los esquemas de core (`ModelRoute`, `ClientKeyView`). `pnpm-lock.yaml` cambió solo por eso.
 3. **Hash de llaves de cliente = HMAC-SHA256(pepper, key)**, que es la forma estándar de hacer "sha256 + pepper". El pepper vive en el secret store (`client-key-pepper`). Se compara contra *todos* los hashes con `timingSafeEqual`, sin salir antes.
 4. **Los ids ULID se generan al guardar el record, no al iniciar la request.** Con streams concurrentes, un id tomado al inicio podría quedar detrás de un cursor que el hub ya pasó. `ts` sigue siendo la hora de inicio. `nextCursor` solo viene cuando la página está llena; si no, el hub guarda el último id que vio.
 5. **Semántica de tokens en `UsageRecord`**: `inputTokens` = input **sin cache** (en OpenAI se resta `cached_tokens`), `outputTokens` incluye razonamiento, `reasoningTokens` es informativo y `cacheWriteTokens` solo existe en Anthropic. Así el costo se calcula igual para los dos proveedores.

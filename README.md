@@ -16,7 +16,7 @@ Hub propio del homelab: mapa de máquinas (Tailscale + Beszel/agente), hilos de 
 pnpm install
 pnpm test          # vitest: proyectos "node" (core, proxy, hub, agent) y "web" (jsdom)
 pnpm typecheck     # tsc -b sobre todo el monorepo
-pnpm --filter @bixku/web build   # compila la UI a packages/web/dist/app (no levanta servidor)
+pnpm --filter @b-net/web build   # compila la UI a packages/web/dist/app (no levanta servidor)
 ```
 
 Todas las pruebas corren contra fixtures. No abren puertos ni tocan la red.

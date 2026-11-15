@@ -4,9 +4,9 @@
  */
 import type {
   AccountView, AgentMetrics, HubSnapshot, MachineConfig, MachineView, ProxyStatus, SecretMeta, SourceHealth, T3ThreadView,
-} from "@bixku/core";
-import type { BeszelMachine } from "@bixku/core/clients/beszel";
-import { indexByHostName, toTailscaleLink, type PingOutcome, type TailscaleStatus } from "@bixku/core/clients/tailscale";
+} from "@b-net/core";
+import type { BeszelMachine } from "@b-net/core/clients/beszel";
+import { indexByHostName, toTailscaleLink, type PingOutcome, type TailscaleStatus } from "@b-net/core/clients/tailscale";
 import { DEFAULT_THRESHOLDS, deriveStatus, type StatusThresholds } from "./status.ts";
 
 export interface AggregateInput {

@@ -1,4 +1,4 @@
-import type { SourceHealth } from "@bixku/core";
+import type { SourceHealth } from "@b-net/core";
 import { RelativeTime } from "../components/RelativeTime.tsx";
 import { StatusDot } from "../components/StatusDot.tsx";
 

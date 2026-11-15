@@ -112,7 +112,7 @@ function makeDb(): DatabaseSync {
 const byId = (r: ReturnType<typeof readT3ThreadsFromDb>, id: string) => r.threads.find((t) => t.id === id)!;
 
 describe("T3 client: state derivation", () => {
-  const res = readT3ThreadsFromDb(makeDb(), { machineId: "bixku-test" });
+  const res = readT3ThreadsFromDb(makeDb(), { machineId: "b-net-test" });
 
   it("is healthy and excludes deleted threads", () => {
     expect(res.health).toMatchObject({ ok: true, reason: null, degraded: [] });
@@ -154,7 +154,7 @@ describe("T3 client: state derivation", () => {
   it("fills metadata: project, provider, model, branch, parent, machine", () => {
     const t = byId(res, "t-child");
     expect(t).toMatchObject({
-      machineId: "bixku-test",
+      machineId: "b-net-test",
       projectTitle: "demo-project",
       provider: "claudeAgent",
       model: "fake-model-1",

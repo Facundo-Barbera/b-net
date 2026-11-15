@@ -1,4 +1,4 @@
-import type { HubSnapshot } from "@bixku/core";
+import type { HubSnapshot } from "@b-net/core";
 import { Badge } from "../components/Badge.tsx";
 import { MenuIcon } from "../components/icons.tsx";
 import { RelativeTime } from "../components/RelativeTime.tsx";

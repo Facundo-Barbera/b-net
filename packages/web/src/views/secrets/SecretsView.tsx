@@ -1,4 +1,4 @@
-import type { SecretMeta } from "@bixku/core";
+import type { SecretMeta } from "@b-net/core";
 import { Badge, Callout, Card, EmptyState, PageHeader, RelativeTime, SecretsIcon, Stat, StatStrip, Table, toneForSecretStatus, useNow } from "../../components/index.ts";
 import type { ViewProps } from "../../routes.tsx";
 import { spanEs } from "../subscriptions/spanish.ts";

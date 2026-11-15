@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HubSnapshot, snapshotFixture } from "@bixku/core";
+import { HubSnapshot, snapshotFixture } from "@b-net/core";
 import { aggregate } from "../src/aggregate.ts";
 import { buildHub, machinesExample, NOW, minutesAgo } from "./helpers.ts";
 

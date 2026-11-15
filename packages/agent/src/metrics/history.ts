@@ -1,4 +1,4 @@
-import type { MetricHistory } from "@bixku/core";
+import type { MetricHistory } from "@b-net/core";
 
 /** Fixed-size ring buffer of (cpu, mem) samples, oldest first, evenly spaced by `stepSec`. */
 export class MetricHistoryBuffer {

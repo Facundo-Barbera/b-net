@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { screen, within } from "@testing-library/react";
-import { snapshotFixture } from "@bixku/core";
-import type { HubSnapshot } from "@bixku/core";
+import { snapshotFixture } from "@b-net/core";
+import type { HubSnapshot } from "@b-net/core";
 import { SecretsView } from "../src/views/secrets/SecretsView.tsx";
 import { NOW_MS, renderAt } from "./helpers.tsx";
 

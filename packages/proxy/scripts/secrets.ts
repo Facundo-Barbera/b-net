@@ -8,7 +8,7 @@
  * does not land in shell history). `list` prints metadata only.
  */
 import { readFileSync } from "node:fs";
-import { SecretMeta } from "@bixku/core";
+import { SecretMeta } from "@b-net/core";
 import { SecretStore } from "../src/secrets.ts";
 
 const [cmd, file, keyFile, id, kind, label, provider, accountId] = process.argv.slice(2);

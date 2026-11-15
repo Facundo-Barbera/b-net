@@ -2,7 +2,7 @@
  * All header fixtures here are SYNTHETIC. The unified-* and x-codex-* formats are
  * assumptions (undocumented); see src/ratelimit.ts and docs/notes/proxy.md.
  */
-import { UsageWindow } from "@bixku/core";
+import { UsageWindow } from "@b-net/core";
 import { describe, expect, it } from "vitest";
 import { cooldownHint, parseAnthropicWindows, parseCodexWindows, parsePct, parseResetTime, parseRetryAfter } from "../src/ratelimit.ts";
 import { T0 } from "./helpers.ts";

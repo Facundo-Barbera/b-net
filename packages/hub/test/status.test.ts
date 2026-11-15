@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MachineMetrics } from "@bixku/core";
+import type { MachineMetrics } from "@b-net/core";
 import { sanitizeError } from "../src/health.ts";
 import { deriveStatus, type StatusInput } from "../src/status.ts";
 import { minutesAgo, NOW } from "./helpers.ts";

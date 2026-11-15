@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HubSnapshot, MachineView, SecretMeta, UsageRecordsPage, snapshotFixture } from "@bixku/core";
+import { HubSnapshot, MachineView, SecretMeta, UsageRecordsPage, snapshotFixture } from "@b-net/core";
 import { createHandler, type StaticReader } from "../src/http.ts";
 import { MemoryUsageStore } from "../src/store.ts";
 

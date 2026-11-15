@@ -9,7 +9,7 @@
  *  - reasoningTokens:  informational subset of outputTokens (OpenAI only).
  *  - cacheWriteTokens: Anthropic cache_creation_input_tokens (OpenAI has none).
  */
-import type { ApiFormat } from "@bixku/core";
+import type { ApiFormat } from "@b-net/core";
 import { SseParser, type SseEvent } from "./sse.ts";
 
 export interface Usage {

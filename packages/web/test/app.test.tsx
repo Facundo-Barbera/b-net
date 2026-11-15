@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { App } from "../src/shell/App.tsx";
 import { routes } from "../src/routes.tsx";
-import { snapshotFixture } from "@bixku/core";
+import { snapshotFixture } from "@b-net/core";
 
 describe("app skeleton", () => {
   it("renders the default view from fixtures", () => {

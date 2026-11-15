@@ -2,11 +2,11 @@
 
 ## Qué hay
 
-- **Cliente T3** (`@bixku/core/clients/t3`): `readT3Threads({ machineId, dbPath? })` abre `~/.t3/userdata/statev2.sqlite` con `new DatabaseSync(path, { readOnly: true })` + `PRAGMA query_only=ON` y devuelve `{ threads: T3ThreadView[], health }`. `readT3ThreadsFromDb(db, …)` hace lo mismo sobre una base ya abierta (tests con SQLite en memoria).
+- **Cliente T3** (`@b-net/core/clients/t3`): `readT3Threads({ machineId, dbPath? })` abre `~/.t3/userdata/statev2.sqlite` con `new DatabaseSync(path, { readOnly: true })` + `PRAGMA query_only=ON` y devuelve `{ threads: T3ThreadView[], health }`. `readT3ThreadsFromDb(db, …)` hace lo mismo sobre una base ya abierta (tests con SQLite en memoria).
 - **Colector de métricas** (`src/metrics/`): parsers puros (`parsers.ts`) + `createCollector(deps)` con todo el I/O inyectado (`readFile`, `statfs`, `exec`, `os`, reloj). Anillo de historial `MetricHistoryBuffer` (30 puntos, `stepSec` 60 por defecto). `Sampler` guarda la última muestra y el historial; el timer vive solo en `serve.ts`.
 - **Handler** `createAgentHandler(deps) => (req: Request) => Promise<Response>` para `AgentRoutes`. **Todas** las rutas (también `health`) exigen `Authorization: Bearer`, comparado en tiempo constante (sha256 de ambos + `timingSafeEqual`). Sin token configurado el constructor lanza (falla cerrado). 401 no ejecuta ningún trabajo (no lee métricas ni la base de T3).
 - **`src/serve.ts`**: monta el handler en `node:http` sobre `AGENT_LISTEN_HOST`. **Nunca se ejecutó aquí.** Rechaza hosts wildcard (`0.0.0.0`, `::`), exige una IP literal y un token de ≥16 chars (`AGENT_TOKEN_FILE`, pensado para `LoadCredential` de systemd).
-- **`deploy/`**: `b-net-agent.service.example` (systemd, endurecido, token por credencial) y `dev.bixku.agent.plist.example` (launchd). Solo ejemplos con placeholders `<…>` / `REPLACE_…`.
+- **`deploy/`**: `b-net-agent.service.example` (systemd, endurecido, token por credencial) y `dev.b-net.agent.plist.example` (launchd). Solo ejemplos con placeholders `<…>` / `REPLACE_…`.
 
 ### Configuración (variables de entorno)
 
@@ -26,7 +26,7 @@
 5. **CPU**: deltas de `/proc/stat` entre muestras; la primera muestra devuelve el promedio desde el arranque. Red: tasa por delta de `/proc/net/dev` (suma de interfaces menos `lo`, `veth*`, `docker*`, `br-*`, `virbr*`); `null` en la primera muestra o si el contador se reinicia. Memoria Linux = `MemTotal − MemAvailable`. Disco `/` por `statfs` con la convención de `df` (excluye bloques reservados de root). Temperatura = zona térmica más caliente de `/sys/class/thermal` (`null` si no hay, p. ej. WSL).
 6. **macOS**: `os.cpus()` (deltas), `vm_stat` para memoria (usada = total − libre − inactiva − especulativa − purgeable), `df -k /System/Volumes/Data` con fallback a `/` (en APFS `/` es el volumen de sistema de solo lectura y subestima el uso). Red y temperatura: `null` por ahora. Sin dependencias de binarios aparte de `vm_stat`/`df`, que corren con `execFile` sin shell y timeout de 5 s.
 7. **WSL = Linux**: mismo camino por `/proc`. Ojo: dentro de WSL el disco `/` es el VHDX de la distro, no el disco de Windows, y RAM/CPU son los asignados a la VM.
-8. **Sin dependencias nuevas.** El agente usa solo `node:*` y `@bixku/core`.
+8. **Sin dependencias nuevas.** El agente usa solo `node:*` y `@b-net/core`.
 9. **El handler llena `machineId`** de cada hilo con el de la config (el cliente T3 ya lo recibe, pero el handler lo sobrescribe: la fuente de verdad es la config del agente).
 
 ## Preguntas abiertas para Facundo

@@ -10,7 +10,7 @@
  * (outcome "aborted"/"upstream-error") but never retried.
  */
 import { createHash } from "node:crypto";
-import { type ApiFormat, ProxyPublicRoutes, type UsageRecord } from "@bixku/core";
+import { type ApiFormat, ProxyPublicRoutes, type UsageRecord } from "@b-net/core";
 import { ClientAuth, presentedKey } from "../clients.ts";
 import { type AccountConfig, accountBaseUrl, accountFormat, type ClientConfig } from "../config.ts";
 import type { Handler, ProxyDeps } from "../deps.ts";

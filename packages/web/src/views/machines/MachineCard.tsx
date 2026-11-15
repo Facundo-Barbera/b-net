@@ -1,4 +1,4 @@
-import type { MachineView } from "@bixku/core";
+import type { MachineView } from "@b-net/core";
 import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, StatusDot, toneForMachineStatus, toneForServiceStatus, type Tone } from "../../components/index.ts";
 import { DASH, formatBps, formatDuration, formatUsedOfGb } from "../../lib/format.ts";
 import { STALE_METRICS_MS, TEMP_DANGER_C, TEMP_WARN_C } from "../../lib/thresholds.ts";

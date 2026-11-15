@@ -6,8 +6,8 @@ import { z } from "zod";
 import {
   AccountView, AgentMetrics, AgentRoutes, AgentThreads, ProxyInternalRoutes, ProxyStatus, SecretMeta, UsageRecordsPage,
   type MachineConfig,
-} from "@bixku/core";
-import { firstIPv4, indexByHostName, type PingOutcome, type TailscaleSource, type TailscaleStatus } from "@bixku/core/clients/tailscale";
+} from "@b-net/core";
+import { firstIPv4, indexByHostName, type PingOutcome, type TailscaleSource, type TailscaleStatus } from "@b-net/core/clients/tailscale";
 import type { UsageStore } from "./store.ts";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;

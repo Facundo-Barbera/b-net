@@ -18,7 +18,7 @@
 .px-seg-track { fill: var(--bg-elev-2); }
 .px-seg-cliproxyapi { fill: var(--dormant); }
 .px-seg-both { fill: var(--warn); }
-.px-seg-bixku-proxy { fill: var(--ok); }
+.px-seg-b-net-proxy { fill: var(--ok); }
 .px-migration-bar { display: flex; flex-direction: column; gap: 10px; padding: var(--sp-4); border-bottom: 1px solid var(--border); }
 .px-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; }
 .px-legend li { display: inline-flex; align-items: center; gap: 6px; }

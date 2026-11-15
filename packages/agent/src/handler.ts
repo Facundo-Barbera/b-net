@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { AgentRoutes, type AgentHealth, type AgentMetrics, type AgentThreads } from "@bixku/core";
-import type { T3ReadResult } from "@bixku/core/clients/t3";
+import { AgentRoutes, type AgentHealth, type AgentMetrics, type AgentThreads } from "@b-net/core";
+import type { T3ReadResult } from "@b-net/core/clients/t3";
 import type { MetricsSnapshot } from "./sampler.ts";
 
 export interface AgentHandlerDeps {
@@ -48,7 +48,7 @@ export function createAgentHandler(deps: AgentHandlerDeps): (req: Request) => Pr
     // Compare even when absent so timing does not reveal whether a header was sent.
     const authorized = safeEqual(presented ?? "", deps.token) && presented !== null;
     if (!authorized) {
-      return json({ error: "unauthorized" }, 401, { "www-authenticate": 'Bearer realm="bixku-agent"' });
+      return json({ error: "unauthorized" }, 401, { "www-authenticate": 'Bearer realm="b-net-agent"' });
     }
     if (!known.includes(path)) return json({ error: "not_found" }, 404);
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method_not_allowed" }, 405, { allow: "GET, HEAD" });

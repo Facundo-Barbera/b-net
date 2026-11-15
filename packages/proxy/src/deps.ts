@@ -1,4 +1,4 @@
-import type { SecretMeta } from "@bixku/core";
+import type { SecretMeta } from "@b-net/core";
 import type { ClientAuth } from "./clients.ts";
 import type { AccountConfig, ProxyConfig } from "./config.ts";
 import type { AccountPool } from "./pool.ts";

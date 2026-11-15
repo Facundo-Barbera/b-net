@@ -1,4 +1,4 @@
-import type { HubSnapshot } from "@bixku/core";
+import type { HubSnapshot } from "@b-net/core";
 import { Badge } from "../components/Badge.tsx";
 import { DotIcon } from "../components/icons.tsx";
 import { routes, type RouteDef } from "../routes.tsx";
@@ -20,7 +20,7 @@ export function Sidebar({ activeId, snapshot, open, onNavigate }: SidebarProps) 
     <aside id="sh-sidebar" className="sh-sidebar" data-open={open} aria-label="Sidebar">
       <a className="sh-brand" href={routes[0]!.path} onClick={onNavigate}>
         <span className="sh-brand__mark" aria-hidden="true" />
-        <span className="sh-brand__name sh-collapse">bixku hub</span>
+        <span className="sh-brand__name sh-collapse">b-net</span>
       </a>
 
       <nav className="sh-nav" aria-label="Primary">

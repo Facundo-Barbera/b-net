@@ -13,7 +13,7 @@ export const MachineConfig = z.object({
   tailscaleHost: z.string(),
   /** Name of the system in Beszel, if monitored there. */
   beszelName: z.string().optional(),
-  /** Base URL of the bixku agent on this machine (Tailscale address), if installed. */
+  /** Base URL of the b-net agent on this machine (Tailscale address), if installed. */
   agentUrl: z.string().url().optional(),
   /** Short description of what runs there (shown in the UI). */
   notes: z.string().optional(),

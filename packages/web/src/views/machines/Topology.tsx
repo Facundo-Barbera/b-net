@@ -1,5 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
-import type { MachineView } from "@bixku/core";
+import type { MachineView } from "@b-net/core";
 import { Card, StatusDot, meterTone, toneForMachineStatus } from "../../components/index.ts";
 import { formatPercent } from "../../lib/format.ts";
 import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, awake, linkKind, linkLabel } from "./derive.ts";

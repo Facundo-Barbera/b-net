@@ -1,4 +1,4 @@
-import type { HubSnapshot } from "@bixku/core";
+import type { HubSnapshot } from "@b-net/core";
 import type { Tone } from "../components/tone.ts";
 import type { RouteDef } from "../routes.tsx";
 

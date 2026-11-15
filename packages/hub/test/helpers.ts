@@ -1,8 +1,8 @@
 /** Fakes for hub tests. Everything is in-memory; no network, no ports. */
 import { readFileSync } from "node:fs";
-import { snapshotFixture, type MachineConfig, type T3ThreadView, type UsageRecord } from "@bixku/core";
-import { createBeszelClient } from "@bixku/core/clients/beszel";
-import { createLocalApiSource, type LocalApiRequest } from "@bixku/core/clients/tailscale";
+import { snapshotFixture, type MachineConfig, type T3ThreadView, type UsageRecord } from "@b-net/core";
+import { createBeszelClient } from "@b-net/core/clients/beszel";
+import { createLocalApiSource, type LocalApiRequest } from "@b-net/core/clients/tailscale";
 import { parseMachines } from "../src/config.ts";
 import { createHub, type HubDeps } from "../src/hub.ts";
 import { MemoryUsageStore, type UsageStore } from "../src/store.ts";

@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AccountView, ProxyStatus, SecretMeta, UsageRecordsPage } from "@bixku/core";
+import { AccountView, ProxyStatus, SecretMeta, UsageRecordsPage } from "@b-net/core";
 import { afterAll, describe, expect, it } from "vitest";
 import { createProxyApp } from "../src/app.ts";
 import { SecretStore } from "../src/secrets.ts";
@@ -10,7 +10,7 @@ import { ANTHROPIC_JSON } from "./fixtures/sse.ts";
 
 const admin = (path: string, token: string | null = DUMMY_ADMIN) => new Request(`http://proxy.test${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
 
-const tmp = mkdtempSync(join(tmpdir(), "bixku-proxy-internal-"));
+const tmp = mkdtempSync(join(tmpdir(), "b-net-proxy-internal-"));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 describe("internal API auth", () => {
