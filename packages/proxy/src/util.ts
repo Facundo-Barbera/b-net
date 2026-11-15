@@ -23,7 +23,7 @@ export function createUlidFactory(clock: Clock = systemClock, rand: (n: number) 
   return () => {
     let t = clock.now();
     if (t < lastTime) t = lastTime; // clock went backwards: stay monotonic
-    let r: number[];
+    let r: number[] | null = null;
     if (t === lastTime) {
       r = lastRand.slice();
       // increment the 80-bit random part as 16 base32 digits
@@ -36,11 +36,13 @@ export function createUlidFactory(clock: Clock = systemClock, rand: (n: number) 
         r[i] = 0;
         i--;
       }
-      if (i < 0) throw new Error("ULID random overflow within one millisecond");
-    } else {
-      const bytes = rand(16);
-      r = Array.from(bytes, (b) => b & 31);
+      if (i < 0) {
+        // overflow (practically impossible): borrow the next millisecond
+        t = lastTime + 1;
+        r = null;
+      }
     }
+    if (r === null) r = Array.from(rand(16), (b) => b & 31);
     lastTime = t;
     lastRand = r;
     let timePart = "";
