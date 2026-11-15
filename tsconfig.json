@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/proxy" },
+    { "path": "packages/hub" },
+    { "path": "packages/agent" },
+    { "path": "packages/web" }
+  ]
+}

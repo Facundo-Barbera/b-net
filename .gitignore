@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+# secretos y datos locales: nunca al repo
+/secrets/
+/config/secrets/
+*.secrets.json
+*.enc
+/data/
+*.sqlite
+*.sqlite-*
+preview/*.html
