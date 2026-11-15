@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@bixku/core": "workspace:*" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@bixku/core": "workspace:*"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/serve.ts"
+  }
 }

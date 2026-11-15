@@ -1,0 +1,35 @@
+# EXAMPLE ONLY - placeholders. Copy to /etc/systemd/system/bixku-agent.service and adapt.
+# The token is delivered as a systemd credential, never in the unit or the environment.
+#   systemd-creds encrypt --name=agent-token - /etc/bixku/agent-token.cred   (paste the token on stdin)
+[Unit]
+Description=bixku-hub agent (metrics + T3 thread exporter)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<service-user>
+WorkingDirectory=<path-to-checkout>/packages/agent
+Environment=AGENT_MACHINE_ID=<machine-id>
+# Tailscale IP of THIS machine. Wildcard addresses are refused by the agent.
+Environment=AGENT_LISTEN_HOST=<tailscale-ip>
+Environment=AGENT_PORT=8781
+LoadCredentialEncrypted=agent-token:/etc/bixku/agent-token.cred
+Environment=AGENT_TOKEN_FILE=%d/agent-token
+# Optional: Environment=AGENT_T3_DB=/home/<user>/.t3/userdata/statev2.sqlite
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning src/serve.ts
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the agent only reads /proc, /sys and the T3 database.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
