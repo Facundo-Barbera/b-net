@@ -1,13 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { snapshotFixture, type HubSnapshot } from "@bixku/core";
 import { MachinesView } from "../src/views/machines/MachinesView.tsx";
-
-/** generatedAt === FIXTURE_NOW in the canonical fixture. */
-const NOW = snapshotFixture.generatedAt;
+import { NOW_MS, renderAt } from "./helpers.tsx";
 
 const renderView = (snapshot: HubSnapshot = snapshotFixture, extra: { initialSelectedId?: string } = {}) =>
-  render(<MachinesView snapshot={snapshot} now={NOW} {...extra} />);
+  renderAt(<MachinesView snapshot={snapshot} {...extra} />);
 
 const topology = () => screen.getByTestId("topology-svg");
 const node = (name: RegExp) => within(topology()).getByRole("button", { name });
@@ -50,10 +48,9 @@ describe("MachinesView: overview", () => {
     renderView();
     expect(screen.getByText(/snapshot just now/)).toBeTruthy();
     const mbp = screen.getByTestId("card-bixku-mbp");
-    expect(within(mbp).getByText("26h ago")).toBeTruthy(); // last seen
+    expect(within(mbp).getByText("1d ago")).toBeTruthy(); // last seen (26h, shared formatRelative switches to days at 24h)
     // a different now shifts the label
-    const later = new Date(Date.parse(NOW) + 3 * 86_400_000);
-    const { container } = render(<MachinesView snapshot={snapshotFixture} now={later} />);
+    const { container } = renderAt(<MachinesView snapshot={snapshotFixture} />, NOW_MS + 3 * 86_400_000);
     expect(container.textContent).toContain("snapshot 3d ago");
   });
 });
@@ -69,17 +66,17 @@ describe("MachinesView: machine states", () => {
     const card = screen.getByTestId("card-pc-bixku");
     const cpu = within(card).getByRole("meter", { name: "CPU" });
     expect(cpu.getAttribute("aria-valuenow")).toBe("92");
-    expect(cpu.closest(".mv-meter")?.getAttribute("data-level")).toBe("danger"); // 91.5 > 90
-    expect(within(card).getByRole("meter", { name: "RAM" }).closest(".mv-meter")?.getAttribute("data-level")).toBe("warn"); // 88.7
-    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".mv-meter")?.getAttribute("data-level")).toBe("danger"); // 92.3
+    expect(cpu.closest(".ui-meter")?.getAttribute("data-tone")).toBe("danger"); // 91.5 > 90
+    expect(within(card).getByRole("meter", { name: "RAM" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("warn"); // 88.7
+    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("danger"); // 92.3
     expect(within(card).getByText(/agent · 1m ago/)).toBeTruthy();
   });
 
   it("healthy machines get ok-level meters", () => {
     renderView();
     const card = screen.getByTestId("card-bixku-focaltec");
-    expect(within(card).getByRole("meter", { name: "CPU" }).closest(".mv-meter")?.getAttribute("data-level")).toBe("ok");
-    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".mv-meter")?.getAttribute("data-level")).toBe("ok"); // 71
+    expect(within(card).getByRole("meter", { name: "CPU" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("ok");
+    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("warn"); // 71 >= shared USAGE_WARN_AT (70); the old local threshold was 75
   });
 
   it("MBP is offline with no metrics and a faded link", () => {
@@ -136,7 +133,7 @@ describe("MachinesView: machine states", () => {
   it("flags stale metrics and down services", () => {
     const snap: HubSnapshot = structuredClone(snapshotFixture);
     const vps = snap.machines.find((m) => m.id === "bixku-vps")!;
-    vps.metricsAt = new Date(Date.parse(NOW) - 20 * 60_000).toISOString();
+    vps.metricsAt = new Date(NOW_MS - 20 * 60_000).toISOString();
     vps.services = [{ name: "sshd", port: 22, status: "down" }];
     renderView(snap);
     const card = screen.getByTestId("card-bixku-vps");

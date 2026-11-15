@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { snapshotFixture, type HubSnapshot } from "@bixku/core";
 import { MachinesView } from "../src/views/machines/MachinesView.tsx";
 import { groupThreads } from "../src/views/machines/derive.ts";
-import { duration, rate, relTime, usedOfTotal } from "../src/views/machines/format.ts";
+import { formatBps, formatDuration, formatRelative, formatUsedOfGb } from "../src/lib/format.ts";
+import { ago } from "../src/views/machines/derive.ts";
+import { NOW_MS, renderAt } from "./helpers.tsx";
 
-const NOW = snapshotFixture.generatedAt;
 const open = (id: string, snap: HubSnapshot = snapshotFixture) => {
-  render(<MachinesView snapshot={snap} now={NOW} />);
+  renderAt(<MachinesView snapshot={snap} />);
   fireEvent.click(screen.getByRole("button", { name: `Show details for ${snap.machines.find((m) => m.id === id)!.name}` }));
   return screen.getByTestId("machine-detail");
 };
@@ -15,7 +16,7 @@ const group = (panel: HTMLElement, state: string) => panel.querySelector(`sectio
 
 describe("machine detail panel", () => {
   it("starts empty and opens/closes on selection", () => {
-    render(<MachinesView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<MachinesView snapshot={snapshotFixture} />);
     expect(screen.getByTestId("detail-empty")).toBeTruthy();
     expect(screen.queryByTestId("machine-detail")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show details for bixku-vps" }));
@@ -90,7 +91,7 @@ describe("machine detail panel", () => {
     const panel = open("bixku-mbp");
     const alert = within(panel).getByRole("alert");
     expect(alert.textContent).toMatch(/agent unreachable \(timeout 3s\)/);
-    expect(alert.textContent).toMatch(/26h ago/);
+    expect(alert.textContent).toMatch(/1d ago/);
     cleanupAndOpen();
     function cleanupAndOpen() {
       // healthy machine has no alert
@@ -102,7 +103,7 @@ describe("machine detail panel", () => {
   it("renders CPU/RAM sparklines from history, or an explicit empty state", () => {
     const panel = open("pc-bixku");
     const cpu = within(panel).getByRole("img", { name: /^CPU history, last 29 min/ });
-    expect(cpu.querySelector("path.mv-spark__line")?.getAttribute("d")).toMatch(/^M0\.0,/);
+    expect(cpu.querySelector("path.ui-spark__line")?.getAttribute("d")).toMatch(/^M[\d.]+ [\d.]+ L/);
     expect(within(panel).getByRole("img", { name: /^RAM history/ })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Show details for MBP Omarchy" }));
@@ -127,19 +128,18 @@ describe("derive/format helpers", () => {
     expect(g[0]!.nodes.length).toBeGreaterThan(0);
   });
 
-  it("formats durations, rates, sizes and relative time", () => {
-    const now = Date.parse(NOW);
-    expect(duration(1_904_400)).toBe("22d 1h");
-    expect(duration(51_000)).toBe("14h 10m");
-    expect(duration(null)).toBe("—");
-    expect(rate(182_000)).toBe("182 KB/s");
-    expect(rate(1_240_000)).toBe("1.2 MB/s");
-    expect(rate(null)).toBe("—");
-    expect(usedOfTotal(5.3, 7.5)).toBe("5.3 / 7.5 GB");
-    expect(usedOfTotal(1846, 2000)).toBe("1.8 / 2.0 TB");
-    expect(relTime(new Date(now - 5_000).toISOString(), now)).toBe("just now");
-    expect(relTime(new Date(now - 3 * 3_600_000).toISOString(), now)).toBe("3h ago");
-    expect(relTime(new Date(now + 5 * 60_000).toISOString(), now)).toBe("in 5m");
-    expect(relTime(null, now)).toBe("never");
+  it("formats durations, rates, sizes and relative time via the shared formatters", () => {
+    const now = NOW_MS;
+    expect(formatDuration(1_904_400)).toBe("22d 1h");
+    expect(formatDuration(51_000)).toBe("14h 10m");
+    expect(formatDuration(null)).toBe("—");
+    expect(formatBps(182_000)).toBe("178 KB/s"); // bytes/s, base 1024 (shared convention)
+    expect(formatBps(null)).toBe("—");
+    expect(formatUsedOfGb(5.3, 7.5)).toBe("5.3 / 7.5 GB");
+    expect(formatUsedOfGb(1846, 2000)).toBe("1.8 / 2.0 TB");
+    expect(formatRelative(new Date(now - 3_000).toISOString(), now)).toBe("just now");
+    expect(formatRelative(new Date(now - 3 * 3_600_000).toISOString(), now)).toBe("3h ago");
+    expect(formatRelative(new Date(now + 5 * 60_000).toISOString(), now)).toBe("in 5m");
+    expect(ago(null, now)).toBe("never");
   });
 });
