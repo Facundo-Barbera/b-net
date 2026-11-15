@@ -1,0 +1,196 @@
+/* App shell: sidebar (full / icon rail / drawer), top bar, content. */
+.sh-root {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.sh-main { min-width: 0; display: flex; flex-direction: column; }
+.sh-content { flex: 1; min-width: 0; padding: 20px 24px 40px; }
+.sh-content > * { max-width: 1680px; }
+
+.sh-skip {
+  position: fixed;
+  top: 8px; left: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.sh-skip:focus { transform: none; }
+
+.sh-banner {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--warn);
+  font-size: 12.5px;
+}
+
+/* ---------- Sidebar ---------- */
+.sh-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 14px 10px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sh-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; font-weight: 600; letter-spacing: -0.01em; font-size: 15px; }
+.sh-brand:hover { text-decoration: none; }
+.sh-brand__mark {
+  flex: none;
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  background: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+  /* straw-hat-ish glyph: brim + crown */
+  clip-path: polygon(0 62%, 22% 62%, 22% 30%, 38% 8%, 62% 8%, 78% 30%, 78% 62%, 100% 62%, 100% 82%, 0 82%);
+}
+
+.sh-nav ul { display: grid; gap: 2px; }
+.sh-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  transition: background var(--ease), color var(--ease);
+}
+.sh-nav__link:hover { background: var(--bg-elev); color: var(--text); text-decoration: none; }
+.sh-nav__link[aria-current="page"] {
+  background: var(--bg-elev-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.sh-nav__link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -10px; top: 8px; bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.sh-nav__icon { flex: none; font-size: 17px; }
+.sh-nav__link[aria-current="page"] .sh-nav__icon { color: var(--accent); }
+.sh-nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.sh-nav__badge { flex: none; height: 18px; padding: 0 6px; }
+
+/* Source health */
+.sh-sources { margin-top: auto; display: grid; gap: 8px; padding: 10px 8px 0; border-top: 1px solid var(--border); }
+.sh-sources__head { display: flex; justify-content: space-between; align-items: baseline; }
+.sh-sources__sum { letter-spacing: 0; color: var(--text-faint); }
+.sh-sources__empty { font-size: 12px; color: var(--text-faint); }
+.sh-sources__list { display: grid; gap: 6px; }
+.sh-source { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
+.sh-source[data-ok="false"] .sh-source__name { color: var(--danger); }
+.sh-source__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+.sh-source__when { flex: none; font-size: 11px; color: var(--text-faint); }
+.sh-version { padding: 0 8px; font-size: 11px; color: var(--text-faint); }
+
+.sh-backdrop { display: none; }
+
+/* ---------- Top bar ---------- */
+.sh-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--topbar-h);
+  padding: 8px 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.sh-topbar__menu {
+  display: none;
+  place-items: center;
+  width: 34px; height: 34px;
+  font-size: 18px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.sh-topbar__menu:hover { background: var(--bg-elev); }
+.sh-topbar__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.sh-topbar__meta { display: flex; align-items: center; gap: 12px; flex: none; }
+.sh-topbar__updated { display: inline-flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--text-muted); }
+
+/* Theme toggle */
+.sh-theme { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elev); }
+.sh-theme__btn {
+  display: grid; place-items: center;
+  width: 28px; height: 26px;
+  font-size: 15px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.sh-theme__btn:hover { color: var(--text); }
+.sh-theme__btn[aria-pressed="true"] { background: var(--bg-elev-2); color: var(--accent); box-shadow: 0 0 0 1px var(--border-strong) inset; }
+
+/* ---------- Icon rail: 600–899px ---------- */
+@media (min-width: 600px) and (max-width: 899.98px) {
+  .sh-root { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+  .sh-sidebar { padding: 14px 8px; align-items: center; }
+  .sh-brand { padding: 4px; }
+  .sh-nav ul { justify-items: center; }
+  .sh-nav__link { width: 40px; height: 36px; padding: 0; justify-content: center; }
+  .sh-nav__link[aria-current="page"]::before { left: -8px; }
+  .sh-nav__badge { position: absolute; top: -4px; right: -6px; height: 16px; padding: 0 4px; font-size: 9.5px; }
+  .sh-sources { padding: 10px 0 0; justify-items: center; }
+  .sh-sources__head { justify-content: center; }
+  .sh-sources__list { justify-items: center; }
+  /* Visually hidden but still read by assistive tech and in the layout tree. */
+  .sh-collapse {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sh-content { padding: 16px 16px 32px; }
+  .sh-topbar { padding: 8px 16px; }
+}
+
+/* ---------- Drawer: < 600px ---------- */
+@media (max-width: 599.98px) {
+  .sh-root { grid-template-columns: minmax(0, 1fr); }
+  .sh-sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: min(280px, 86vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--ease), visibility var(--ease);
+    box-shadow: var(--shadow);
+  }
+  .sh-sidebar[data-open="true"] { transform: none; visibility: visible; }
+  .sh-backdrop { display: block; position: fixed; inset: 0; z-index: 25; background: var(--overlay); }
+  .sh-topbar { padding: 8px 12px; gap: 8px; }
+  .sh-topbar__menu { display: grid; }
+  .sh-topbar__meta { gap: 8px; }
+  .sh-topbar__updated { display: none; }
+  .sh-content { padding: 14px 12px 28px; }
+}
