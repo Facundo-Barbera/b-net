@@ -6,6 +6,19 @@ Hub propio del homelab: mapa de máquinas (Tailscale + Beszel/agente), hilos de 
 - Paridad con CLIProxyAPI: [`docs/cliproxyapi-parity.md`](docs/cliproxyapi-parity.md)
 - Preguntas abiertas: [`docs/open-questions.md`](docs/open-questions.md)
 
+## Estado de la fase 1
+
+| Área | Estado | Dónde |
+|---|---|---|
+| Contratos y fixture | Hecho | `packages/core/src/contracts/`, `packages/core/src/fixtures/snapshot.ts` |
+| Clientes Beszel / Tailscale / T3 | Hecho, probados con fixtures falsas | `packages/core/src/clients/{beszel,tailscale,t3}/` |
+| Hub (API + agregación) | Hecho, nunca ejecutado como servicio | `packages/hub/src/` (`serve.ts` sin correr) |
+| Proxy (pool, cooldown, failover, medición) | Hecho, sin traducción entre formatos ni refresh OAuth | `packages/proxy/src/`, `config/proxy.example.json` |
+| Agente (métricas + T3 solo lectura) | Hecho | `packages/agent/src/`, `packages/agent/deploy/` (ejemplos) |
+| UI (Machines, Subscriptions, Proxy, Secrets; temas claro/oscuro) | Hecho con fixtures, verificada con build y tests de componentes | `packages/web/src/` |
+
+Las notas por área están en `docs/notes/`. Las decisiones pendientes, en `docs/open-questions.md`.
+
 ## Requisitos
 
 - Node ≥ 22.18 (type stripping nativo) y pnpm 10.
