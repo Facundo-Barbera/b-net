@@ -1,0 +1,15 @@
+{
+  "page": 1, "perPage": 200, "totalItems": 4, "totalPages": 1,
+  "items": [
+    { "id": "sysfakehomelab01", "name": "bixku-homelab", "host": "127.0.0.1", "port": "45876", "status": "up",
+      "info": { "h": "bixku-homelab", "k": "6.8.0-fake", "c": 4, "t": 8, "m": "Fake CPU @ 2.6GHz", "u": 1904400, "cpu": 23.4, "mp": 71.2, "dp": 48.1, "b": 0.27, "v": "0.12.0", "la": [0.92, 0.8, 0.7], "dt": 52 },
+      "updated": "2026-11-15 20:29:30.000Z" },
+    { "id": "sysfakevps000001", "name": "bixku-vps", "host": "100.64.0.20", "status": "up",
+      "info": { "h": "bixku-vps", "c": 8, "t": 8, "u": 864000, "cpu": 61.8, "mp": 54.0, "dp": 63.5, "v": "0.12.0", "l1": 3.1 },
+      "updated": "2026-11-15 20:29:30.000Z" },
+    { "id": "sysfakefocaltec1", "name": "focaltec", "host": "100.64.0.30", "status": "up",
+      "info": { "h": "focaltec", "u": 302400, "cpu": 12.1, "mp": 66.3, "dp": 71.0, "v": "0.11.1" },
+      "updated": "2026-11-15 20:29:00.000Z" },
+    { "id": "sysfakeoldsrv001", "name": "old-server", "status": "down", "info": {}, "updated": "2026-10-01 00:00:00.000Z" }
+  ]
+}

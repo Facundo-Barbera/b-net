@@ -1,0 +1,182 @@
+{
+ "sysfakehomelab01": {
+  "page": 1,
+  "perPage": 30,
+  "totalItems": -1,
+  "totalPages": -1,
+  "items": [
+   {
+    "id": "stfakeelab01000",
+    "collectionName": "system_stats",
+    "system": "sysfakehomelab01",
+    "type": "1m",
+    "stats": {
+     "cpu": 23.4,
+     "mp": 71.2,
+     "m": 7.5,
+     "mu": 5.34,
+     "d": 233,
+     "du": 112,
+     "dp": 48.1,
+     "ns": 0.0916,
+     "nr": 0.1736,
+     "t": {
+      "coretemp_package_id_0": 52,
+      "nvme_composite": 41
+     },
+     "la": [
+      0.92,
+      0.8,
+      0.7
+     ]
+    },
+    "created": "2026-11-15 20:29:00.000Z"
+   },
+   {
+    "id": "stfakeelab01001",
+    "collectionName": "system_stats",
+    "system": "sysfakehomelab01",
+    "type": "1m",
+    "stats": {
+     "cpu": 23.4,
+     "mp": 71.4
+    },
+    "created": "2026-11-15 20:28:00.000Z"
+   },
+   {
+    "id": "stfakeelab01002",
+    "collectionName": "system_stats",
+    "system": "sysfakehomelab01",
+    "type": "1m",
+    "stats": {
+     "cpu": 24.4,
+     "mp": 71.2
+    },
+    "created": "2026-11-15 20:27:00.000Z"
+   },
+   {
+    "id": "stfakeelab01003",
+    "collectionName": "system_stats",
+    "system": "sysfakehomelab01",
+    "type": "1m",
+    "stats": {
+     "cpu": 22.4,
+     "mp": 71.4
+    },
+    "created": "2026-11-15 20:26:00.000Z"
+   },
+   {
+    "id": "stfakeelab01004",
+    "collectionName": "system_stats",
+    "system": "sysfakehomelab01",
+    "type": "1m",
+    "stats": {
+     "cpu": 23.4,
+     "mp": 71.2
+    },
+    "created": "2026-11-15 20:25:00.000Z"
+   }
+  ]
+ },
+ "sysfakevps000001": {
+  "page": 1,
+  "perPage": 30,
+  "totalItems": -1,
+  "totalPages": -1,
+  "items": [
+   {
+    "id": "stfake000001000",
+    "collectionName": "system_stats",
+    "system": "sysfakevps000001",
+    "type": "1m",
+    "stats": {
+     "cpu": 61.8,
+     "mp": 54.0,
+     "m": 23.9,
+     "mu": 12.9,
+     "d": 400,
+     "du": 254,
+     "dp": 63.5,
+     "ns": 0.8392,
+     "nr": 1.1826
+    },
+    "created": "2026-11-15 20:29:00.000Z"
+   },
+   {
+    "id": "stfake000001001",
+    "collectionName": "system_stats",
+    "system": "sysfakevps000001",
+    "type": "1m",
+    "stats": {
+     "cpu": 61.8,
+     "mp": 54.2
+    },
+    "created": "2026-11-15 20:28:00.000Z"
+   },
+   {
+    "id": "stfake000001002",
+    "collectionName": "system_stats",
+    "system": "sysfakevps000001",
+    "type": "1m",
+    "stats": {
+     "cpu": 62.8,
+     "mp": 54.0
+    },
+    "created": "2026-11-15 20:27:00.000Z"
+   },
+   {
+    "id": "stfake000001003",
+    "collectionName": "system_stats",
+    "system": "sysfakevps000001",
+    "type": "1m",
+    "stats": {
+     "cpu": 60.8,
+     "mp": 54.2
+    },
+    "created": "2026-11-15 20:26:00.000Z"
+   },
+   {
+    "id": "stfake000001004",
+    "collectionName": "system_stats",
+    "system": "sysfakevps000001",
+    "type": "1m",
+    "stats": {
+     "cpu": 61.8,
+     "mp": 54.0
+    },
+    "created": "2026-11-15 20:25:00.000Z"
+   }
+  ]
+ },
+ "sysfakefocaltec1": {
+  "page": 1,
+  "perPage": 30,
+  "totalItems": -1,
+  "totalPages": -1,
+  "items": [
+   {
+    "id": "stfakealtec1000",
+    "collectionName": "system_stats",
+    "system": "sysfakefocaltec1",
+    "type": "1m",
+    "stats": {
+     "cpu": 12.1,
+     "mp": 66.3,
+     "m": 16,
+     "mu": 10.6,
+     "d": 500,
+     "du": 355,
+     "dp": 71.0
+    },
+    "created": "2026-11-15 20:29:00.000Z"
+   }
+  ]
+ },
+ "sysfakeoldsrv001": {
+  "page": 1,
+  "perPage": 30,
+  "totalItems": -1,
+  "totalPages": -1,
+  "items": []
+ }
+}

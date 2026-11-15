@@ -1,0 +1,7 @@
+{
+  "bixku-vps": { "IP": "100.64.0.20", "NodeIP": "100.64.0.20", "NodeName": "bixku-vps.tail0fake.ts.net.", "LatencySeconds": 0.148, "Endpoint": "203.0.113.20:41641", "DERPRegionID": 0 },
+  "bixku-focaltec": { "IP": "100.64.0.30", "NodeName": "bixku-focaltec.tail0fake.ts.net.", "LatencySeconds": 0.0123, "Endpoint": "192.0.2.30:41641" },
+  "pc-bixku": { "IP": "100.64.0.40", "NodeName": "pc-bixku.tail0fake.ts.net.", "LatencySeconds": 0.087, "DERPRegionID": 21, "DERPRegionCode": "mia" },
+  "bixku-mba": { "IP": "100.64.0.60", "NodeName": "bixku-mba.tail0fake.ts.net.", "LatencySeconds": 0.034, "PeerRelay": "198.51.100.9:7777:vni:3" },
+  "bixku-mbp": { "IP": "100.64.0.50", "Err": "timeout waiting for pong" }
+}
