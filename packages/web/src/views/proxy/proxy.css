@@ -1,0 +1,41 @@
+.px-status { display: flex; flex-direction: column; }
+.px-status-main { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 32px; padding: 16px; }
+.px-status-id { display: flex; align-items: center; gap: 10px; }
+.px-status-id h2 { font-size: 16px; font-weight: 600; }
+.px-facts { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0; }
+.px-facts dt { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.px-facts dd { margin: 2px 0 0; font-size: 13px; }
+.px-legacy {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 10px 16px; border-top: 1px solid var(--border); background: var(--bg-elev-2);
+  border-radius: 0 0 var(--radius) var(--radius); font-size: 12.5px;
+}
+.px-legacy p { margin: 0; flex-basis: 100%; font-size: 12px; }
+
+.px-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: var(--gap); align-items: start; }
+.px-chain { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 0; align-items: center; }
+.px-chain li { padding: 1px 6px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 11.5px; }
+.px-chain li + li::before { content: "→"; margin: 0 6px 0 -2px; color: var(--text-faint); font-family: var(--font-mono); }
+.px-chain li + li { border-left-width: 1px; }
+
+.px-seg-track { fill: var(--bg-elev-2); }
+.px-seg-cliproxyapi { fill: var(--dormant); }
+.px-seg-both { fill: var(--warn); }
+.px-seg-bixku-proxy { fill: var(--ok); }
+.px-migration-bar { display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border); }
+.px-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; }
+.px-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.px-stepper { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: middle; }
+.px-step { width: 14px; height: 4px; background: var(--border-strong); }
+.px-step-on { background: var(--tone); }
+.px-note { margin: 0; padding: 10px 16px 12px; font-size: 12px; border-top: 1px solid var(--border); }
+
+.px-recent td { white-space: nowrap; }
+.px-recent .vx-mono { font-size: 11.5px; }
+.px-status-code { margin-right: 6px; }
+.px-dur { display: inline-flex; align-items: center; gap: 8px; }
+.px-dur-track { fill: var(--bg-elev-2); }
+.px-dur-fill { fill: var(--info); }
+.px-failover { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.px-failed { color: var(--danger); text-decoration: line-through; }
+.px-arrow { color: var(--text-faint); }
