@@ -32,7 +32,7 @@ export function fmtSpan(ms: number, opts: { seconds?: boolean } = {}): string {
 export function fmtRel(iso: string, nowMs: number, opts: { seconds?: boolean } = {}): string {
   const diff = Date.parse(iso) - nowMs;
   const span = fmtSpan(diff, opts);
-  return diff >= 0 ? `en ${span}` : `hace ${span}`;
+  return diff > 0 ? `en ${span}` : `hace ${span}`;
 }
 
 /** Countdown to a future instant ("2h 10m"), or null when it is already past. */
