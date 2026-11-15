@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { snapshotFixture } from "@bixku/core";
 import type { HubSnapshot } from "@bixku/core";
 import { SecretsView } from "../src/views/secrets/SecretsView.tsx";
+import { NOW_MS, renderAt } from "./helpers.tsx";
 
-const NOW = snapshotFixture.generatedAt;
 const row = (id: string) => within(screen.getByTestId(`secret-row-${id}`));
 
 /** Attributes the view is allowed to put on any element (no value-carrying ones). */
@@ -13,7 +13,7 @@ const FORBIDDEN_ATTRS = ["value", "defaultvalue", "href", "download", "contented
 
 describe("SecretsView", () => {
   it("shows all 8 secrets grouped by kind", () => {
-    render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<SecretsView snapshot={snapshotFixture} />);
     expect(screen.getAllByTestId(/^secret-row-/)).toHaveLength(8);
     expect(within(screen.getByTestId("secrets-group-oauth-token")).getAllByTestId(/^secret-row-/)).toHaveLength(3);
     expect(within(screen.getByTestId("secrets-group-api-key")).getAllByTestId(/^secret-row-/)).toHaveLength(2);
@@ -24,7 +24,7 @@ describe("SecretsView", () => {
   });
 
   it("renders metadata: provider/account, storage, machine, fingerprint and times", () => {
-    render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<SecretsView snapshot={snapshotFixture} />);
     const r = row("sec-anthropic-max-1");
     expect(r.getByText("Claude Max · personal")).toBeTruthy();
     expect(r.getByText("anthropic")).toBeTruthy();
@@ -43,7 +43,7 @@ describe("SecretsView", () => {
   });
 
   it("shows 'expiring' for sec-anthropic-max-2 and the other statuses", () => {
-    render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<SecretsView snapshot={snapshotFixture} />);
     const r = row("sec-anthropic-max-2");
     expect(r.getByText("expiring")).toBeTruthy();
     expect(r.getByText("expira en 30m")).toBeTruthy();
@@ -56,14 +56,14 @@ describe("SecretsView", () => {
   });
 
   it("states prominently that values are never sent to the UI", () => {
-    render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<SecretsView snapshot={snapshotFixture} />);
     const note = screen.getByRole("note");
     expect(note.textContent).toMatch(/Los valores nunca se envían a la UI/);
     expect(note.textContent).toMatch(/solo metadatos|únicamente metadatos/i);
   });
 
   it("has NO input, reveal, copy or download controls", () => {
-    const { container } = render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    const { container } = renderAt(<SecretsView snapshot={snapshotFixture} />);
     expect(container.querySelectorAll("input, textarea, select, button, form, a, [role=button], [contenteditable]")).toHaveLength(0);
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
@@ -73,7 +73,7 @@ describe("SecretsView", () => {
   });
 
   it("renders no element attribute beyond the allow-list (no value / data-* carrying anything else)", () => {
-    const { container } = render(<SecretsView snapshot={snapshotFixture} now={NOW} />);
+    const { container } = renderAt(<SecretsView snapshot={snapshotFixture} />);
     const all = [container, ...Array.from(container.querySelectorAll("*"))];
     for (const el of all) {
       for (const attr of Array.from(el.attributes)) {
@@ -90,7 +90,7 @@ describe("SecretsView", () => {
   it("renders only SecretMeta fields: injected extra properties never reach the DOM", () => {
     const poisoned = "sk-ant-oat01-THIS-MUST-NEVER-RENDER-0123456789abcdef0123456789abcdef";
     const secrets = snapshotFixture.secrets.map((s) => ({ ...s, value: poisoned, token: poisoned, secret: poisoned, plaintext: poisoned })) as unknown as HubSnapshot["secrets"];
-    const { container } = render(<SecretsView snapshot={{ ...snapshotFixture, secrets }} now={NOW} />);
+    const { container } = renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets }} />);
     const html = container.innerHTML;
     expect(html).not.toContain("THIS-MUST-NEVER-RENDER");
     expect(html).not.toMatch(/sk-[a-z]+-/i);
@@ -102,24 +102,24 @@ describe("SecretsView", () => {
 
   it("never renders more than 8 hex chars of a fingerprint, even from a malformed payload", () => {
     const bad = { ...snapshotFixture.secrets[0]!, fingerprint: "3fa9c1d2deadbeefcafe" };
-    render(<SecretsView snapshot={{ ...snapshotFixture, secrets: [bad] }} now={NOW} />);
+    renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: [bad] }} />);
     expect(screen.queryByText(/deadbeef/)).toBeNull();
   });
 
   it("flags upstream credentials stored outside the hub machine", () => {
     const moved = snapshotFixture.secrets.map((s) => (s.id === "sec-openai-pro-1" ? { ...s, machineId: "bixku-vps" } : s));
-    render(<SecretsView snapshot={{ ...snapshotFixture, secrets: moved }} now={NOW} />);
+    renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: moved }} />);
     expect(row("sec-openai-pro-1").getByText("fuera del hub")).toBeTruthy();
     expect(row("sec-anthropic-max-1").queryByText("fuera del hub")).toBeNull();
   });
 
   it("marks past expiry and shows empty state without secrets", () => {
     const expired = snapshotFixture.secrets.map((s) => (s.id === "sec-anthropic-max-2" ? { ...s, status: "expired" as const } : s));
-    const { unmount } = render(<SecretsView snapshot={{ ...snapshotFixture, secrets: expired }} now={Date.parse(NOW) + 60 * 60_000} />);
+    const { unmount } = renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: expired }} />, NOW_MS + 60 * 60_000);
     expect(row("sec-anthropic-max-2").getByText("expired")).toBeTruthy();
     expect(row("sec-anthropic-max-2").getByText(/venció hace 30m/)).toBeTruthy();
     unmount();
-    render(<SecretsView snapshot={{ ...snapshotFixture, secrets: [] }} />);
+    renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: [] }} />);
     expect(screen.getByTestId("secrets-empty")).toBeTruthy();
     expect(screen.getByTestId("secrets-note")).toBeTruthy();
   });

@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { snapshotFixture } from "@bixku/core";
 import type { HubSnapshot } from "@bixku/core";
 import { ProxyView } from "../src/views/proxy/ProxyView.tsx";
-
-const NOW = snapshotFixture.generatedAt;
+import { renderAt } from "./helpers.tsx";
 
 describe("ProxyView", () => {
   it("renders the status header with version, listen, uptime and the legacy side-by-side note", () => {
-    render(<ProxyView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     const s = within(screen.getByTestId("proxy-status"));
     expect(s.getByText("v0.1.0")).toBeTruthy();
     expect(s.getByText("100.64.0.10:8318")).toBeTruthy();
@@ -25,12 +24,12 @@ describe("ProxyView", () => {
       ...snapshotFixture,
       proxy: { ...snapshotFixture.proxy!, legacyProxy: { ...snapshotFixture.proxy!.legacyProxy, retired: true } },
     };
-    render(<ProxyView snapshot={snap} />);
+    renderAt(<ProxyView snapshot={snap} />);
     expect(within(screen.getByTestId("proxy-legacy")).getByText("retirado")).toBeTruthy();
   });
 
   it("shows last-hour KPIs", () => {
-    render(<ProxyView snapshot={snapshotFixture} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     const k = within(screen.getByTestId("proxy-kpis"));
     expect(k.getByText("236")).toBeTruthy();
     expect(k.getByText("1.7% de los requests")).toBeTruthy();
@@ -42,7 +41,7 @@ describe("ProxyView", () => {
   });
 
   it("lists routes with upstream model and account chain", () => {
-    render(<ProxyView snapshot={snapshotFixture} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     const claude = within(screen.getByTestId("route-claude-*"));
     expect(claude.getByText("anthropic-max-1")).toBeTruthy();
     expect(claude.getByText("anthropic-max-2")).toBeTruthy();
@@ -53,7 +52,7 @@ describe("ProxyView", () => {
   });
 
   it("shows each client's migration state and overall progress", () => {
-    render(<ProxyView snapshot={snapshotFixture} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     expect(within(screen.getByTestId("client-t3-vps")).getByText("bixku-proxy")).toBeTruthy();
     expect(within(screen.getByTestId("client-opencode-mbp")).getByText("En paralelo")).toBeTruthy();
     expect(within(screen.getByTestId("client-bot-telegram")).getByText("CLIProxyAPI")).toBeTruthy();
@@ -65,13 +64,13 @@ describe("ProxyView", () => {
   it("flags readiness to retire CLIProxyAPI only when every client is migrated", () => {
     const proxy = snapshotFixture.proxy!;
     const snap: HubSnapshot = { ...snapshotFixture, proxy: { ...proxy, clients: proxy.clients.map((c) => ({ ...c, migration: "bixku-proxy" as const })) } };
-    render(<ProxyView snapshot={snap} />);
+    renderAt(<ProxyView snapshot={snap} />);
     expect(screen.getByTestId("migration-count").textContent).toBe("3 de 3 migrados");
     expect(screen.getByTestId("migration-note").textContent).toMatch(/Todos los clientes/);
   });
 
   it("renders the 12 recent requests incl. the 429 rate-limited row and the failover chain", () => {
-    render(<ProxyView snapshot={snapshotFixture} now={NOW} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     const rows = screen.getAllByTestId("recent-row");
     expect(rows).toHaveLength(12);
 
@@ -94,7 +93,7 @@ describe("ProxyView", () => {
   });
 
   it("recent table has headers for time, client, format, model, account, status, tokens, cost, duration and failover", () => {
-    render(<ProxyView snapshot={snapshotFixture} />);
+    renderAt(<ProxyView snapshot={snapshotFixture} />);
     const t = within(screen.getByTestId("recent-table"));
     for (const h of ["Hora", "Cliente", "Formato", "Modelo", "Cuenta", "Estado", "Costo", "Duración / TTFT", "Failover"]) {
       expect(t.getByRole("columnheader", { name: h })).toBeTruthy();
@@ -102,7 +101,7 @@ describe("ProxyView", () => {
   });
 
   it("null proxy => empty state, no tables", () => {
-    render(<ProxyView snapshot={{ ...snapshotFixture, proxy: null }} />);
+    renderAt(<ProxyView snapshot={{ ...snapshotFixture, proxy: null }} />);
     expect(screen.getByTestId("view-proxy")).toBeTruthy();
     expect(screen.getByTestId("proxy-empty")).toBeTruthy();
     expect(screen.queryByTestId("recent-table")).toBeNull();
@@ -115,7 +114,7 @@ describe("ProxyView", () => {
       proxy: null,
       sources: snapshotFixture.sources.map((s) => (s.source === "proxy" ? { ...s, ok: false, error: "connect ECONNREFUSED 100.64.0.10:8318" } : s)),
     };
-    render(<ProxyView snapshot={snap} />);
+    renderAt(<ProxyView snapshot={snap} />);
     expect(within(screen.getByTestId("proxy-empty")).getByText(/ECONNREFUSED/)).toBeTruthy();
   });
 });
