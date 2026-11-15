@@ -20,6 +20,8 @@ export default defineConfig({
           include: ["packages/web/test/**/*.test.{ts,tsx}", "packages/web/src/**/*.test.{ts,tsx}"],
           environment: "jsdom",
           setupFiles: ["packages/web/test/setup.ts"],
+          // jsdom + React renders get slow when all projects run in parallel on the VPS.
+          testTimeout: 20_000,
         },
       },
     ],
