@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { HubSnapshot } from "@bixku/core";
+import { MachinesIcon, ProxyIcon, SecretsIcon, SubscriptionsIcon } from "./components/icons.tsx";
 import { MachinesView } from "./views/machines/MachinesView.tsx";
 import { SubscriptionsView } from "./views/subscriptions/SubscriptionsView.tsx";
 import { ProxyView } from "./views/proxy/ProxyView.tsx";
@@ -15,11 +16,13 @@ export interface RouteDef {
   path: `#/${string}`;
   label: string;
   component: ComponentType<ViewProps>;
+  /** Sidebar icon (inline SVG component). */
+  icon?: ComponentType<{ className?: string }>;
 }
 
 export const routes: RouteDef[] = [
-  { id: "machines", path: "#/machines", label: "Machines", component: MachinesView },
-  { id: "subscriptions", path: "#/subscriptions", label: "Subscriptions", component: SubscriptionsView },
-  { id: "proxy", path: "#/proxy", label: "Proxy", component: ProxyView },
-  { id: "secrets", path: "#/secrets", label: "Secrets", component: SecretsView },
+  { id: "machines", path: "#/machines", label: "Machines", component: MachinesView, icon: MachinesIcon },
+  { id: "subscriptions", path: "#/subscriptions", label: "Subscriptions", component: SubscriptionsView, icon: SubscriptionsIcon },
+  { id: "proxy", path: "#/proxy", label: "Proxy", component: ProxyView, icon: ProxyIcon },
+  { id: "secrets", path: "#/secrets", label: "Secrets", component: SecretsView, icon: SecretsIcon },
 ];
