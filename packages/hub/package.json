@@ -4,5 +4,5 @@
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@bixku/core": "workspace:*" }
+  "dependencies": { "@bixku/core": "workspace:*", "zod": "^4.1.0" }
 }
