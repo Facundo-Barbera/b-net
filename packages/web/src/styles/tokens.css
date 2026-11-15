@@ -24,6 +24,8 @@
   --chart-3: #3ddc84;
   --chart-4: #f5c542;
   --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35);
+  --accent-fg: #17130a;       /* text on accent fills */
+  --overlay: rgba(0,0,0,0.6); /* drawer backdrop */
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -47,6 +49,8 @@
   --chart-3: #1a9e5a;
   --chart-4: #b8860b;
   --shadow: 0 1px 2px rgba(0,0,0,0.06);
+  --accent-fg: #ffffff;
+  --overlay: rgba(20,20,20,0.35);
   color-scheme: light;
 }
 :root {
@@ -55,7 +59,10 @@
   --radius: 10px;
   --radius-sm: 6px;
   --gap: 16px;
+  --sidebar-w: 232px;
+  --rail-w: 56px;
+  --topbar-h: 52px;
+  --focus-ring: var(--accent);
+  --ease: 160ms ease;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; }
-.num, code, kbd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/* Element-level resets, typography and utilities live in base.css. */
