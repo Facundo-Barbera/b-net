@@ -36,6 +36,20 @@ code, kbd { font-size: 0.92em; }
   color: var(--text-muted);
 }
 
+/* Text utilities shared by views and tables. */
+.u-muted { color: var(--text-muted); }
+.u-faint { color: var(--text-faint); }
+.u-strong { font-weight: 600; }
+.u-accent { color: var(--accent); }
+.u-danger { color: var(--danger); }
+.u-nowrap { white-space: nowrap; }
+.u-right { text-align: right; }
+
+/* View root: vertical rhythm shared by every page. */
+.ui-view { display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; color: var(--text); }
+.ui-pagehead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.ui-pagehead__sub { color: var(--text-muted); font-size: 12px; }
+
 /* Responsive card grid helper for views. */
 .ui-grid {
   display: grid;

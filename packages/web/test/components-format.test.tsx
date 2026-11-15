@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
+import * as T from "../src/lib/thresholds.ts";
+import { meterTone } from "../src/components/index.ts";
 import {
   DASH,
   formatAbsolute,
   formatBps,
   formatBytes,
+  formatCountdown,
   formatDuration,
+  formatInt,
+  formatMoney,
   formatMs,
   formatPercent,
   formatRelative,
+  formatRelativeSpan,
+  formatSpan,
   formatTokens,
   formatUsd,
+  formatUsdHeadline,
+  formatUsedOfGb,
 } from "../src/lib/format.ts";
 
 describe("formatters", () => {
@@ -74,9 +83,9 @@ describe("formatters", () => {
   });
 
   it("formatMs", () => {
-    expect(formatMs(820)).toBe("820ms");
-    expect(formatMs(6400)).toBe("6.4s");
-    expect(formatMs(41_200)).toBe("41s");
+    expect(formatMs(820)).toBe("820 ms");
+    expect(formatMs(6400)).toBe("6.4 s");
+    expect(formatMs(41_200)).toBe("41 s");
     expect(formatMs(125_000)).toBe("2m 5s");
   });
 
@@ -97,5 +106,76 @@ describe("formatters", () => {
 
   it("formatAbsolute is a deterministic UTC string", () => {
     expect(formatAbsolute("2026-11-15T20:30:00.000Z")).toBe("2026-11-15 20:30 UTC");
+  });
+});
+
+describe("precise spans and countdowns", () => {
+  const now = Date.parse("2026-11-15T20:30:00.000Z");
+  const at = (sec: number) => new Date(now + sec * 1000).toISOString();
+
+  it("formatSpan keeps zero parts and ignores the sign", () => {
+    expect(formatSpan(130 * 60_000)).toBe("2h 10m");
+    expect(formatSpan(7 * 3_600_000)).toBe("7h 0m");
+    expect(formatSpan((20 * 1440) * 60_000)).toBe("20d 0h");
+    expect(formatSpan(-38 * 60_000)).toBe("38m");
+    expect(formatSpan(20_000)).toBe("<1m");
+    expect(formatSpan(20_000, { seconds: true })).toBe("20s");
+  });
+
+  it("formatCountdown is null when unknown or past", () => {
+    expect(formatCountdown(at(38 * 60), now)).toBe("38m");
+    expect(formatCountdown(at(-1), now)).toBeNull();
+    expect(formatCountdown(at(0), now)).toBeNull();
+    expect(formatCountdown(null, now)).toBeNull();
+    expect(formatCountdown("nope", now)).toBeNull();
+  });
+
+  it("formatRelativeSpan is signed and localizable", () => {
+    expect(formatRelativeSpan(at(130 * 60), now)).toBe("in 2h 10m");
+    expect(formatRelativeSpan(at(-22 * 60), now)).toBe("22m ago");
+    expect(formatRelativeSpan(at(130 * 60), now, { lang: "es" })).toBe("en 2h 10m");
+    expect(formatRelativeSpan(at(-22 * 60), now, { lang: "es" })).toBe("hace 22m");
+    expect(formatRelativeSpan(at(-12), now, { lang: "es", seconds: true })).toBe("hace 12s");
+    expect(formatRelativeSpan(at(-12), now, { lang: "es" })).toBe("hace <1m");
+    expect(formatRelativeSpan(null, now)).toBe(DASH);
+  });
+});
+
+describe("number and money helpers", () => {
+  it("formatInt groups thousands", () => {
+    expect(formatInt(1234567)).toBe("1,234,567");
+    expect(formatInt(0)).toBe("0");
+    expect(formatInt(null)).toBe(DASH);
+  });
+
+  it("formatUsdHeadline drops cents for whole or large amounts", () => {
+    expect(formatUsdHeadline(3980.2)).toBe("$3,980");
+    expect(formatUsdHeadline(200)).toBe("$200");
+    expect(formatUsdHeadline(41.26)).toBe("$41.26");
+    expect(formatUsdHeadline(undefined)).toBe(DASH);
+  });
+
+  it("formatMoney handles USD and other currencies", () => {
+    expect(formatMoney(41.256, "USD")).toBe("$41.26");
+    expect(formatMoney(12.5, "EUR")).toBe("12.50 EUR");
+    expect(formatMoney(null, "USD")).toBe(DASH);
+  });
+
+  it("formatUsedOfGb switches to TB from 1000 GB", () => {
+    expect(formatUsedOfGb(5.3, 7.5)).toBe("5.3 / 7.5 GB");
+    expect(formatUsedOfGb(120, 480)).toBe("120 / 480 GB");
+    expect(formatUsedOfGb(1846, 2000)).toBe("1.8 / 2.0 TB");
+    expect(formatUsedOfGb(Number.NaN, 10)).toBe(DASH);
+  });
+});
+
+describe("thresholds", () => {
+  it("is the single source for meter tones", () => {
+    expect(T.USAGE_WARN_AT).toBeLessThan(T.USAGE_DANGER_AT);
+    expect(meterTone(T.USAGE_WARN_AT - 0.1)).toBe("ok");
+    expect(meterTone(T.USAGE_WARN_AT)).toBe("warn");
+    expect(meterTone(T.USAGE_DANGER_AT - 0.1)).toBe("warn");
+    expect(meterTone(T.USAGE_DANGER_AT)).toBe("danger");
+    expect(T.TEMP_WARN_C).toBeLessThan(T.TEMP_DANGER_C);
   });
 });
