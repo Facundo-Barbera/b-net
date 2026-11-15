@@ -1,7 +1,23 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import type { MachineView } from "@bixku/core";
-import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, STATUS_TONE, awake, level, linkKind, linkLabel } from "./derive.ts";
-import { Dot, useNarrow } from "./parts.tsx";
+import { Card, StatusDot, meterTone, toneForMachineStatus } from "../../components/index.ts";
+import { formatPercent } from "../../lib/format.ts";
+import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, awake, linkKind, linkLabel } from "./derive.ts";
+
+/** True below the topology breakpoint. SSR/jsdom without matchMedia => wide. */
+function useNarrow(query = "(max-width: 640px)"): boolean {
+  const supported = typeof window !== "undefined" && typeof window.matchMedia === "function";
+  const [narrow, setNarrow] = useState(() => (supported ? window.matchMedia(query).matches : false));
+  useEffect(() => {
+    if (!supported) return;
+    const mq = window.matchMedia(query);
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [query, supported]);
+  return narrow;
+}
 
 interface TopologyProps {
   machines: MachineView[];
@@ -24,7 +40,7 @@ const RING_C = 2 * Math.PI * RING_R;
 
 function metricsText(m: MachineView): string {
   if (!m.metrics) return "no metrics";
-  return `CPU ${Math.round(m.metrics.cpuPct)}%, RAM ${Math.round(m.metrics.memPct)}%`;
+  return `CPU ${formatPercent(m.metrics.cpuPct)}, RAM ${formatPercent(m.metrics.memPct)}`;
 }
 
 /** Accessible name shared by SVG nodes and the narrow list rows. */
@@ -36,9 +52,8 @@ export function machineLabel(m: MachineView, hubId: string): string {
 }
 
 function Ring({ cx, cy, pct, label }: { cx: number; cy: number; pct: number; label: string }) {
-  const lv = level(pct);
   return (
-    <g data-level={lv} className="mv-ring">
+    <g className={`mv-ring tone-${meterTone(pct)}`}>
       <circle cx={cx} cy={cy} r={RING_R} className="mv-ring__track" />
       <circle
         cx={cx}
@@ -49,7 +64,7 @@ function Ring({ cx, cy, pct, label }: { cx: number; cy: number; pct: number; lab
         transform={`rotate(-90 ${cx} ${cy})`}
       />
       <text x={cx + RING_R + 5} y={cy + 3.5} className="mv-svg-num">
-        {label} {Math.round(pct)}%
+        {label} {formatPercent(pct)}
       </text>
     </g>
   );
@@ -61,7 +76,7 @@ function Node({
   m: MachineView; x: number; y: number; w: number; isHub: boolean; selected: boolean; dimmed: boolean;
   onSelect: () => void; onHover: (on: boolean) => void; hubId: string;
 }) {
-  const tone = STATUS_TONE[m.status];
+  const tone = toneForMachineStatus(m.status);
   const a = awake(m.threadCounts);
   const down = m.status === "offline" || m.status === "paused";
   const onKey = (e: KeyboardEvent<SVGGElement>) => {
@@ -69,8 +84,7 @@ function Node({
   };
   return (
     <g
-      className="mv-node"
-      data-tone={tone}
+      className={`mv-node tone-${tone}`}
       data-selected={selected || undefined}
       data-hub={isHub || undefined}
       data-faded={down || dimmed || undefined}
@@ -163,19 +177,18 @@ function ListMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
           <li key={m.id}>
             <button
               type="button"
-              className="mv-maplist__row"
-              data-tone={STATUS_TONE[m.status]}
+              className={`mv-maplist__row tone-${toneForMachineStatus(m.status)}`}
               data-selected={selectedId === m.id || undefined}
               data-kind={isHub ? "hub" : linkKind(m)}
               aria-pressed={selectedId === m.id}
               aria-label={machineLabel(m, hubId)}
               onClick={() => onSelect(m.id)}
             >
-              <Dot tone={STATUS_TONE[m.status]} />
+              <StatusDot tone={toneForMachineStatus(m.status)} />
               <span className="mv-maplist__name">{m.name}{isHub && <span className="mv-node__hub"> HUB</span>}</span>
               <span className="mv-maplist__link num">{isHub ? "hub" : linkLabel(m)}</span>
               <span className="mv-maplist__stats num">
-                {m.metrics ? `CPU ${Math.round(m.metrics.cpuPct)}% · RAM ${Math.round(m.metrics.memPct)}%` : "no metrics"}
+                {m.metrics ? `CPU ${formatPercent(m.metrics.cpuPct)} · RAM ${formatPercent(m.metrics.memPct)}` : "no metrics"}
               </span>
               <span className="mv-maplist__sand num">{a} awake · {m.threadCounts.dormant} dormant</span>
             </button>
@@ -189,17 +202,19 @@ function ListMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
 export function Topology(props: TopologyProps) {
   const narrow = useNarrow();
   return (
-    <section className="mv-panel mv-topology" aria-labelledby="mv-topo-title">
-      <header className="mv-panel__head">
-        <h2 id="mv-topo-title" className="mv-label">Topology</h2>
+    <Card
+      className="mv-topology"
+      title="Topology"
+      actions={
         <ul className="mv-legend" aria-label="Link legend">
           <li><i data-kind="direct" /> direct</li>
           <li><i data-kind="derp" /> DERP relay</li>
           <li><i data-kind="peer-relay" /> peer relay</li>
           <li><i data-kind="offline" /> offline</li>
         </ul>
-      </header>
+      }
+    >
       {narrow ? <ListMap {...props} /> : <SvgMap {...props} />}
-    </section>
+    </Card>
   );
 }

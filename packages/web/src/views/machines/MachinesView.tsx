@@ -1,35 +1,37 @@
 import { useState } from "react";
+import { Card, EmptyState, PageHeader, useNow } from "../../components/index.ts";
+import { formatRelative } from "../../lib/format.ts";
 import type { ViewProps } from "../../routes.tsx";
 import "./machines.css";
 import { summarize } from "./derive.ts";
-import { relTime, toMs, type NowInput } from "./format.ts";
 import { MachineCard } from "./MachineCard.tsx";
 import { MachineDetail } from "./MachineDetail.tsx";
 import { SummaryStrip } from "./SummaryStrip.tsx";
 import { Topology } from "./Topology.tsx";
 
 export interface MachinesViewProps extends ViewProps {
-  /** Reference time for every relative label. Defaults to Date.now(); tests inject FIXTURE_NOW. */
-  now?: NowInput;
   /** Preselect a machine (otherwise the detail panel starts empty). */
   initialSelectedId?: string | null;
 }
 
-export function MachinesView({ snapshot, now, initialSelectedId = null }: MachinesViewProps) {
-  const nowMs = toMs(now);
+export function MachinesView({ snapshot, initialSelectedId = null }: MachinesViewProps) {
+  const nowMs = useNow();
   const [selected, setSelected] = useState<string | null>(initialSelectedId);
   const machines = snapshot.machines;
   const selectedMachine = machines.find((m) => m.id === selected) ?? null;
   const summary = summarize(machines, snapshot.hubMachineId);
 
   return (
-    <section className="mv" data-testid="view-machines" aria-labelledby="mv-title">
-      <header className="mv-head">
-        <h1 id="mv-title">Machines</h1>
-        <span className="mv-head__sub num">
-          {machines.length} machines · snapshot {relTime(snapshot.generatedAt, nowMs)} · hub {snapshot.hubVersion}
-        </span>
-      </header>
+    <section className="ui-view mv" data-testid="view-machines" aria-labelledby="mv-title">
+      <PageHeader
+        title="Machines"
+        titleId="mv-title"
+        subtitle={
+          <span className="num">
+            {machines.length} machines · snapshot {formatRelative(snapshot.generatedAt, nowMs)} · hub {snapshot.hubVersion}
+          </span>
+        }
+      />
 
       <SummaryStrip summary={summary} />
 
@@ -53,7 +55,9 @@ export function MachinesView({ snapshot, now, initialSelectedId = null }: Machin
               onClose={() => setSelected(null)}
             />
           ) : (
-            <p className="mv-empty mv-panel" data-testid="detail-empty">Select a machine on the map or in the list to see its history and T3 threads.</p>
+            <Card>
+              <EmptyState compact data-testid="detail-empty" title="Select a machine on the map or in the list to see its history and T3 threads." />
+            </Card>
           )}
         </aside>
       </div>

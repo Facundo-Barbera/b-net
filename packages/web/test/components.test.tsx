@@ -10,8 +10,17 @@ import {
   RelativeTime,
   Sparkline,
   Stat,
+  StatStrip,
   StatusDot,
+  Table,
+  Tag,
+  Callout,
+  KV,
+  KeyValue,
+  PageHeader,
   buildSparkline,
+  toneForServiceStatus,
+  toneForThreadState,
   meterTone,
   toneForMachineStatus,
   toneForPoolState,
@@ -198,5 +207,157 @@ describe("tone mappers", () => {
     expect(toneForSecretStatus("expiring")).toBe("warn");
     expect(toneForSecretStatus("expired")).toBe("danger");
     expect(toneForSecretStatus("unknown")).toBe("dormant");
+  });
+});
+
+describe("Badge dot / Tag", () => {
+  it("prefixes a decorative dot only when asked", () => {
+    const { container, rerender } = render(<Badge tone="ok">up</Badge>);
+    expect(container.querySelector(".ui-badge__dot")).toBeNull();
+    rerender(<Badge tone="ok" dot>up</Badge>);
+    expect(container.querySelector(".ui-badge__dot")?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.textContent).toBe("up");
+  });
+
+  it("Tag is a plain mono chip that forwards attributes", () => {
+    render(<Tag title="hint" data-testid="t">v0.1.0</Tag>);
+    expect(screen.getByTestId("t").className).toContain("ui-tag");
+    expect(screen.getByTestId("t").getAttribute("title")).toBe("hint");
+  });
+});
+
+describe("Card as article / bodyClassName", () => {
+  it("renders an article and tags the body", () => {
+    const { container } = render(<Card as="article" aria-label="m card" bodyClassName="x">y</Card>);
+    expect(screen.getByRole("article", { name: "m card" })).toBeTruthy();
+    expect(container.querySelector(".ui-card__body.x")).toBeTruthy();
+  });
+});
+
+describe("Meter extensions", () => {
+  it("rounds aria-valuenow, uses ariaLabel and shows detail", () => {
+    render(<Meter value={91.5} ariaLabel="Uso 5 h" detail="5.3 / 7.5 GB" />);
+    const m = screen.getByRole("meter", { name: "Uso 5 h" });
+    expect(m.getAttribute("aria-valuenow")).toBe("92");
+    expect(screen.getByText("5.3 / 7.5 GB")).toBeTruthy();
+  });
+
+  it("flags HIGH / CRIT only past the thresholds and only with `flag`", () => {
+    const { rerender } = render(<Meter value={80} label="RAM" flag />);
+    expect(screen.getByText("HIGH")).toBeTruthy();
+    rerender(<Meter value={95} label="RAM" flag />);
+    expect(screen.getByText("CRIT")).toBeTruthy();
+    rerender(<Meter value={20} label="RAM" flag />);
+    expect(screen.queryByText("HIGH")).toBeNull();
+    expect(screen.queryByText("CRIT")).toBeNull();
+    rerender(<Meter value={95} label="RAM" />);
+    expect(screen.queryByText("CRIT")).toBeNull();
+  });
+
+  it("uses the shared thresholds by default (70 / 90)", () => {
+    const tone = () => screen.getByRole("meter").closest(".ui-meter")!.getAttribute("data-tone");
+    const { rerender } = render(<Meter value={69} label="x" />);
+    expect(tone()).toBe("ok");
+    rerender(<Meter value={70} label="x" />);
+    expect(tone()).toBe("warn");
+    rerender(<Meter value={90} label="x" />);
+    expect(tone()).toBe("danger");
+  });
+});
+
+describe("Sparkline extensions", () => {
+  it("computes a reference line inside the domain only", () => {
+    expect(buildSparkline([0, 100], 100, 20, { min: 0, max: 100, pad: 0, ref: 50 }).ref).toBe(10);
+    expect(buildSparkline([0, 100], 100, 20, { min: 0, max: 100, pad: 0, ref: 150 }).ref).toBeNull();
+    expect(buildSparkline([1], 100, 20, { ref: 1 }).ref).toBeNull();
+  });
+
+  it("stretches, takes a chart series and draws the reference line", () => {
+    const { container } = render(<Sparkline values={[10, 60, 30]} min={0} max={100} series={2} stretch refLine={70} />);
+    const svg = container.querySelector("svg")!;
+    expect(svg.getAttribute("width")).toBe("100%");
+    expect(svg.getAttribute("preserveAspectRatio")).toBe("none");
+    expect(svg.getAttribute("class")).toContain("ui-spark--s2");
+    expect(container.querySelector(".ui-spark__ref")).toBeTruthy();
+  });
+});
+
+describe("RelativeTime format", () => {
+  it("uses a custom formatter with the provider clock", () => {
+    render(
+      <NowProvider value={NOW}>
+        <RelativeTime value="2026-11-15T20:25:00.000Z" format={(v, now) => `${now - Date.parse(String(v))} ms`} />
+      </NowProvider>,
+    );
+    expect(screen.getByText("300000 ms").tagName).toBe("TIME");
+  });
+});
+
+describe("EmptyState extensions", () => {
+  it("forwards attributes, renders children and the compact variant", () => {
+    const { container } = render(
+      <EmptyState compact data-testid="e" title="Nada">
+        <code>detail</code>
+      </EmptyState>,
+    );
+    expect(screen.getByTestId("e").className).toContain("ui-empty--compact");
+    expect(container.querySelector("code")?.textContent).toBe("detail");
+  });
+});
+
+describe("StatStrip / Table / Callout / KeyValue / PageHeader", () => {
+  it("StatStrip is a labelled group of stats", () => {
+    render(
+      <StatStrip aria-label="Resumen">
+        <Stat label="A" value={1} />
+        <Stat label="B" value={2} />
+      </StatStrip>,
+    );
+    const g = screen.getByRole("group", { name: "Resumen" });
+    expect(within(g).getByText("A").nextSibling?.textContent).toBe("1");
+  });
+
+  it("Table scrolls inside its wrapper and supports dense", () => {
+    const { container } = render(<Table dense aria-label="t"><tbody><tr><td>x</td></tr></tbody></Table>);
+    expect(container.querySelector(".ui-table-wrap > table.ui-table.ui-table--dense")).toBeTruthy();
+    expect(screen.getByRole("table", { name: "t" })).toBeTruthy();
+  });
+
+  it("Callout exposes role, tone and optional icon", () => {
+    const { container } = render(<Callout tone="warn" role="alert" icon={<i data-testid="ic" />}>careful</Callout>);
+    expect(screen.getByRole("alert").className).toContain("tone-warn");
+    expect(container.querySelector(".ui-callout__icon [data-testid=ic]")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toBe("careful");
+  });
+
+  it("KeyValue lists label/value pairs with a mono value and optional tone", () => {
+    const { container } = render(
+      <KeyValue>
+        <KV label="Temp" tone="warn">80 °C</KV>
+      </KeyValue>,
+    );
+    expect(container.querySelector("dl.ui-kv")).toBeTruthy();
+    expect(container.querySelector("dd")!.className).toContain("num");
+    expect(container.querySelector(".ui-kv__item")!.className).toContain("tone-warn");
+  });
+
+  it("PageHeader renders the single h1 with an optional id and subtitle", () => {
+    render(<PageHeader title="Machines" titleId="t" subtitle="6 machines" />);
+    const h = screen.getByRole("heading", { level: 1, name: "Machines" });
+    expect(h.id).toBe("t");
+    expect(screen.getByText("6 machines")).toBeTruthy();
+  });
+});
+
+describe("more tone mappers", () => {
+  it("map thread and service states", () => {
+    expect(toneForThreadState("active")).toBe("ok");
+    expect(toneForThreadState("waiting")).toBe("warn");
+    expect(toneForThreadState("idle")).toBe("info");
+    expect(toneForThreadState("dormant")).toBe("dormant");
+    expect(toneForThreadState("archived")).toBe("dormant");
+    expect(toneForServiceStatus("up")).toBe("ok");
+    expect(toneForServiceStatus("down")).toBe("danger");
+    expect(toneForServiceStatus("unknown")).toBe("dormant");
   });
 });

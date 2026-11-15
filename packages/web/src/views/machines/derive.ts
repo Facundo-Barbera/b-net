@@ -1,13 +1,6 @@
 /** View-local derivations over the snapshot: status/tone mapping, summary, link labels, thread grouping. */
 import type { MachineStatus, MachineView, T3ThreadView, ThreadState } from "@bixku/core";
-import { ms } from "./format.ts";
-
-export type Tone = "ok" | "warn" | "danger" | "idle" | "dormant" | "info";
-export type Level = "ok" | "warn" | "danger";
-
-/** Meter thresholds: warn above 75, danger above 90. */
-export const level = (pct: number): Level => (pct > 90 ? "danger" : pct > 75 ? "warn" : "ok");
-export const LEVEL_FLAG: Record<Level, string | null> = { ok: null, warn: "HIGH", danger: "CRIT" };
+import { formatMs, formatRelative } from "../../lib/format.ts";
 
 export const STATUS_LABEL: Record<MachineStatus, string> = {
   online: "Online",
@@ -16,14 +9,6 @@ export const STATUS_LABEL: Record<MachineStatus, string> = {
   paused: "Paused",
   unknown: "Unknown",
 };
-export const STATUS_TONE: Record<MachineStatus, Tone> = {
-  online: "ok",
-  degraded: "warn",
-  offline: "danger",
-  paused: "idle",
-  unknown: "dormant",
-};
-
 export const ROLE_LABEL: Record<MachineView["role"], string> = {
   hub: "Hub",
   vps: "VPS",
@@ -62,10 +47,10 @@ export function linkLabel(m: MachineView): string {
   const lat = m.tailscale.latencyMs;
   switch (kind) {
     case "offline": return "offline";
-    case "direct": return ms(lat);
-    case "derp": return `${ms(lat)} · DERP ${m.tailscale.relay ?? "?"}`;
-    case "peer-relay": return `${ms(lat)} · peer relay`;
-    default: return lat === null ? "path unknown" : `${ms(lat)} · path unknown`;
+    case "direct": return formatMs(lat);
+    case "derp": return `${formatMs(lat)} · DERP ${m.tailscale.relay ?? "?"}`;
+    case "peer-relay": return `${formatMs(lat)} · peer relay`;
+    default: return lat === null ? "path unknown" : `${formatMs(lat)} · path unknown`;
   }
 }
 
@@ -115,7 +100,15 @@ export function metricsNote(m: MachineView): string | null {
   return null;
 }
 
-export const STALE_AFTER_MS = 5 * 60_000;
+/** Age in ms of an ISO timestamp (null when unknown). */
+export function ageMs(iso: string | null | undefined, nowMs: number): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : nowMs - t;
+}
+
+/** Relative time for inline text, "never" when the instant is unknown. */
+export const ago = (iso: string | null | undefined, nowMs: number): string => (iso ? formatRelative(iso, nowMs) : "never");
 
 /* --------------------------------- threads -------------------------------- */
 
@@ -126,13 +119,6 @@ export const GROUP_TITLE: Record<ThreadState, string> = {
   idle: "Idle",
   dormant: "Dormant",
   archived: "Archived",
-};
-export const THREAD_TONE: Record<ThreadState, Tone> = {
-  active: "ok",
-  waiting: "warn",
-  idle: "info",
-  dormant: "dormant",
-  archived: "dormant",
 };
 
 export interface ThreadNode {

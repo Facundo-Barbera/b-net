@@ -21,15 +21,7 @@
 }
 .sh-skip:focus { transform: none; }
 
-.sh-banner {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
-  color: var(--warn);
-  font-size: 12.5px;
-}
+.sh-banner { margin-bottom: var(--sp-3); }
 
 /* ---------- Sidebar ---------- */
 .sh-sidebar {

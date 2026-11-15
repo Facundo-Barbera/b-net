@@ -1,9 +1,8 @@
 import type { AccountView, ProviderId } from "@bixku/core";
+import { Card, EmptyState, PageHeader, Stat, StatStrip, StatusDot, useNow } from "../../components/index.ts";
+import { DASH, formatSpan, formatUsdHeadline } from "../../lib/format.ts";
 import type { ViewProps } from "../../routes.tsx";
 import { AccountCard, windowLabel } from "./AccountCard.tsx";
-import { fmtSpan, fmtUsd, resolveNow } from "./_shared/format.ts";
-import type { NowInput } from "./_shared/format.ts";
-import { Dot, Kpi } from "./_shared/ui.tsx";
 import "./subscriptions.css";
 
 const PROVIDER_ORDER: ProviderId[] = ["anthropic", "openai", "google", "openrouter", "other"];
@@ -14,11 +13,6 @@ const PROVIDER_NAME: Record<ProviderId, string> = {
   openrouter: "OpenRouter",
   other: "Otros",
 };
-
-export interface SubscriptionsViewProps extends ViewProps {
-  /** Reference clock for countdowns. Defaults to `snapshot.generatedAt`. */
-  now?: NowInput;
-}
 
 /** Earliest window reset still in the future, across all accounts. */
 function nearestReset(accounts: AccountView[], nowMs: number) {
@@ -33,8 +27,8 @@ function nearestReset(accounts: AccountView[], nowMs: number) {
   return best;
 }
 
-export function SubscriptionsView({ snapshot, now }: SubscriptionsViewProps) {
-  const nowMs = resolveNow(snapshot.generatedAt, now);
+export function SubscriptionsView({ snapshot }: ViewProps) {
+  const nowMs = useNow();
   const accounts = snapshot.accounts;
 
   const cost30 = accounts.reduce((s, a) => s + a.last30d.costUsd, 0);
@@ -50,59 +44,55 @@ export function SubscriptionsView({ snapshot, now }: SubscriptionsViewProps) {
   })).filter((g) => g.accounts.length > 0);
 
   return (
-    <section className="vx sv" data-testid="view-subscriptions">
-      <div className="vx-page-head">
-        <h1>Subscriptions</h1>
-        <span className="vx-page-sub">Costos a precio de lista, no lo facturado · ventanas según el proveedor</span>
-      </div>
+    <section className="ui-view sv" data-testid="view-subscriptions">
+      <PageHeader title="Subscriptions" subtitle="Costos a precio de lista, no lo facturado · ventanas según el proveedor" />
 
-      <div className="vx-kpis" data-testid="subs-summary">
-        <Kpi
+      <StatStrip data-testid="subs-summary">
+        <Stat
+          data-testid="sum-cost"
           label="Costo 30 d (precio de lista)"
-          value={fmtUsd(cost30)}
+          value={formatUsdHeadline(cost30)}
           tone="accent"
-          sub={
+          hint={
             planTotal > 0
-              ? `${(subCost30 / planTotal).toFixed(1)}× sobre ${fmtUsd(planTotal)}/mes en planes`
+              ? `${(subCost30 / planTotal).toFixed(1)}× sobre ${formatUsdHeadline(planTotal)}/mes en planes`
               : "sin planes de suscripción"
           }
-          testId="sum-cost"
         />
-        <Kpi
+        <Stat
+          data-testid="sum-cooldown"
           label="En cooldown"
           value={`${cooling.length} / ${accounts.length}`}
           tone={cooling.length > 0 ? "warn" : "ok"}
-          sub={cooling.length > 0 ? cooling.map((a) => a.label).join(", ") : "todas las cuentas disponibles"}
-          testId="sum-cooldown"
+          hint={cooling.length > 0 ? cooling.map((a) => a.label).join(", ") : "todas las cuentas disponibles"}
         />
-        <Kpi
+        <Stat
+          data-testid="sum-reset"
           label="Próximo reset"
-          value={reset ? fmtSpan(reset.ms) : "—"}
-          sub={reset ? `${reset.account.label} · ${windowLabel(reset.window)}` : "sin resets programados"}
-          testId="sum-reset"
+          value={reset ? formatSpan(reset.ms) : DASH}
+          hint={reset ? `${reset.account.label} · ${windowLabel(reset.window)}` : "sin resets programados"}
         />
-        <Kpi
+        <Stat
+          data-testid="sum-active"
           label="Cuentas activas"
           value={accounts.filter((a) => a.poolState === "active").length}
-          sub={`${accounts.length} en el pool`}
-          testId="sum-active"
+          hint={`${accounts.length} en el pool`}
         />
-      </div>
+      </StatStrip>
 
       {groups.length === 0 ? (
-        <div className="vx-empty" data-testid="subs-empty">
-          <h2 className="vx-eyebrow">Sin cuentas</h2>
-          <p>El proxy todavía no reporta cuentas. Revisa la vista Proxy y el estado de las fuentes.</p>
-        </div>
+        <Card>
+          <EmptyState data-testid="subs-empty" title="Sin cuentas" description="El proxy todavía no reporta cuentas. Revisa la vista Proxy y el estado de las fuentes." />
+        </Card>
       ) : null}
 
       {groups.map((g) => (
         <section key={g.provider} className="sv-group" aria-label={PROVIDER_NAME[g.provider]} data-testid={`provider-${g.provider}`}>
           <header className="sv-group-head">
-            <Dot tone="accent" />
-            <h2 className="vx-eyebrow">{PROVIDER_NAME[g.provider]}</h2>
-            <span className="vx-faint num">
-              {g.accounts.length} {g.accounts.length === 1 ? "cuenta" : "cuentas"} · {fmtUsd(g.accounts.reduce((s, a) => s + a.last30d.costUsd, 0))} / 30 d
+            <StatusDot tone="accent" />
+            <h2 className="ui-label">{PROVIDER_NAME[g.provider]}</h2>
+            <span className="u-faint num">
+              {g.accounts.length} {g.accounts.length === 1 ? "cuenta" : "cuentas"} · {formatUsdHeadline(g.accounts.reduce((s, a) => s + a.last30d.costUsd, 0))} / 30 d
             </span>
           </header>
           <div className="sv-grid">

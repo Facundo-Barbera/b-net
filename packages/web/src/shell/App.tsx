@@ -1,3 +1,4 @@
+import { Callout } from "../components/Callout.tsx";
 import { EmptyState } from "../components/EmptyState.tsx";
 import { NowProvider, useClock } from "../components/now.tsx";
 import { getDataMode, useSnapshot, type DataMode } from "../data/useSnapshot.ts";
@@ -22,9 +23,9 @@ export function App({ mode }: { mode?: DataMode } = {}) {
         {snapshot ? (
           <>
             {error && (
-              <p className="sh-banner" role="alert">
+              <Callout tone="warn" role="alert" className="sh-banner">
                 Showing the last snapshot — refresh failed: {error}
-              </p>
+              </Callout>
             )}
             <View snapshot={snapshot} />
           </>
