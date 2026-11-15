@@ -52,3 +52,7 @@ pnpm check:public   # busca credenciales, IPs/dominios reales del tailnet (compa
 ```
 
 Las fixtures usan solo datos falsos: IPs `100.64.0.0/10` inventadas, dominios `.invalid` y el tailnet `tail0fake`.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Facundo Barbera.
