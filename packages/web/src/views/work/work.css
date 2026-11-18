@@ -1,10 +1,43 @@
 /* Work home (views/work) and the event rows the project detail reuses. Tokens only. */
-.ui-view.wk { max-width: var(--read-w); }
+.ui-view.wk { max-width: var(--work-w); }
+
+/* ---------- Pulse: four tiles, the first read of the page ---------- */
+.wk-pulse { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+.wk-tile {
+  position: relative;
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  /* A faint wash of the tile's tone from the top; the glyph and word carry the meaning, this only groups. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 9%, var(--bg-elev)), var(--bg-elev) 70%);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--ease), transform var(--ease);
+}
+.wk-tile:hover { border-color: color-mix(in srgb, var(--tone) 45%, var(--border-strong)); text-decoration: none; transform: translateY(-1px); }
+.wk-tile__top { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.wk-tile__label { flex: 1; min-width: 0; color: var(--text-muted); font-size: var(--fs-sm); font-weight: 600; }
+.wk-tile__go { flex: none; color: var(--text-faint); font-size: var(--fs-md); transition: transform var(--ease), color var(--ease); }
+.wk-tile:hover .wk-tile__go { color: var(--text); transform: translateX(2px); }
+.wk-tile__value { font-size: var(--fs-3xl); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; }
+.wk-tile__value small { margin-left: 2px; font-size: 0.5em; font-weight: 500; color: var(--text-muted); }
+.wk-tile__hint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--fs-sm); }
+/* Only a tile that asks for action gets its tone on the number; zero stays neutral. */
+.wk-tile[data-tone="warn"] .wk-tile__value, .wk-tile[data-tone="danger"] .wk-tile__value { color: var(--tone); }
+
+/* ---------- Layout: queue + lanes on the left, timeline + fleet on the rail ---------- */
+.wk-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: var(--sp-6); align-items: start; }
+.wk-layout__main, .wk-layout__rail { display: grid; gap: var(--sp-6); min-width: 0; }
 
 /* Sections: title + count + one-line purpose, no surrounding box. */
-.wk-section { display: grid; gap: var(--sp-3); min-width: 0; }
-.wk-section__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
-.wk-section__title { display: inline-flex; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-lg); }
+.wk-section { display: grid; gap: var(--sp-3); min-width: 0; scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.wk-section__head { display: grid; gap: 2px; }
+.wk-section__title { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-lg); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
 .wk-section__hint { color: var(--text-muted); font-size: var(--fs-sm); }
 .wk-count {
   min-width: 22px;
@@ -18,25 +51,40 @@
   text-align: center;
 }
 
-/* "Te espera": the most prominent surface on the page. */
-.wk-waitlist { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+/* ---------- "Te espera": the queue ---------- */
+.wk-waitlist { display: grid; gap: var(--sp-2); }
 .wk-waitlist > li { display: grid; min-width: 0; }
 .wk-wait {
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
-  gap: var(--sp-2);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
   min-width: 0;
   padding: var(--sp-3) var(--sp-4);
-  background: color-mix(in srgb, var(--tone) 6%, var(--bg-elev));
-  border: 1px solid color-mix(in srgb, var(--tone) 30%, var(--border));
-  border-left: 3px solid var(--tone);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  /* Tone bar on the left edge plus the kind glyph and word in the badge: three cues, colour is the weakest. */
+  box-shadow: inset 3px 0 0 var(--tone);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  transition: border-color var(--ease), background var(--ease);
   animation: ui-enter var(--enter) both;
 }
-.wk-wait__head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); min-width: 0; }
-.wk-wait__title { font-size: var(--fs-lg); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-.wk-wait__foot { display: flex; align-items: end; gap: var(--sp-2); padding-top: var(--sp-1); }
+.wk-wait:hover { border-color: var(--border-strong); background: var(--bg-elev-2); }
+.wk-wait__rank {
+  display: grid;
+  place-items: center;
+  width: 28px; height: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.wk-waitlist > li:first-child .wk-wait__rank { border-color: var(--tone); color: var(--text); }
+.wk-wait__main { display: grid; gap: var(--sp-1); min-width: 0; }
+.wk-wait__head { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; min-width: 0; }
+.wk-wait__title { font-size: var(--fs-base); font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.wk-wait__act { display: flex; align-items: center; }
 
 .wk-kind { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .wk-when { flex: none; color: var(--text-muted); font-size: var(--fs-sm); white-space: nowrap; }
@@ -47,7 +95,7 @@
 .wk-meta__detail { overflow-wrap: anywhere; }
 .wk-project { color: var(--text); font-weight: 500; }
 
-/* Rows: running threads, recent events, project activity. */
+/* ---------- Rows: running threads, project activity ---------- */
 .wk-rows { display: grid; }
 .wk-rows--card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); }
 .wk-row {
@@ -55,7 +103,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--sp-3);
-  min-height: 48px;
+  min-height: 52px;
   padding: var(--sp-2) var(--sp-4);
   border-bottom: 1px solid var(--border);
   transition: background var(--ease);
@@ -64,38 +112,88 @@
 .wk-row:hover { background: var(--bg-elev-2); }
 .wk-row__main { display: grid; gap: 2px; min-width: 0; }
 .wk-row__title { font-weight: 500; overflow-wrap: anywhere; }
-.wk-elapsed { color: var(--text); font-size: var(--fs-md); font-weight: 500; white-space: nowrap; }
+.wk-elapsed {
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
 
-/* "En curso" grouped by project. */
-.wk-groups { display: grid; gap: var(--sp-3); }
+/* "En curso": one lane per project. */
+.wk-groups { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
 .wk-group { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.wk-group__title { display: flex; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); border-bottom: 1px solid var(--border); font-size: var(--fs-md); }
+.wk-group__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  font-size: var(--fs-md);
+}
+
+/* ---------- "Listo hace poco": timeline on the rail ---------- */
+.wk-tl { position: relative; display: grid; gap: var(--sp-1); }
+.wk-tl__item { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--sp-3); padding-bottom: var(--sp-3); }
+/* The rail: a hairline joining the nodes, stopping at the last one. */
+.wk-tl__item::before { content: ""; position: absolute; left: 9.5px; top: 22px; bottom: -2px; width: 1px; background: var(--border-strong); }
+.wk-tl__item:last-child::before { display: none; }
+.wk-tl__node {
+  display: grid;
+  place-items: center;
+  width: 20px; height: 20px;
+  margin-top: 1px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+}
+.wk-tl__node .ui-dot { --size: 8px; }
+.wk-tl__body { display: grid; gap: 2px; min-width: 0; }
+.wk-tl__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.wk-tl__kind { color: var(--text-muted); font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.wk-tl__title { font-weight: 500; overflow-wrap: anywhere; }
+.wk-tl__act { margin-top: var(--sp-1); }
+.wk-tl__act:empty { display: none; }
 
 /* Empty states: a real "nothing" reads calm; a missing source reads as a to-do. */
 .wk-clear .ui-empty__title { color: var(--text); }
 .wk-gap { padding: var(--sp-2) var(--sp-3); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); }
 .wk-gap .ui-empty__icon { font-size: var(--fs-md); }
 
-/* Fleet strip: one quiet line at the bottom of the page. */
-.wk-fleet {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2) var(--sp-4);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--border);
-}
-.wk-fleet__title { font-size: var(--fs-md); font-weight: 500; }
-.wk-fleet__list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
-.wk-fleet__item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
-.wk-fleet__name { color: var(--text); }
+/* ---------- Fleet panel on the rail ---------- */
+.wk-fleet { display: grid; gap: var(--sp-3); padding: var(--sp-4); background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.wk-fleet__title { font-size: var(--fs-lg); font-weight: 600; }
+.wk-fleet__list { display: grid; gap: var(--sp-2); }
+.wk-fleet__item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 2px var(--sp-2); font-size: var(--fs-sm); }
+.wk-fleet__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .wk-fleet__status { color: var(--text-muted); }
 .wk-fleet__item[data-status="offline"] .wk-fleet__status { color: var(--danger); }
 .wk-fleet__item[data-status="degraded"] .wk-fleet__status { color: var(--warn); }
-.wk-fleet__cpu { color: var(--text-muted); font-size: var(--fs-xs); }
+.wk-fleet__cpu { grid-column: 2 / 4; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--sp-2); color: var(--text-muted); font-size: var(--fs-xs); }
 
+/* Fleet sits under the lists when the work data is missing (no rail): keep it compact there. */
+.ui-view.wk > .wk-fleet { max-width: var(--read-w); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
+  .wk-layout { grid-template-columns: minmax(0, 1fr); }
+  .wk-layout__rail { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; }
+}
+@media (max-width: 900px) {
+  .wk-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 640px) {
+  .wk-tile { padding: var(--sp-3); }
+  .wk-tile__value { font-size: var(--fs-2xl); }
+  .wk-wait { grid-template-columns: auto minmax(0, 1fr); padding: var(--sp-3); }
+  .wk-wait__act { grid-column: 2; }
   .wk-row { grid-template-columns: auto minmax(0, 1fr); padding: var(--sp-2) var(--sp-3); }
   .wk-row > .wk-when, .wk-row > .wk-elapsed { grid-column: 2; justify-self: start; }
   .wk-row > .ui-action { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wk-tile:hover, .wk-tile:hover .wk-tile__go { transform: none; }
 }

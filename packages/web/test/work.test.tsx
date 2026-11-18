@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { deriveWork, snapshotFixture, workFixture, type WorkItem, type WorkSnapshot } from "@b-net/core";
 import type { WorkState } from "../src/data/useSnapshot.ts";
 import { App } from "../src/shell/App.tsx";
-import { WorkView } from "../src/views/work/WorkView.tsx";
+import { WorkView, greeting } from "../src/views/work/WorkView.tsx";
 import { NOW_MS, renderAt } from "./helpers.tsx";
 
 const state = (data: WorkSnapshot | null, error: string | null = null): WorkState => ({ data, error, mode: "fixture" });
@@ -157,5 +157,40 @@ describe("keyboard shortcuts", () => {
     fireEvent.keyDown(window, { key: "g", ctrlKey: true });
     press("p");
     expect(location.hash).toBe("#/work");
+  });
+});
+
+describe("work view: pulse", () => {
+  it("summarises waiting, running, done and the fleet with glyph, word and number", () => {
+    view(workFixture);
+    const waiting = screen.getByTestId("pulse-waiting");
+    expect(waiting.tagName).toBe("BUTTON");
+    expect(waiting.textContent).toContain("Te espera");
+    expect(waiting.textContent).toContain(String(workFixture.waiting.length));
+    expect(waiting.querySelector(".ui-dot")?.getAttribute("data-shape")).toBe("triangle");
+    expect(screen.getByTestId("pulse-running").textContent).toContain("el más largo");
+    expect(screen.getByTestId("pulse-done").textContent).toContain(String(workFixture.done.length));
+    const fleet = screen.getByTestId("pulse-fleet");
+    expect(fleet.getAttribute("href")).toBe("#/machines");
+    expect(fleet.textContent).toContain("1 offline");
+    expect(fleet.querySelector(".ui-dot")?.getAttribute("data-shape")).toBe("square");
+    // Jumping to a section must not throw where scrollIntoView is missing (jsdom) nor touch the hash route.
+    fireEvent.click(waiting);
+    expect(location.hash).toBe("");
+  });
+
+  it("reads calm when nothing waits", () => {
+    view({ ...workFixture, waiting: [] });
+    const waiting = screen.getByTestId("pulse-waiting");
+    expect(waiting.textContent).toContain("todo al día");
+    expect(waiting.getAttribute("data-tone")).toBe("ok");
+  });
+
+  it("greets by local time of day", () => {
+    const at = (h: number) => new Date(2026, 10, 18, h, 0).getTime();
+    expect(greeting(at(8))).toBe("Buenos días");
+    expect(greeting(at(15))).toBe("Buenas tardes");
+    expect(greeting(at(23))).toBe("Buenas noches");
+    expect(greeting(at(3))).toBe("Buenas noches");
   });
 });
