@@ -5,6 +5,8 @@ import {
   diskFromStatfs,
   parseDfK,
   parseNetstatIb,
+  parseNvidiaSmi,
+  isWslRelease,
   parseLoadavg,
   parseMeminfo,
   parseNetDev,
@@ -112,5 +114,26 @@ describe("parseVmStat (macOS)", () => {
 
   it("returns null when the output is not vm_stat", () => {
     expect(parseVmStat("command not found", 1)).toBeNull();
+  });
+});
+
+describe("GPU and WSL parsers", () => {
+  it("parseNvidiaSmi reads one GPU", () => {
+    expect(parseNvidiaSmi(fx("nvidia-smi.txt"))).toEqual({
+      name: "NVIDIA GeForce RTX 3050", count: 1, utilPct: 37, memUsedMb: 1024, memTotalMb: 8192, tempC: 52,
+    });
+  });
+
+  it("parseNvidiaSmi folds several GPUs, keeps commas in names and maps [N/A] to null-safe values", () => {
+    expect(parseNvidiaSmi(fx("nvidia-smi-multi.txt"))).toEqual({
+      name: "NVIDIA RTX A2000, Laptop GPU", count: 2, utilPct: 12, memUsedMb: 2560, memTotalMb: 12288, tempC: 61,
+    });
+    expect(parseNvidiaSmi("")).toBeNull();
+    expect(parseNvidiaSmi("NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.")).toBeNull();
+  });
+
+  it("isWslRelease recognises WSL kernels only", () => {
+    expect(isWslRelease("5.15.167.4-microsoft-standard-WSL2\n")).toBe(true);
+    expect(isWslRelease("6.8.0-45-generic\n")).toBe(false);
   });
 });

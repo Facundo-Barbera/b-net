@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFileSync, readdirSync, statfsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statfsSync } from "node:fs";
 import os from "node:os";
 import { promisify } from "node:util";
 import type { MachineMetrics } from "@b-net/core";
@@ -9,6 +9,9 @@ import {
   cpuPctBetween,
   cpuTimesFromOs,
   diskFromStatfs,
+  isWslRelease,
+  NVIDIA_SMI_QUERY,
+  parseNvidiaSmi,
   parseDfK,
   parseLoadavg,
   parseMeminfo,
@@ -22,6 +25,7 @@ import {
   round2,
   type CpuTimes,
   type DiskInfo,
+  type GpuReading,
   type MemInfo,
   type NetTotals,
 } from "./parsers.ts";
@@ -32,8 +36,12 @@ export interface CollectorDeps {
   readFile(path: string): Promise<string>;
   listDir(path: string): Promise<string[]>;
   statfs(path: string): Promise<{ bsize: number; blocks: number; bfree: number; bavail: number }>;
-  /** Runs a binary with args (no shell). Resolves with stdout. */
-  exec(cmd: string, args: string[]): Promise<string>;
+  /** Runs a binary with args (no shell). Resolves with stdout; rejects on timeout (default 5 s). */
+  exec(cmd: string, args: string[], opts?: { timeoutMs?: number }): Promise<string>;
+  /** File existence (used once, to find nvidia-smi). Absent = no GPU probing. */
+  exists?(path: string): boolean;
+  /** Environment (PATH, WSL_DISTRO_NAME, AGENT_GPU). Absent = empty. */
+  env?: Record<string, string | undefined>;
   os: {
     totalmem(): number;
     freemem(): number;
@@ -61,11 +69,21 @@ export function defaultCollectorDeps(): CollectorDeps {
       const s = statfsSync(p);
       return { bsize: Number(s.bsize), blocks: Number(s.blocks), bfree: Number(s.bfree), bavail: Number(s.bavail) };
     },
-    exec: async (cmd, args) => (await execFileP(cmd, args, { timeout: 5_000, maxBuffer: 1 << 20 })).stdout,
+    exec: async (cmd, args, opts) =>
+      (await execFileP(cmd, args, { timeout: opts?.timeoutMs ?? 5_000, killSignal: "SIGKILL", maxBuffer: 1 << 20 })).stdout,
+    exists: (p) => existsSync(p),
+    env: process.env,
     os,
     now: () => performance.timeOrigin + performance.now(),
   };
 }
+
+/** nvidia-smi can hang when the driver is wedged; never let it hold a sample longer than this. */
+export const GPU_TIMEOUT_MS = 2_000;
+/** After a failed nvidia-smi call, skip this many samples (5 min at 30 s) before trying again. */
+export const GPU_BACKOFF_SAMPLES = 10;
+/** Where WSL puts nvidia-smi (Windows driver passthrough); often missing from a systemd unit's PATH. */
+const SMI_DIRS = ["/usr/bin", "/usr/local/bin", "/usr/lib/wsl/lib"];
 
 export interface Collector {
   /** Takes one sample. CPU and network rates are deltas against the previous call. */
@@ -92,6 +110,44 @@ export function createCollector(deps: CollectorDeps): Collector {
 
   const linux = deps.platform === "linux";
   const mac = deps.platform === "darwin";
+  const env = deps.env ?? {};
+
+  // Resolved once: the agent never spawns nvidia-smi on machines without it.
+  let smiPath: string | null | undefined;
+  let gpuSkip = 0;
+  let wsl: boolean | undefined;
+
+  function findNvidiaSmi(): string | null {
+    if (!linux || !deps.exists || env["AGENT_GPU"] === "off") return null;
+    const dirs = [...(env["PATH"] ?? "").split(":").filter((d) => d.startsWith("/")), ...SMI_DIRS];
+    for (const d of dirs) {
+      const p = `${d.replace(/\/+$/, "")}/nvidia-smi`;
+      if (deps.exists(p)) return p;
+    }
+    return null;
+  }
+
+  /** undefined = no nvidia-smi (field omitted); null = present but no reading this time. */
+  async function gpu(): Promise<GpuReading | null | undefined> {
+    if (smiPath === undefined) smiPath = findNvidiaSmi();
+    if (!smiPath) return undefined;
+    if (gpuSkip > 0) {
+      gpuSkip--;
+      return null;
+    }
+    const path = smiPath;
+    const r = await attempt(async () =>
+      parseNvidiaSmi(await deps.exec(path, [`--query-gpu=${NVIDIA_SMI_QUERY}`, "--format=csv,noheader,nounits"], { timeoutMs: GPU_TIMEOUT_MS })),
+    );
+    if (r === null) gpuSkip = GPU_BACKOFF_SAMPLES;
+    return r;
+  }
+
+  async function isWsl(): Promise<boolean> {
+    if (!linux) return false;
+    wsl ??= Boolean(env["WSL_DISTRO_NAME"]) || ((await attempt(async () => isWslRelease(await deps.readFile("/proc/sys/kernel/osrelease")))) ?? false);
+    return wsl;
+  }
 
   async function cpuTimes(): Promise<CpuTimes | null> {
     if (linux) {
@@ -177,7 +233,7 @@ export function createCollector(deps: CollectorDeps): Collector {
 
   return {
     async sample() {
-      const [cpu, mem, dsk, load, up, net, temp] = await Promise.all([
+      const [cpu, mem, dsk, load, up, net, temp, g, inWsl] = await Promise.all([
         cpuTimes(),
         memory(),
         disk(),
@@ -185,6 +241,8 @@ export function createCollector(deps: CollectorDeps): Collector {
         uptime(),
         netRates(),
         temperature(),
+        gpu(),
+        isWsl(),
       ]);
 
       // First sample has no previous delta: fall back to the average since boot.
@@ -212,6 +270,20 @@ export function createCollector(deps: CollectorDeps): Collector {
         netTxBps: net.tx === null ? null : Math.round(net.tx),
         uptimeSec: up === null ? null : Math.round(up),
         tempC: temp === null ? null : round2(temp),
+        // Optional keys stay absent (not null) when they do not apply, so Beszel-shaped data is unchanged.
+        ...(g === undefined
+          ? {}
+          : {
+              gpu: g && {
+                name: g.name,
+                count: g.count,
+                utilPct: g.utilPct === null ? null : round2(g.utilPct),
+                memUsedMb: g.memUsedMb === null ? null : Math.round(g.memUsedMb),
+                memTotalMb: g.memTotalMb === null ? null : Math.round(g.memTotalMb),
+                tempC: g.tempC === null ? null : round2(g.tempC),
+              },
+            }),
+        ...(inWsl ? { wslVm: true } : {}),
       };
     },
   };
