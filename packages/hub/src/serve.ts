@@ -1,6 +1,8 @@
 /**
  * Production entrypoint: `node packages/hub/src/serve.ts` on bixku-homelab ONLY.
  * Never run on bixku-vps (dev machine). Binds to HUB_LISTEN_HOST (Tailscale IP), never 0.0.0.0.
+ * Loads its own env file (HUB_ENV_FILE, default: .env at the repo root) so it starts the same way
+ * from systemd, a shell or a process manager, without `--env-file` or `set -a; source .env`.
  */
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -9,7 +11,7 @@ import { join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { createBeszelClient } from "@b-net/core/clients/beszel";
 import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
-import { loadHubConfig } from "./config.ts";
+import { ConfigError, loadHubConfig, withEnvFile } from "./config.ts";
 import { createHandler, fsStaticReader, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
 import { MemoryUsageStore, type UsageStore } from "./store.ts";
@@ -51,8 +53,21 @@ export function mount(handler: Handler, host: string, port: number) {
   return server;
 }
 
+const DEFAULT_ENV_FILE = resolve(import.meta.dirname, "../../../.env");
+
+/** process.env plus the hub env file. A missing default file is fine; a missing explicit HUB_ENV_FILE is an error. */
+function hubEnv(): Record<string, string | undefined> {
+  const explicit = process.env.HUB_ENV_FILE?.trim();
+  const file = explicit || DEFAULT_ENV_FILE;
+  if (!existsSync(file)) {
+    if (explicit) throw new ConfigError("HUB_ENV_FILE does not exist");
+    return process.env;
+  }
+  return withEnvFile(process.env, readFileSync(file, "utf8"));
+}
+
 async function main() {
-  const cfg = loadHubConfig(process.env, (p) => readFileSync(p, "utf8"));
+  const cfg = loadHubConfig(hubEnv(), (p) => readFileSync(p, "utf8"));
 
   let store: UsageStore = new MemoryUsageStore();
   if (cfg.dataDir) {
