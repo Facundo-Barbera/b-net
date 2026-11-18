@@ -1,6 +1,8 @@
 /**
  * Production entrypoint: `node packages/hub/src/serve.ts` on bixku-homelab ONLY.
  * Never run on bixku-vps (dev machine). Binds to HUB_LISTEN_HOST (Tailscale IP), never 0.0.0.0.
+ * Loads its own env file (HUB_ENV_FILE, default: .env at the repo root) so it starts the same way
+ * from systemd, a shell or a process manager, without `--env-file` or `set -a; source .env`.
  */
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -10,11 +12,14 @@ import { Readable } from "node:stream";
 import { INGEST_MAX_BYTES, IngestRoutes } from "@b-net/core";
 import { createBeszelClient } from "@b-net/core/clients/beszel";
 import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
-import { loadHubConfig } from "./config.ts";
+import { ConfigError, loadHubConfig, withEnvFile } from "./config.ts";
 import { createHandler, fsStaticReader, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
+import { DeliverableFiles } from "./deliverables.ts";
 import { createIngestHandler } from "./ingest.ts";
 import { SqliteMetricsStore } from "./metrics-store.ts";
+import { createProjectsApi, type ProjectsApi } from "./projects-http.ts";
+import type { ProjectStore } from "./projects-store.ts";
 import { MemoryUsageStore, type UsageStore } from "./store.ts";
 
 const execNoThrow: ExecFn = (file, args, opts) =>
@@ -43,15 +48,25 @@ function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
   });
 }
 
-async function toRequest(req: IncomingMessage, host: string): Promise<Request> {
+export function toRequest(req: IncomingMessage, host: string): Request {
   const url = new URL(req.url ?? "/", `http://${host}`);
   const headers = new Headers();
   for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
-  // Only the ingest route takes a body; everything else is read-only and never consumes one.
+  if (req.method !== "POST") return new Request(url, { method: req.method, headers });
+  // Deliverable uploads stay a stream (duplex: "half") so they go to disk chunk by chunk, never buffered whole.
+  const body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
+  return new Request(url, { method: req.method, headers, body, duplex: "half" } as RequestInit);
+}
+
+/** Ingest bodies are small and capped; everything else uses the streaming adapter. */
+async function adaptRequest(req: IncomingMessage, host: string): Promise<Request> {
+  const url = new URL(req.url ?? "/", `http://${host}`);
   if (req.method === "POST" && url.pathname === IngestRoutes.metrics) {
+    const headers = new Headers();
+    for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
     return new Request(url, { method: "POST", headers, body: new Uint8Array(await readBody(req, INGEST_MAX_BYTES)) });
   }
-  return new Request(url, { method: req.method, headers });
+  return toRequest(req, host);
 }
 
 async function writeResponse(res: ServerResponse, r: Response) {
@@ -64,7 +79,7 @@ async function writeResponse(res: ServerResponse, r: Response) {
 
 export function mount(handler: Handler, host: string, port: number) {
   const server = createServer((req, res) => {
-    toRequest(req, `${host}:${port}`)
+    adaptRequest(req, `${host}:${port}`)
       .then(handler)
       .then((r) => writeResponse(res, r))
       .catch((e) => {
@@ -74,14 +89,31 @@ export function mount(handler: Handler, host: string, port: number) {
         res.end(tooLarge ? '{"error":"payload too large"}' : '{"error":"internal error"}');
       });
   });
+  // Node's default 5 min request timeout would cut a 1 GiB upload on a slow tailnet link.
+  server.requestTimeout = 60 * 60 * 1000;
   server.listen(port, host);
   return server;
 }
 
+const DEFAULT_ENV_FILE = resolve(import.meta.dirname, "../../../.env");
+
+/** process.env plus the hub env file. A missing default file is fine; a missing explicit HUB_ENV_FILE is an error. */
+function hubEnv(): Record<string, string | undefined> {
+  const explicit = process.env.HUB_ENV_FILE?.trim();
+  const file = explicit || DEFAULT_ENV_FILE;
+  if (!existsSync(file)) {
+    if (explicit) throw new ConfigError("HUB_ENV_FILE does not exist");
+    return process.env;
+  }
+  return withEnvFile(process.env, readFileSync(file, "utf8"));
+}
+
 async function main() {
-  const cfg = loadHubConfig(process.env, (p) => readFileSync(p, "utf8"));
+  const cfg = loadHubConfig(hubEnv(), (p) => readFileSync(p, "utf8"));
 
   let store: UsageStore = new MemoryUsageStore();
+  let projectStore: ProjectStore | null = null;
+  let projects: ProjectsApi | null = null;
   // Without HUB_DATA_DIR pushed metrics live in memory and no agent token exists, so ingest answers 401.
   let dbPath = ":memory:";
   if (cfg.dataDir) {
@@ -89,6 +121,11 @@ async function main() {
     dbPath = join(cfg.dataDir, "hub.sqlite");
     const { SqliteUsageStore } = await import("./store-sqlite.ts");
     store = new SqliteUsageStore(dbPath);
+    const { ProjectStore } = await import("./projects-store.ts");
+    projectStore = new ProjectStore(dbPath);
+    const files = new DeliverableFiles(join(cfg.dataDir, "deliverables"));
+    await files.init();
+    projects = createProjectsApi({ store: projectStore, files, quotaBytes: cfg.deliverablesQuotaBytes });
   }
   const metrics = new SqliteMetricsStore(dbPath);
 
@@ -118,16 +155,19 @@ async function main() {
     store,
     apiToken: cfg.apiToken,
     staticFiles: existsSync(join(webDir, "index.html")) ? fsStaticReader(webDir) : null,
+    projects,
+    botTokens: cfg.botTokens,
     ingest: createIngestHandler({ store: metrics, knownMachines: new Set(cfg.machines.map((m) => m.id)) }),
   });
 
   const stop = hub.start();
   const server = mount(handler, cfg.listenHost, cfg.listenPort);
-  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"})`);
+  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"})`);
   const shutdown = () => {
     stop();
     server.close(() => {
       store.close?.();
+      projectStore?.close();
       metrics.close();
       process.exit(0);
     });

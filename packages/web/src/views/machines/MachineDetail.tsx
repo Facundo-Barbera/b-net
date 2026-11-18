@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { MachineView, SourceHealth, T3ThreadView } from "@b-net/core";
 import { Badge, Callout, Card, EmptyState, Sparkline, StatusDot, toneForMachineStatus, toneForThreadState } from "../../components/index.ts";
+import { SOURCE_SETUP, missingMetricsReason, sourceStatus } from "../../data/sources.ts";
 import { formatDuration } from "../../lib/format.ts";
 import { USAGE_WARN_AT } from "../../lib/thresholds.ts";
 import { GROUP_TITLE, OS_LABEL, ROLE_LABEL, STATUS_LABEL, ago, groupThreads, type ThreadNode } from "./derive.ts";
@@ -14,7 +15,7 @@ function historyLabel(name: string, values: readonly number[], stepSec: number):
   const minutes = Math.round((stepSec * (n - 1)) / 60);
   const avg = values.reduce((a, b) => a + b, 0) / n;
   const r = Math.round;
-  return `${name} history, last ${minutes} min: now ${r(values[n - 1]!)}%, average ${r(avg)}%, min ${r(Math.min(...values))}%, max ${r(Math.max(...values))}%`;
+  return `Historial de ${name}, últimos ${minutes} min: ahora ${r(values[n - 1]!)}%, promedio ${r(avg)}%, mínimo ${r(Math.min(...values))}%, máximo ${r(Math.max(...values))}%`;
 }
 
 function History({ name, values, stepSec, series }: { name: string; values: readonly number[]; stepSec: number; series: 1 | 2 }) {
@@ -22,7 +23,7 @@ function History({ name, values, stepSec, series }: { name: string; values: read
     <div>
       <span className="ui-label">{name}</span>
       <Sparkline className="mv-spark" values={values} width={160} height={40} min={0} max={100} series={series} stretch refLine={USAGE_WARN_AT}
-        label={values.length >= 2 ? historyLabel(name, values, stepSec) : `${name} history: no data`} />
+        label={values.length >= 2 ? historyLabel(name, values, stepSec) : `Historial de ${name}: sin datos`} />
     </div>
   );
 }
@@ -36,19 +37,19 @@ function ThreadRow({ node, nowMs }: { node: ThreadNode; nowMs: number }) {
       <div className="mv-thread__main">
         <StatusDot tone={toneForThreadState(t.state)} />
         <span className="mv-thread__title">{t.title}</span>
-        {t.state === "active" && t.runningSince && <Badge tone="ok">running {since(t.runningSince, nowMs)}</Badge>}
-        {t.state === "waiting" && <Badge tone="warn">needs you</Badge>}
-        {badRun && t.state !== "active" && <Badge tone={t.lastRunStatus === "failed" ? "danger" : "idle"}>last run {t.lastRunStatus}</Badge>}
+        {t.state === "active" && t.runningSince && <Badge dot tone="ok">corriendo {since(t.runningSince, nowMs)}</Badge>}
+        {t.state === "waiting" && <Badge dot tone="warn">te necesita</Badge>}
+        {badRun && t.state !== "active" && <Badge dot tone={t.lastRunStatus === "failed" ? "danger" : "idle"}>último run {t.lastRunStatus}</Badge>}
       </div>
       <div className="mv-thread__meta">
         {t.projectTitle && <span>{t.projectTitle}</span>}
         {modelLine && <span className="num">{modelLine}</span>}
         {t.branch && <span className="num">⎇ {t.branch}</span>}
-        <span>updated {ago(t.updatedAt, nowMs)}</span>
-        {node.parentElsewhere && <span className="mv-thread__parent">↳ subagent of “{node.parentElsewhere.title}”</span>}
+        <span>actualizado {ago(t.updatedAt, nowMs)}</span>
+        {node.parentElsewhere && <span className="mv-thread__parent">↳ subagente de “{node.parentElsewhere.title}”</span>}
       </div>
       {node.children.length > 0 && (
-        <ul className="mv-thread__children" aria-label={`Subagents of ${t.title}`}>
+        <ul className="mv-thread__children" aria-label={`Subagentes de ${t.title}`}>
           {node.children.map((c) => <ThreadRow key={c.thread.id} node={c} nowMs={nowMs} />)}
         </ul>
       )}
@@ -56,7 +57,19 @@ function ThreadRow({ node, nowMs }: { node: ThreadNode; nowMs: number }) {
   );
 }
 
-function Threads({ threads, nowMs }: { threads: T3ThreadView[]; nowMs: number }) {
+/** Empty thread list: no T3 source for the machine, a failing one, or genuinely no threads. */
+function NoThreads({ machineId, sources, onlyArchived }: { machineId: string; sources: readonly SourceHealth[]; onlyArchived: boolean }) {
+  const t3 = sourceStatus(sources, "t3", machineId);
+  if (t3.state === "missing") {
+    return (
+      <EmptyState compact data-testid="threads-empty" data-source-state="missing" title="T3 no está conectado en esta máquina."
+        description={SOURCE_SETUP.t3.connect} />
+    );
+  }
+  return <EmptyState compact data-testid="threads-empty" data-source-state={t3.state} title={`Sin hilos de T3 en esta máquina${onlyArchived ? " (solo archivados)" : ""}.`} />;
+}
+
+function Threads({ machineId, threads, sources, nowMs }: { machineId: string; threads: T3ThreadView[]; sources: readonly SourceHealth[]; nowMs: number }) {
   const [showArchived, setShowArchived] = useState(false);
   const archived = threads.filter((t) => t.state === "archived").length;
   const groups = groupThreads(threads, showArchived);
@@ -64,16 +77,16 @@ function Threads({ threads, nowMs }: { threads: T3ThreadView[]; nowMs: number })
   return (
     <div className="mv-threads">
       <div className="mv-threads__head">
-        <h3 className="ui-label">T3 threads · {visible}</h3>
+        <h3 className="ui-label">Hilos de T3 · {visible}</h3>
         {archived > 0 && (
           <button type="button" className="mv-btn" aria-pressed={showArchived} onClick={() => setShowArchived((v) => !v)}>
-            {showArchived ? "Hide" : "Show"} archived ({archived})
+            {showArchived ? "Ocultar" : "Mostrar"} archivados ({archived})
           </button>
         )}
       </div>
-      {groups.length === 0 && <EmptyState compact title={`No T3 threads on this machine${archived > 0 ? " (only archived)" : ""}.`} />}
+      {groups.length === 0 && <NoThreads machineId={machineId} sources={sources} onlyArchived={archived > 0} />}
       {groups.map((g) => (
-        <section key={g.state} className="mv-group" data-state={g.state} aria-label={`${GROUP_TITLE[g.state]} threads`}>
+        <section key={g.state} className="mv-group" data-state={g.state} aria-label={`Hilos ${GROUP_TITLE[g.state]}`}>
           <h4 className={`mv-group__title tone-${toneForThreadState(g.state)}`}>
             <StatusDot tone={toneForThreadState(g.state)} />
             {GROUP_TITLE[g.state]} <span className="num">{g.count}</span>
@@ -92,13 +105,15 @@ export function MachineDetail({
   const h = m.history;
   const t3Down = sources.find((s) => s.source === "t3" && s.machineId === m.id && !s.ok);
   return (
-    <Card className="mv-detailpanel" bodyClassName="mv-detail__body" aria-label={`${m.name} details`} data-testid="machine-detail" data-machine={m.id}>
+    <Card className="mv-detailpanel" bodyClassName="mv-detail__body" aria-label={`Detalle de ${m.name}`} data-testid="machine-detail" data-machine={m.id}>
       <header className="mv-detail__head">
         <div>
-          <h2 className="mv-detail__name"><StatusDot tone={tone} />{m.name}</h2>
-          <p className="mv-card__sub">{STATUS_LABEL[m.status]} · {ROLE_LABEL[m.role]} · {OS_LABEL[m.os]}</p>
+          <h2 className="mv-detail__name">{m.name}</h2>
+          <p className="mv-card__sub">
+            <Badge dot tone={tone}>{STATUS_LABEL[m.status]}</Badge> {ROLE_LABEL[m.role]} · {OS_LABEL[m.os]}
+          </p>
         </div>
-        <button type="button" className="mv-btn" onClick={onClose}>Close</button>
+        <button type="button" className="mv-btn" onClick={onClose}>Cerrar</button>
       </header>
 
       {h ? (
@@ -107,15 +122,20 @@ export function MachineDetail({
           <History name="RAM" values={h.memPct} stepSec={h.stepSec} series={2} />
         </div>
       ) : (
-        <EmptyState compact title={`No metric history${m.status === "offline" ? " (machine offline)" : m.metricsSource === "none" ? " (no metrics source)" : ""}.`} />
+        <EmptyState
+          compact
+          data-testid="history-empty"
+          title={`Sin historial de métricas${m.status === "offline" ? " (máquina offline)" : m.metricsSource === "none" ? ": sin fuente de métricas" : ""}.`}
+          description={m.metricsSource === "none" ? `${missingMetricsReason(m, sources)}. ${SOURCE_SETUP.beszel.connect}` : undefined}
+        />
       )}
 
       {t3Down && (
         <Callout tone="warn" role="alert">
-          T3 source unreachable{t3Down.error ? `: ${t3Down.error}` : ""}. Last success {ago(t3Down.lastSuccessAt, nowMs)}; thread list may be out of date.
+          La fuente T3 no responde{t3Down.error ? `: ${t3Down.error}` : ""}. Último dato {ago(t3Down.lastSuccessAt, nowMs)}; la lista de hilos puede estar desactualizada.
         </Callout>
       )}
-      <Threads key={m.id} threads={threads} nowMs={nowMs} />
+      <Threads key={m.id} machineId={m.id} threads={threads} sources={sources} nowMs={nowMs} />
     </Card>
   );
 }

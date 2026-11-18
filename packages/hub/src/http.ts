@@ -1,12 +1,16 @@
 /**
  * Fetch-API handler for all HubRoutes + static UI. `(req: Request) => Promise<Response>`.
- * Read-only: only GET/HEAD, except the agent ingest route (POST, its own per-machine token).
- * Optional bearer token on /api/*. Secrets: SecretMeta only.
+ * GET/HEAD everywhere (GET /api/v1/work derives the work home from the snapshot and the projects store);
+ * POST on /api/v1/projects/** (bot token) and on the agent ingest route (per-machine token).
+ * Reads: optional hub bearer token on /api/* (bot tokens are accepted too). Secrets: SecretMeta only.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@b-net/core";
+import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
+import { botFromAuth, type BotToken } from "./bot-auth.ts";
+import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
+import { SECURITY_HEADERS, error, json } from "./respond.ts";
 import type { UsageStore } from "./store.ts";
 
 export type Handler = (req: Request) => Promise<Response>;
@@ -18,22 +22,17 @@ export interface HandlerDeps {
   store: UsageStore;
   apiToken?: string | null;
   staticFiles?: StaticReader | null;
+  /** Projects/deliverables API; null when HUB_DATA_DIR is not set. */
+  projects?: ProjectsApi | null;
+  /** Bots allowed to write, as sha256 hashes. */
+  botTokens?: readonly BotToken[];
+  /** Reference time for derived views such as /api/v1/work (tests pin it). */
+  clock?: () => Date;
   /** POST IngestRoutes.metrics; absent = route answers 404. */
   ingest?: Handler | null;
 }
 
-const SECURITY_HEADERS: Record<string, string> = {
-  "x-content-type-options": "nosniff",
-  "referrer-policy": "no-referrer",
-  "x-frame-options": "DENY",
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS },
-  });
-const error = (status: number, message: string) => json({ error: message }, status);
+const BOT_CHALLENGE = { "www-authenticate": 'Bearer realm="b-net", error="invalid_token"' };
 
 const digest = (s: string) => createHash("sha256").update(s).digest();
 function tokenOk(header: string | null, expected: string): boolean {
@@ -105,21 +104,44 @@ const machineRe = /^\/api\/v1\/machines\/([a-z0-9-]+)$/;
 const ACCOUNT_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export function createHandler(deps: HandlerDeps): Handler {
+  const bots = deps.botTokens ?? [];
+  const clock = deps.clock ?? (() => new Date());
   return async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const head = req.method === "HEAD";
+    // Ingest uses its own per-machine token and is not under /api/.
     if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
+    const isApi = path === "/api" || path.startsWith("/api/");
+    if (req.method === "POST" && isApi && isProjectsPath(path)) return write(req, path, url.searchParams);
     if (req.method !== "GET" && !head) return error(405, "method not allowed");
 
-    if (path === "/api" || path.startsWith("/api/")) {
-      if (deps.apiToken && !tokenOk(req.headers.get("authorization"), deps.apiToken)) return error(401, "unauthorized");
+    if (isApi) {
+      const auth = req.headers.get("authorization");
+      if (deps.apiToken && !tokenOk(auth, deps.apiToken) && !botFromAuth(auth, bots)) return error(401, "unauthorized");
+      if (isProjectsPath(path)) {
+        if (!deps.projects) return error(503, "projects storage not configured (HUB_DATA_DIR)");
+        // Content responses carry their own HEAD handling (Range, Content-Length).
+        const res = (await deps.projects.read(req, path, url.searchParams))!;
+        return head && res.body ? new Response(null, { status: res.status, headers: res.headers }) : res;
+      }
       const res = route(path, url.searchParams);
       return head ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
     if (deps.staticFiles) return serveStatic(deps.staticFiles, url.pathname, head);
     return error(404, "not found");
   };
+
+  /** Writes always need a bot token, whether or not reads are open, so every write has an author. */
+  async function write(req: Request, path: string, q: URLSearchParams): Promise<Response> {
+    const bot = botFromAuth(req.headers.get("authorization"), bots);
+    if (!bot) {
+      await req.body?.cancel().catch(() => undefined);
+      return error(401, "bot token required", BOT_CHALLENGE);
+    }
+    if (!deps.projects) return error(503, "projects storage not configured (HUB_DATA_DIR)");
+    return (await deps.projects.write(req, path, q, bot))!;
+  }
 
   function route(path: string, q: URLSearchParams): Response {
     switch (path) {
@@ -155,6 +177,11 @@ export function createHandler(deps: HandlerDeps): Handler {
         return json({ secrets: deps.snapshot().secrets.filter((s) => SecretMeta.safeParse(s).success) });
       case HubRoutes.health:
         return json({ ok: true, sources: deps.snapshot().sources });
+      case HubRoutes.work: {
+        // Derived on request: threads come from the snapshot, projects from the store (null when not configured).
+        const snap = deps.snapshot();
+        return json(deriveWork({ now: clock(), threads: snap.threads, sources: snap.sources, catalog: deps.projects?.catalog() ?? null }));
+      }
     }
     const m = machineRe.exec(path);
     if (m) {

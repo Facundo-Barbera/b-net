@@ -1,7 +1,9 @@
 export { Card, Panel, type CardProps } from "./Card.tsx";
 export { StatusDot, type StatusDotProps } from "./StatusDot.tsx";
+export { ToneGlyph, TONE_SHAPE, type ToneShape } from "./ToneGlyph.tsx";
 export { Badge, type BadgeProps } from "./Badge.tsx";
 export { Tag } from "./Tag.tsx";
+export { ActionLink, type ActionLinkProps } from "./ActionLink.tsx";
 export { Callout, type CalloutProps } from "./Callout.tsx";
 export { KeyValue, KV, type KVProps } from "./KeyValue.tsx";
 export { PageHeader, type PageHeaderProps } from "./PageHeader.tsx";

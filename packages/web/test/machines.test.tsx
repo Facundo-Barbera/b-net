@@ -24,16 +24,17 @@ describe("MachinesView: overview", () => {
     expect(screen.getAllByRole("article")).toHaveLength(6);
     for (const m of snapshotFixture.machines) {
       expect(screen.getByTestId(`card-${m.id}`)).toBeTruthy();
-      expect(screen.getByRole("button", { name: `Show details for ${m.name}` })).toBeTruthy();
+      expect(screen.getByRole("button", { name: `Ver detalle de ${m.name}` })).toBeTruthy();
     }
   });
 
   it("summary strip: online/total, degraded, offline, sandboxes, worst latency", () => {
     renderView();
     const online = screen.getByTestId("sum-online");
-    expect(online.textContent).toContain("4");
+    expect(online.textContent).toContain("5"); // homelab, vps, focaltec, pc (degraded) and MBA (no metrics source)
     expect(online.textContent).toContain("/6");
-    expect(online.textContent).toContain("1 paused");
+    expect(online.textContent).toContain("2 sin métricas"); // MBP and MBA
+    expect(online.textContent).not.toContain("paused");
     expect(screen.getByTestId("sum-degraded").textContent).toContain("1");
     expect(screen.getByTestId("sum-offline").textContent).toContain("1");
     // awake = active+waiting+idle: vps 4, focaltec 1, pc 1 = 6; dormant: 3+2+1+1 = 7
@@ -45,13 +46,13 @@ describe("MachinesView: overview", () => {
   });
 
   it("computes relative times against the injected now", () => {
-    renderView();
-    expect(screen.getByText(/snapshot just now/)).toBeTruthy();
+    const { unmount } = renderView();
     const mbp = screen.getByTestId("card-bixku-mbp");
-    expect(within(mbp).getByText("1d ago")).toBeTruthy(); // last seen (26h, shared formatRelative switches to days at 24h)
+    expect(within(mbp).getByText("hace 1d 2h")).toBeTruthy(); // last seen 26h before generatedAt
+    unmount();
     // a different now shifts the label
-    const { container } = renderAt(<MachinesView snapshot={snapshotFixture} />, NOW_MS + 3 * 86_400_000);
-    expect(container.textContent).toContain("snapshot 3d ago");
+    renderAt(<MachinesView snapshot={snapshotFixture} />, NOW_MS + 3 * 86_400_000);
+    expect(within(screen.getByTestId("card-bixku-mbp")).getByText("hace 4d 2h")).toBeTruthy();
   });
 });
 
@@ -68,15 +69,21 @@ describe("MachinesView: machine states", () => {
     expect(cpu.getAttribute("aria-valuenow")).toBe("92");
     expect(cpu.closest(".ui-meter")?.getAttribute("data-tone")).toBe("danger"); // 91.5 > 90
     expect(within(card).getByRole("meter", { name: "RAM" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("warn"); // 88.7
-    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("danger"); // 92.3
-    expect(within(card).getByText(/agent · 1m ago/)).toBeTruthy();
+    expect(within(card).getByRole("meter", { name: "Disco" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("danger"); // 92.3
+    // thresholds also read as words, not only as color
+    expect(within(card).getAllByText("CRIT")).toHaveLength(2);
+    expect(within(card).getByText("HIGH")).toBeTruthy();
+    expect(within(card).getByText("78 °C · alta")).toBeTruthy();
+    expect(within(card).getByText(/agent · hace 1m/)).toBeTruthy();
+    // status badge carries a shape (warn = triangle) next to the word
+    expect(screen.getByTestId("status-pc-bixku").querySelector("svg")?.getAttribute("data-shape")).toBe("triangle");
   });
 
   it("healthy machines get ok-level meters", () => {
     renderView();
     const card = screen.getByTestId("card-bixku-focaltec");
     expect(within(card).getByRole("meter", { name: "CPU" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("ok");
-    expect(within(card).getByRole("meter", { name: "Disk" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("warn"); // 71 >= shared USAGE_WARN_AT (70); the old local threshold was 75
+    expect(within(card).getByRole("meter", { name: "Disco" }).closest(".ui-meter")?.getAttribute("data-tone")).toBe("warn"); // 71 >= shared USAGE_WARN_AT (70); the old local threshold was 75
   });
 
   it("MBP is offline with no metrics and a faded link", () => {
@@ -84,31 +91,62 @@ describe("MachinesView: machine states", () => {
     expect(screen.getByTestId("status-bixku-mbp").textContent).toBe("Offline");
     const card = screen.getByTestId("card-bixku-mbp");
     expect(within(card).queryAllByRole("meter")).toHaveLength(0);
-    expect(within(card).getByText(/Offline: no metrics/)).toBeTruthy();
-    expect(within(card).getByText("none")).toBeTruthy(); // metrics source
-    expect(node(/^MBP Omarchy/).getAttribute("aria-label")).toMatch(/offline.*no metrics/);
+    expect(within(card).getByText("Offline: sin métricas")).toBeTruthy();
+    expect(within(card).getByText("sin métricas")).toBeTruthy(); // no metrics source tag
+    expect(node(/^MBP Omarchy/).getAttribute("aria-label")).toMatch(/offline.*sin métricas/);
     const link = topology().querySelector('[data-link-for="bixku-mbp"]');
     expect(link?.getAttribute("data-kind")).toBe("offline");
     expect(link?.textContent).toBe("offline");
   });
 
-  it("MBA is paused with no metrics source and a peer-relay link", () => {
+  it("MBA is online without a metrics source (not paused), says which source is missing, peer-relay link", () => {
     renderView();
-    expect(screen.getByTestId("status-bixku-mba").textContent).toBe("Paused");
+    expect(screen.getByTestId("status-bixku-mba").textContent).toBe("Online");
     const card = screen.getByTestId("card-bixku-mba");
-    expect(within(card).getByText(/Paused: no metrics collected/)).toBeTruthy();
+    expect(within(card).queryAllByRole("meter")).toHaveLength(0);
+    // Beszel is connected in the fixture, so the reason is that MBA is not in it and has no agent.
+    expect(within(card).getByTestId("note-bixku-mba").textContent).toContain("Sin fuente de métricas: no está en Beszel · sin agente");
+    expect(within(card).getByTestId("note-bixku-mba").textContent).toMatch(/beszelName.*agentUrl/);
     expect(within(card).getByText("Sin agente ni Beszel todavía.")).toBeTruthy();
+    expect(node(/^MBA/).getAttribute("aria-label")).toMatch(/^MBA: online, enlace 34 ms · peer relay, sin métricas/);
     const link = topology().querySelector('[data-link-for="bixku-mba"]');
     expect(link?.getAttribute("data-kind")).toBe("peer-relay");
     expect(link?.textContent).toBe("34 ms · peer relay");
+  });
+
+  it("paused only means paused in Beszel, and reads differently from 'no metrics source'", () => {
+    const snap: HubSnapshot = structuredClone(snapshotFixture);
+    const homelab = snap.machines.find((m) => m.id === "bixku-homelab")!;
+    homelab.status = "paused";
+    renderView(snap);
+    expect(screen.getByTestId("status-bixku-homelab").textContent).toBe("Paused");
+    expect(screen.getByTestId("status-bixku-homelab").querySelector("svg")?.getAttribute("data-shape")).toBe("pause");
+    expect(within(screen.getByTestId("card-bixku-homelab")).getByText("Pausada en Beszel: últimos valores conocidos")).toBeTruthy();
+  });
+
+  it("with Beszel not connected, the coverage notice and the cards name Beszel as the missing source", () => {
+    const snap: HubSnapshot = { ...snapshotFixture, sources: snapshotFixture.sources.filter((s) => s.source !== "beszel") };
+    renderView(snap);
+    const notice = screen.getByTestId("metrics-coverage");
+    expect(notice.textContent).toContain("2 de 6 máquinas sin fuente de métricas");
+    expect(notice.textContent).toContain("Beszel: no conectado");
+    expect(notice.textContent).toContain("BESZEL_URL");
+    expect(within(screen.getByTestId("card-bixku-mba")).getByTestId("note-bixku-mba").textContent).toContain("Beszel no está conectado al hub");
+  });
+
+  it("no coverage notice when every machine has a metrics source", () => {
+    const snap: HubSnapshot = structuredClone(snapshotFixture);
+    for (const m of snap.machines) m.metricsSource = m.metricsSource === "none" ? "agent" : m.metricsSource;
+    renderView(snap);
+    expect(screen.queryByTestId("metrics-coverage")).toBeNull();
   });
 
   it("shows latency labels on every non-hub link, styled by path", () => {
     renderView();
     const t = topology();
     const expected: Record<string, [string, string]> = {
-      "bixku-vps": ["direct", "148 ms"],
-      "bixku-focaltec": ["direct", "12 ms"],
+      "bixku-vps": ["direct", "148 ms · directo"],
+      "bixku-focaltec": ["direct", "12 ms · directo"],
       "pc-bixku": ["derp", "87 ms · DERP mia"],
       "bixku-mba": ["peer-relay", "34 ms · peer relay"],
       "bixku-mbp": ["offline", "offline"],
@@ -125,7 +163,7 @@ describe("MachinesView: machine states", () => {
     renderView();
     const hub = screen.getByTestId("card-bixku-homelab");
     expect(within(hub).getByText("HUB")).toBeTruthy();
-    const list = within(hub).getByRole("list", { name: "bixku-homelab services" });
+    const list = within(hub).getByRole("list", { name: "Servicios de bixku-homelab" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(4);
     expect(within(list).getByText(":8318")).toBeTruthy();
   });
@@ -137,8 +175,8 @@ describe("MachinesView: machine states", () => {
     vps.services = [{ name: "sshd", port: 22, status: "down" }];
     renderView(snap);
     const card = screen.getByTestId("card-bixku-vps");
-    expect(within(card).getByText(/\(stale\)/)).toBeTruthy();
-    expect(within(card).getByText(/Services · 1 down/)).toBeTruthy();
+    expect(within(card).getByText(/\(desactualizadas\)/)).toBeTruthy();
+    expect(within(card).getByText(/Servicios · 1 down/)).toBeTruthy();
   });
 });
 
@@ -151,9 +189,9 @@ describe("MachinesView: accessibility of the map", () => {
       expect(n.getAttribute("tabindex")).toBe("0");
       expect(n.getAttribute("aria-pressed")).toBe("false");
     }
-    expect(topology().getAttribute("aria-label")).toBe("Machine topology");
-    expect(node(/^bixku-homelab \(hub\)/).getAttribute("aria-label")).toMatch(/0 awake and 0 dormant/);
-    expect(node(/^bixku-vps/).getAttribute("aria-label")).toMatch(/link 148 ms.*CPU 62%, RAM 54%.*4 awake and 3 dormant sandboxes/);
+    expect(topology().getAttribute("aria-label")).toBe("Topología de máquinas");
+    expect(node(/^bixku-homelab \(hub\)/).getAttribute("aria-label")).toMatch(/0 sandboxes activos y 0 dormidos/);
+    expect(node(/^bixku-vps/).getAttribute("aria-label")).toMatch(/enlace 148 ms · directo.*CPU 62%, RAM 54%.*4 sandboxes activos y 3 dormidos/);
   });
 
   it("hover/focus highlights the link; click and keyboard select", () => {

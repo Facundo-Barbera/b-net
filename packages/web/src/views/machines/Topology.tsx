@@ -1,8 +1,8 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { MachineView } from "@b-net/core";
-import { Card, StatusDot, meterTone, toneForMachineStatus } from "../../components/index.ts";
+import { Card, StatusDot, ToneGlyph, meterTone, toneForMachineStatus } from "../../components/index.ts";
 import { formatPercent } from "../../lib/format.ts";
-import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, awake, linkKind, linkLabel } from "./derive.ts";
+import { OS_LABEL, STATUS_LABEL, awake, linkKind, linkLabel } from "./derive.ts";
 
 /** True below the topology breakpoint. SSR/jsdom without matchMedia => wide. */
 function useNarrow(query = "(max-width: 640px)"): boolean {
@@ -39,21 +39,23 @@ const RING_R = 9;
 const RING_C = 2 * Math.PI * RING_R;
 
 function metricsText(m: MachineView): string {
-  if (!m.metrics) return "no metrics";
+  if (!m.metrics) return "sin métricas";
   return `CPU ${formatPercent(m.metrics.cpuPct)}, RAM ${formatPercent(m.metrics.memPct)}`;
 }
 
 /** Accessible name shared by SVG nodes and the narrow list rows. */
 export function machineLabel(m: MachineView, hubId: string): string {
   const isHub = m.id === hubId;
-  const net = isHub ? "hub" : `link ${linkLabel(m)}`;
+  const net = isHub ? "hub" : `enlace ${linkLabel(m)}`;
   const a = awake(m.threadCounts);
-  return `${m.name}${isHub ? " (hub)" : ""}: ${STATUS_LABEL[m.status].toLowerCase()}, ${net}, ${metricsText(m)}, ${a} awake and ${m.threadCounts.dormant} dormant sandboxes`;
+  return `${m.name}${isHub ? " (hub)" : ""}: ${STATUS_LABEL[m.status].toLowerCase()}, ${net}, ${metricsText(m)}, ${a} sandboxes activos y ${m.threadCounts.dormant} dormidos`;
 }
 
+/** CPU/RAM ring. Past a threshold the ring also carries the tone's glyph (▲ / ■), not just a color. */
 function Ring({ cx, cy, pct, label }: { cx: number; cy: number; pct: number; label: string }) {
+  const tone = meterTone(pct);
   return (
-    <g className={`mv-ring tone-${meterTone(pct)}`}>
+    <g className={`mv-ring tone-${tone}`} data-tone={tone}>
       <circle cx={cx} cy={cy} r={RING_R} className="mv-ring__track" />
       <circle
         cx={cx}
@@ -63,6 +65,11 @@ function Ring({ cx, cy, pct, label }: { cx: number; cy: number; pct: number; lab
         strokeDasharray={`${(Math.min(100, pct) / 100) * RING_C} ${RING_C}`}
         transform={`rotate(-90 ${cx} ${cy})`}
       />
+      {tone !== "ok" && (
+        <g className="mv-ring__glyph" transform={`translate(${cx - 3.5} ${cy - 3.5}) scale(0.7)`}>
+          <ToneGlyph tone={tone} />
+        </g>
+      )}
       <text x={cx + RING_R + 5} y={cy + 3.5} className="mv-svg-num">
         {label} {formatPercent(pct)}
       </text>
@@ -101,11 +108,13 @@ function Node({
       onBlur={() => onHover(false)}
     >
       <rect width={w} height={NODE_H} rx={8} className="mv-node__box" />
-      <circle cx={14} cy={17} r={4} className="mv-node__dot" />
+      <g className="mv-node__dot" transform="translate(9 12)">
+        <ToneGlyph tone={tone} />
+      </g>
       <text x={26} y={21} className="mv-node__name">{m.name}</text>
       {isHub && <text x={w - 10} y={21} textAnchor="end" className="mv-node__hub">HUB</text>}
       <text x={14} y={37} className="mv-node__sub">
-        {ROLE_LABEL[m.role]} · {OS_LABEL[m.os]}
+        {STATUS_LABEL[m.status]} · {OS_LABEL[m.os]}
       </text>
       {m.metrics ? (
         <g opacity={down ? 0.6 : 1}>
@@ -114,13 +123,13 @@ function Node({
         </g>
       ) : (
         <text x={14} y={60} className="mv-node__empty">
-          {m.status === "offline" ? "offline · no metrics" : m.status === "paused" ? "paused · no metrics" : "no metrics"}
+          {m.status === "offline" ? "offline · sin métricas" : m.status === "paused" ? "pausada · sin métricas" : "sin fuente de métricas"}
         </text>
       )}
       <line x1={10} x2={w - 10} y1={72} y2={72} className="mv-node__rule" />
       <text x={14} y={85} className="mv-svg-num mv-node__sand">
-        <tspan className="mv-node__awake">{a} awake</tspan>
-        <tspan dx={8}>{m.threadCounts.dormant} dormant</tspan>
+        <tspan className="mv-node__awake">{a} activos</tspan>
+        <tspan dx={8}>{m.threadCounts.dormant} dormidos</tspan>
       </text>
     </g>
   );
@@ -138,7 +147,7 @@ function SvgMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
   const focus = hover ?? selectedId;
 
   return (
-    <svg className="mv-map" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Machine topology" data-testid="topology-svg">
+    <svg className="mv-map" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Topología de máquinas" data-testid="topology-svg">
       <g className="mv-links" aria-hidden="true">
         {pos.map(({ m, x, y }) => {
           const kind = linkKind(m);
@@ -169,7 +178,7 @@ function SvgMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
 function ListMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
   const ordered = [...machines].sort((a, b) => Number(b.id === hubId) - Number(a.id === hubId));
   return (
-    <ul className="mv-maplist" aria-label="Machine topology" data-testid="topology-list">
+    <ul className="mv-maplist" aria-label="Topología de máquinas" data-testid="topology-list">
       {ordered.map((m) => {
         const isHub = m.id === hubId;
         const a = awake(m.threadCounts);
@@ -188,9 +197,9 @@ function ListMap({ machines, hubId, selectedId, onSelect }: TopologyProps) {
               <span className="mv-maplist__name">{m.name}{isHub && <span className="mv-node__hub"> HUB</span>}</span>
               <span className="mv-maplist__link num">{isHub ? "hub" : linkLabel(m)}</span>
               <span className="mv-maplist__stats num">
-                {m.metrics ? `CPU ${formatPercent(m.metrics.cpuPct)} · RAM ${formatPercent(m.metrics.memPct)}` : "no metrics"}
+                {m.metrics ? `CPU ${formatPercent(m.metrics.cpuPct)} · RAM ${formatPercent(m.metrics.memPct)}` : "sin métricas"}
               </span>
-              <span className="mv-maplist__sand num">{a} awake · {m.threadCounts.dormant} dormant</span>
+              <span className="mv-maplist__sand num">{STATUS_LABEL[m.status]} · {a} activos · {m.threadCounts.dormant} dormidos</span>
             </button>
           </li>
         );
@@ -204,12 +213,14 @@ export function Topology(props: TopologyProps) {
   return (
     <Card
       className="mv-topology"
-      title="Topology"
+      title="Topología"
       actions={
-        <ul className="mv-legend" aria-label="Link legend">
-          <li><i data-kind="direct" /> direct</li>
-          <li><i data-kind="derp" /> DERP relay</li>
+        // Each path has its own line pattern AND its name on the link, so color is never the only cue.
+        <ul className="mv-legend" aria-label="Leyenda de enlaces">
+          <li><i data-kind="direct" /> directo</li>
+          <li><i data-kind="derp" /> DERP</li>
           <li><i data-kind="peer-relay" /> peer relay</li>
+          <li><i data-kind="unknown" /> desconocida</li>
           <li><i data-kind="offline" /> offline</li>
         </ul>
       }

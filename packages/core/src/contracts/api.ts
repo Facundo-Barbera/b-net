@@ -34,8 +34,9 @@ export type HubSnapshot = z.infer<typeof HubSnapshot>;
 
 /* ------------------------------------------------------------------ *
  * Hub HTTP API (served by @b-net/hub, consumed by @b-net/web).
- * All under /api/v1, JSON, read-only in phase 1. Auth: Tailscale-only bind
- * + optional `Authorization: Bearer <hub token>` (see architecture.md).
+ * All under /api/v1, JSON. Auth: Tailscale-only bind. Reads: optional
+ * `Authorization: Bearer <hub token>` (a bot token also works). Writes (POST):
+ * always `Authorization: Bearer <bot token>`; the bot is the author.
  * ------------------------------------------------------------------ */
 export const HubRoutes = {
   snapshot: "/api/v1/snapshot", // HubSnapshot
@@ -47,6 +48,12 @@ export const HubRoutes = {
   proxyStatus: "/api/v1/proxy/status", // ProxyStatus
   secrets: "/api/v1/secrets", // { secrets: SecretMeta[] } (metadata only)
   health: "/api/v1/health", // { ok: true, sources: SourceHealth[] }
+  work: "/api/v1/work", // WorkSnapshot (contracts/work.ts)
+  projects: "/api/v1/projects", // GET -> { projects: ProjectSummary[] }; POST ProjectInput -> 201 Project
+  project: "/api/v1/projects/:id", // ProjectSummary
+  deliverables: "/api/v1/projects/:id/deliverables", // GET -> { deliverables: Deliverable[] }; POST raw body ?DeliverableUploadQuery -> 201 Deliverable
+  deliverable: "/api/v1/projects/:id/deliverables/:deliverableId", // Deliverable
+  deliverableContent: "/api/v1/projects/:id/deliverables/:deliverableId/content", // file bytes (Range ok, ?download=1)
 } as const;
 
 export const UsageRecordsPage = z.object({

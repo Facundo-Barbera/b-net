@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import type { HubSnapshot } from "@b-net/core";
+import type { HubSnapshot, WorkSnapshot } from "@b-net/core";
 import type { DataMode } from "../data/useSnapshot.ts";
 import { useTheme } from "../lib/theme.ts";
 import type { RouteDef } from "../routes.tsx";
@@ -9,12 +9,14 @@ import { Topbar } from "./Topbar.tsx";
 export interface ShellProps {
   route: RouteDef;
   snapshot: HubSnapshot | null;
+  /** For the sidebar's "te espera" badge. */
+  work?: WorkSnapshot | null;
   mode: DataMode;
   children: ReactNode;
 }
 
 /** Page frame: skip link, sidebar (rail/drawer when narrow), top bar and the main landmark. */
-export function Shell({ route, snapshot, mode, children }: ShellProps) {
+export function Shell({ route, snapshot, work = null, mode, children }: ShellProps) {
   const { pref, setPref } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -40,8 +42,8 @@ export function Shell({ route, snapshot, mode, children }: ShellProps) {
 
   return (
     <div className="sh-root">
-      <a className="sh-skip" href="#main-content" onClick={skip}>Skip to content</a>
-      <Sidebar activeId={route.id} snapshot={snapshot} open={drawerOpen} onNavigate={closeDrawer} />
+      <a className="sh-skip" href="#main-content" onClick={skip}>Saltar al contenido</a>
+      <Sidebar activeId={route.id} snapshot={snapshot} work={work} open={drawerOpen} onNavigate={closeDrawer} />
       {drawerOpen && <div className="sh-backdrop" data-testid="drawer-backdrop" onClick={closeDrawer} aria-hidden="true" />}
       <div className="sh-main">
         <Topbar

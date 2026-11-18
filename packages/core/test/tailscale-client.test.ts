@@ -16,7 +16,7 @@ describe("tailscale status parsing", () => {
   const idx = indexByHostName(status);
 
   it("indexes self and peers by lowercase hostname", () => {
-    expect([...idx.keys()].sort()).toEqual(["bixku-focaltec", "bixku-homelab", "bixku-mba", "bixku-mbp", "bixku-vps", "pc-bixku", "phone-fake"]);
+    expect([...idx.keys()].sort()).toEqual(["bixku-homelab", "bixku-mba", "bixku-mbp", "bixku-mini-server", "bixku-pc", "bixku-vps", "phone-fake"]);
     expect(idx.get("bixku-homelab")!.isSelf).toBe(true);
   });
 
@@ -24,7 +24,7 @@ describe("tailscale status parsing", () => {
     const path = (h: string) => linkPathFromStatus(idx.get(h)!.peer, idx.get(h)!.isSelf);
     expect(path("bixku-homelab").path).toBe("self");
     expect(path("bixku-vps").path).toBe("direct");
-    expect(path("pc-bixku")).toEqual({ path: "derp", relay: "mia" });
+    expect(path("bixku-pc")).toEqual({ path: "derp", relay: "mia" });
     expect(path("bixku-mba").path).toBe("peer-relay");
     expect(path("bixku-mbp").path).toBe("unknown");
   });

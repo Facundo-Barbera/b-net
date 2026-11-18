@@ -1,7 +1,9 @@
 import type { SecretMeta } from "@b-net/core";
 import { Badge, Callout, Card, EmptyState, PageHeader, RelativeTime, SecretsIcon, Stat, StatStrip, Table, toneForSecretStatus, useNow } from "../../components/index.ts";
-import type { ViewProps } from "../../routes.tsx";
-import { spanEs } from "../subscriptions/spanish.ts";
+import { sourceStatus } from "../../data/sources.ts";
+import type { SnapshotViewProps } from "../../routes.tsx";
+import { SourceNotice } from "../shared/SourceNotice.tsx";
+import { spanEs } from "../../lib/spanish.ts";
 import "./secrets.css";
 
 /**
@@ -72,7 +74,18 @@ function Row({ s, hubMachineId, nowMs }: { s: SecretMeta; hubMachineId: string; 
   );
 }
 
-export function SecretsView({ snapshot }: ViewProps) {
+/** Secret metadata comes from b-net-proxy: missing/failing source vs. an empty inventory. */
+function NoSecrets({ snapshot }: SnapshotViewProps) {
+  const status = sourceStatus(snapshot.sources, "proxy");
+  if (status.state !== "ok") return <SourceNotice status={status} testId="secrets-empty" />;
+  return (
+    <Card>
+      <EmptyState data-testid="secrets-empty" data-source-state="ok" title="Sin secretos" description="b-net-proxy está conectado y no reporta secretos en su almacén." />
+    </Card>
+  );
+}
+
+export function SecretsView({ snapshot }: SnapshotViewProps) {
   const nowMs = useNow();
   const secrets = snapshot.secrets;
   const groups = KIND_ORDER.map((kind) => ({ kind, items: secrets.filter((s) => s.kind === kind) })).filter((g) => g.items.length > 0);
@@ -80,7 +93,7 @@ export function SecretsView({ snapshot }: ViewProps) {
 
   return (
     <section className="ui-view se" data-testid="view-secrets">
-      <PageHeader title="Secrets" subtitle="Inventario de credenciales: solo metadatos" />
+      <PageHeader title="Secretos" subtitle="Inventario de credenciales: solo metadatos" />
 
       <Callout tone="accent" role="note" data-testid="secrets-note" icon={<SecretsIcon />} className="se-note">
         <p>
@@ -90,18 +103,16 @@ export function SecretsView({ snapshot }: ViewProps) {
         </p>
       </Callout>
 
-      <StatStrip data-testid="secrets-summary">
-        <Stat label="Secretos" value={secrets.length} hint={`${groups.length} tipos`} />
-        {STATUS_ORDER.map((st) => (
-          <Stat key={st} label={st} value={count(st)} tone={count(st) > 0 && st !== "ok" && st !== "unknown" ? toneForSecretStatus(st) : undefined} />
-        ))}
-      </StatStrip>
-
-      {groups.length === 0 ? (
-        <Card>
-          <EmptyState data-testid="secrets-empty" title="Sin secretos" description="El proxy todavía no reporta metadatos de secretos." />
-        </Card>
-      ) : null}
+      {secrets.length === 0 ? (
+        <NoSecrets snapshot={snapshot} />
+      ) : (
+        <StatStrip data-testid="secrets-summary">
+          <Stat label="Secretos" value={secrets.length} hint={`${groups.length} tipos`} />
+          {STATUS_ORDER.map((st) => (
+            <Stat key={st} label={st} value={count(st)} tone={count(st) > 0 && st !== "ok" && st !== "unknown" ? toneForSecretStatus(st) : undefined} />
+          ))}
+        </StatStrip>
+      )}
 
       {groups.map((g) => (
         <Card key={g.kind} flush title={KIND_LABEL[g.kind]} actions={<span className="num u-muted">{g.items.length}</span>} data-testid={`secrets-group-${g.kind}`}>

@@ -5,6 +5,7 @@ import { RelativeTime } from "../components/RelativeTime.tsx";
 import { StatusDot } from "../components/StatusDot.tsx";
 import type { DataMode } from "../data/useSnapshot.ts";
 import type { ThemePref } from "../lib/theme.ts";
+import { spanEs } from "../lib/spanish.ts";
 import { ThemeToggle } from "./ThemeToggle.tsx";
 
 export interface TopbarProps {
@@ -18,13 +19,18 @@ export interface TopbarProps {
 }
 
 /** Page title, snapshot freshness, data-mode badge and theme toggle. */
+const MODE_TITLE: Record<DataMode, string> = {
+  live: "Datos en vivo del hub",
+  fixture: "Datos de ejemplo (fixture): ?data=fixture o VITE_DATA_MODE=fixture",
+};
+
 export function Topbar({ title, snapshot, mode, themePref, onThemeChange, drawerOpen, onToggleDrawer }: TopbarProps) {
   return (
     <header className="sh-topbar">
       <button
         type="button"
         className="sh-topbar__menu"
-        aria-label="Toggle navigation"
+        aria-label="Mostrar u ocultar la navegación"
         aria-controls="sh-sidebar"
         aria-expanded={drawerOpen}
         onClick={onToggleDrawer}
@@ -35,10 +41,10 @@ export function Topbar({ title, snapshot, mode, themePref, onThemeChange, drawer
       <div className="sh-topbar__meta">
         {snapshot && (
           <span className="sh-topbar__updated" data-testid="generated-at">
-            <span className="ui-label">updated</span> <RelativeTime className="num" value={snapshot.generatedAt} />
+            <span className="ui-label">actualizado</span> <RelativeTime className="num" value={snapshot.generatedAt} format={spanEs} />
           </span>
         )}
-        <Badge tone={mode === "live" ? "ok" : "warn"} variant="outline" data-testid="data-mode" title={`Data mode: ${mode}`}>
+        <Badge tone={mode === "live" ? "ok" : "warn"} variant="outline" data-testid="data-mode" title={MODE_TITLE[mode]}>
           <StatusDot tone={mode === "live" ? "ok" : "warn"} pulse={mode === "live"} />
           {mode}
         </Badge>

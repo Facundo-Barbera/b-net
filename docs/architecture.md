@@ -23,7 +23,7 @@ b-net/
 │  ├─ hub/     @b-net/hub    API /api/v1 + agregación de fuentes + sirve la UI compilada
 │  ├─ proxy/   @b-net/proxy  proxy de modelos (OpenAI/Anthropic), pool de cuentas, medición
 │  ├─ agent/   @b-net/agent  agente ligero opcional por máquina (métricas + exportador T3)
-│  └─ web/     @b-net/web    UI React (Vite), vistas Machines / Subscriptions / Proxy / Secrets
+│  └─ web/     @b-net/web    UI React (Vite): Trabajo (inicio) y Proyectos; flota: Máquinas / Suscripciones / Proxy / Secretos
 ├─ docs/
 └─ config/     ejemplos de configuración (sin secretos)
 ```
@@ -57,13 +57,15 @@ bixku-vps es **solo para escribir código**: nada de servicios ahí durante el d
 1. **Máquinas.** El hub une tres fuentes por `MachineConfig` (`config/machines.json`): Tailscale (online, IP, lastSeen, ruta direct/DERP), latencia medida desde el hub (`tailscale ping` vía LocalAPI, un ping por peer cada ciclo, timeout corto) y métricas. Fase 1: métricas de Beszel (`systems` + `system_stats`). Fase 2: el agente; la prioridad por máquina es agente > Beszel > nada (`metricsSource`).
 2. **Hilos T3.** T3 guarda su estado en `~/.t3/userdata/statev2.sqlite` en cada máquina. El agente de cada máquina lo abre **en solo lectura** (`node:sqlite`, `readOnly: true`, `PRAGMA query_only`) y expone `T3ThreadView[]`. El hub nunca abre bases remotas. Estado derivado: `active` (run `running` o provider thread `active`), `waiting` (runtime request pendiente), `idle` (sesión `ready`), `dormant` (sesión `stopped`/`not_loaded`), `archived`.
 3. **Uso de IA.** El proxy escribe un `UsageRecord` por request (append-only, sin prompts ni headers). Las ventanas 5 h/semanales salen de dos fuentes: headers de rate-limit del upstream (autoritativo, `source: provider-headers`) y agregación propia de records (`estimated`). El costo siempre es a **precio de lista** con la tabla de precios versionada del proxy. Los créditos de pago por uso vienen de la API del proveedor cuando existe o de un valor manual.
-4. **UI.** Una sola llamada `GET /api/v1/snapshot` cada 15 s (`HubSnapshot`). En fase 1 la UI usa el fixture canónico (`?data=live` para la API real).
+4. **UI.** Dos llamadas cada 15 s: `GET /api/v1/snapshot` (`HubSnapshot`) y `GET /api/v1/work` (`WorkSnapshot`, ver §4). Los entregables de un proyecto se piden al abrir su detalle. La UI usa la API real por defecto; el fixture canónico solo con `?data=fixture` o `VITE_DATA_MODE=fixture`.
 
 ## 4. API entre componentes
 
 Definida en `packages/core/src/contracts/api.ts`:
 
-- Hub → UI: `HubRoutes` (`/api/v1/snapshot`, `/machines`, `/threads`, `/usage/accounts`, `/usage/records`, `/proxy/status`, `/secrets`, `/health`). Solo lectura en fase 1.
+- Hub → UI: `HubRoutes` (`/api/v1/snapshot`, `/machines`, `/threads`, `/usage/accounts`, `/usage/records`, `/proxy/status`, `/secrets`, `/health`, `/work`). Solo lectura en fase 1.
+- Trabajo: `GET /api/v1/work` devuelve `WorkSnapshot` (`contracts/work.ts`), derivado en cada request por `deriveWork()` (`core/src/work.ts`, puro, el mismo que arma el fixture) a partir de los hilos de T3 del snapshot y del store de proyectos. Carriles: *te espera* (hilos `waiting`, el más antiguo primero; luego runs `failed`/`interrupted` de las últimas 72 h), *en curso* (`active`, el run más largo primero) y *listo* (runs `completed`, entregables y PRs enlazados de las últimas 72 h). Atribución de hilos a proyectos: `grouping.t3ProjectTitles`, luego id o nombre del proyecto (sin mayúsculas), luego un entregable que nombre el hilo; si no, el título de proyecto de T3 queda como proyecto sin registrar. PRs, git y tareas no tienen fuente todavía y se reportan como `missing`: la UI dice qué falta conectar en vez de mostrar listas vacías.
+- Bots → Hub (fase 2): `/api/v1/projects` y `/api/v1/projects/:id/deliverables` (contratos en `contracts/projects.ts`). Es la única escritura del hub: `POST` siempre con un token bearer **por bot** (en `HUB_BOT_TOKENS_FILE`, guardado como sha256), y el autor del entregable sale del token. Los archivos van en streaming a `<HUB_DATA_DIR>/deliverables` (1 GiB por archivo, cuota total `HUB_DELIVERABLES_QUOTA_GB`) con el tipo verificado por contenido, y los metadatos van a `hub.sqlite`. El contenido se sirve con `Content-Security-Policy: sandbox` (salvo PDF), `nosniff` y `Content-Disposition`.
 - Proxy → Hub: `ProxyInternalRoutes` (`/internal/v1/...`), con bearer token de admin. Paginación de records por cursor ULID.
 - Proxy → clientes: `ProxyPublicRoutes` (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, `/v1/messages`, `/v1/messages/count_tokens`).
 - Agente → Hub: `AgentRoutes` (`/agent/v1/health`, `/metrics`, `/t3/threads`), con bearer token por agente.

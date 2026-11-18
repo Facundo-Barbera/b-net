@@ -1,6 +1,12 @@
 /*
  * Design tokens. Every component MUST use these vars (no hardcoded colors) so both themes work.
- * Dark is default (strawhat-like: near-black, thin borders, mono numerals, neon status accents).
+ * Dark is the default theme (near-black, thin borders, mono numerals).
+ *
+ * Status colors are colour-blind safe (Okabe–Ito family): ok is BLUE, not green, so ok/danger never
+ * rely on a red–green contrast; warn (amber) and danger (vermilion) also differ in lightness. Pairs
+ * were checked with Machado-2009 deutan/protan/tritan simulation and every tone is >= 4.5:1 on --bg.
+ * Color is still never the only signal: StatusDot draws a different shape per tone (ToneGlyph) and
+ * every status has a word next to it.
  */
 :root,
 :root[data-theme="dark"] {
@@ -12,17 +18,17 @@
   --text: #e6e8eb;
   --text-muted: #8a919c;
   --text-faint: #5b626d;
-  --accent: #f5c542;          /* straw yellow */
-  --ok: #3ddc84;
-  --warn: #f5a524;
-  --danger: #ff5c5c;
-  --info: #5aa9ff;
+  --accent: #f5c542;          /* straw yellow (brand, selection); not a status */
+  --ok: #4aa8e0;              /* blue */
+  --warn: #f0a830;            /* amber */
+  --danger: #e8613c;          /* vermilion */
+  --info: #cc79a7;            /* reddish purple */
   --idle: #8a919c;
-  --dormant: #4a505a;
-  --chart-1: #5aa9ff;
-  --chart-2: #b48cff;
-  --chart-3: #3ddc84;
-  --chart-4: #f5c542;
+  --dormant: #5b626d;
+  --chart-1: #4aa8e0;
+  --chart-2: #cc79a7;
+  --chart-3: #2fbf8f;
+  --chart-4: #f0e442;
   --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35);
   --accent-fg: #17130a;       /* text on accent fills */
   --overlay: rgba(0,0,0,0.6); /* drawer backdrop */
@@ -37,17 +43,17 @@
   --text: #16181c;
   --text-muted: #5c636e;
   --text-faint: #8c929b;
-  --accent: #b8860b;
-  --ok: #1a9e5a;
-  --warn: #c27c0e;
-  --danger: #d43c3c;
-  --info: #2f7bd8;
+  --accent: #8a6508;
+  --ok: #0a6fc2;
+  --warn: #9a5a00;
+  --danger: #9e2a00;
+  --info: #a8457f;
   --idle: #6b7280;
   --dormant: #a3a8b0;
-  --chart-1: #2f7bd8;
-  --chart-2: #7c5cd6;
-  --chart-3: #1a9e5a;
-  --chart-4: #b8860b;
+  --chart-1: #0a6fc2;
+  --chart-2: #a8457f;
+  --chart-3: #007a5a;
+  --chart-4: #8a7a00;
   --shadow: 0 1px 2px rgba(0,0,0,0.06);
   --accent-fg: #ffffff;
   --overlay: rgba(20,20,20,0.35);
@@ -56,6 +62,15 @@
 :root {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* Type scale: every font-size in views and components uses one of these. */
+  --fs-2xs: 9.5px;   /* SVG micro labels, meter flags */
+  --fs-xs: 11px;     /* uppercase labels, captions, tags */
+  --fs-sm: 12px;     /* secondary text, table meta */
+  --fs-md: 13px;     /* table cells, body of cards */
+  --fs-base: 14px;   /* body */
+  --fs-lg: 16px;     /* card / panel titles */
+  --fs-xl: 20px;     /* page title, KPI values */
+  --fs-2xl: 26px;    /* hero numbers (credit balance) */
   --radius: 10px;
   --radius-sm: 6px;
   --gap: 16px;
@@ -71,5 +86,9 @@
   --topbar-h: 52px;
   --focus-ring: var(--accent);
   --ease: 160ms ease;
+  /* Entrance of a view or a new card: short, decelerating, disabled by prefers-reduced-motion (base.css). */
+  --enter: 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Comfortable reading width for list-first views (Trabajo, Proyectos). */
+  --read-w: 1180px;
 }
 /* Element-level resets, typography and utilities live in base.css. */
