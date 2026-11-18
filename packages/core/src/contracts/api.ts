@@ -107,4 +107,27 @@ export type AgentMetrics = z.infer<typeof AgentMetrics>;
 export const AgentThreads = z.object({ threads: z.array(T3ThreadView) });
 export type AgentThreads = z.infer<typeof AgentThreads>;
 
+/* ------------------------------------------------------------------ *
+ * Push ingestion (agent -> hub). The agent opens no port: every
+ * interval it POSTs one sample. Auth: `Authorization: Bearer <machine
+ * token>`; the hub keeps only sha256(token) and the machine it belongs to.
+ * The hub timestamps samples with its own clock (agent clocks may drift).
+ * ------------------------------------------------------------------ */
+export const IngestRoutes = {
+  metrics: "/ingest/v1/metrics", // POST AgentMetricsPush -> 204
+} as const;
+
+/** Upper bound for an ingest request body; a real sample is ~400 bytes. */
+export const INGEST_MAX_BYTES = 8 * 1024;
+
+export const AgentMetricsPush = z
+  .object({
+    /** Must match the machine the token was issued for. */
+    machineId: z.string().regex(/^[a-z0-9-]+$/).max(64),
+    agentVersion: z.string().max(32),
+    metrics: MachineMetrics.strict(),
+  })
+  .strict();
+export type AgentMetricsPush = z.infer<typeof AgentMetricsPush>;
+
 export { ClientKeyView };
