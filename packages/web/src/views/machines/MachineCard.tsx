@@ -1,8 +1,16 @@
-import type { MachineView } from "@b-net/core";
+import type { GpuMetrics, MachineView } from "@b-net/core";
 import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, StatusDot, toneForMachineStatus, toneForServiceStatus, type Tone } from "../../components/index.ts";
 import { DASH, formatBps, formatDuration, formatUsedOfGb } from "../../lib/format.ts";
 import { STALE_METRICS_MS, TEMP_DANGER_C, TEMP_WARN_C } from "../../lib/thresholds.ts";
 import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, ageMs, ago, awake, linkLabel, metricsNote } from "./derive.ts";
+
+/** "37 % · 1.0 / 8.0 GB · 52 °C" (missing parts become a dash). */
+function gpuLabel(g: GpuMetrics): string {
+  const util = g.utilPct === null ? DASH : `${Math.round(g.utilPct)} %`;
+  const mem = g.memUsedMb === null || g.memTotalMb === null ? DASH : formatUsedOfGb(g.memUsedMb / 1024, g.memTotalMb / 1024);
+  const temp = g.tempC === null ? DASH : `${Math.round(g.tempC)} °C`;
+  return `${util} · ${mem} · ${temp}`;
+}
 
 export function MachineCard({
   m, isHub, selected, nowMs, onSelect,
@@ -54,9 +62,15 @@ export function MachineCard({
         <KV label="Net ↓ / ↑">{met ? `${formatBps(met.netRxBps)} / ${formatBps(met.netTxBps)}` : DASH}</KV>
         <KV label="Uptime">{met ? formatDuration(met.uptimeSec) : DASH}</KV>
         <KV label="Temp" tone={tempTone}>{met?.tempC == null ? DASH : `${Math.round(met.tempC)} °C`}</KV>
+        {met?.gpu && (
+          <KV label="GPU" title={met.gpu.count > 1 ? `${met.gpu.name} (+${met.gpu.count - 1})` : met.gpu.name}>
+            {gpuLabel(met.gpu)}
+          </KV>
+        )}
         <KV label="Metrics" tone={stale ? "warn" : undefined}>
           {m.metricsSource === "none" ? "none" : `${m.metricsSource} · ${ago(m.metricsAt, nowMs)}`}
           {stale && " (stale)"}
+          {met?.wslVm && <span title="CPU, RAM, disk and network are those of the WSL VM, not the Windows host"> · WSL VM</span>}
         </KV>
         <KV label="Sandboxes">{a} awake · {m.threadCounts.dormant} dormant</KV>
       </KeyValue>
