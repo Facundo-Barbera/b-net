@@ -57,7 +57,7 @@ bixku-vps es **solo para escribir código**: nada de servicios ahí durante el d
 1. **Máquinas.** El hub une tres fuentes por `MachineConfig` (`config/machines.json`): Tailscale (online, IP, lastSeen, ruta direct/DERP), latencia medida desde el hub (`tailscale ping` vía LocalAPI, un ping por peer cada ciclo, timeout corto) y métricas. Fase 1: métricas de Beszel (`systems` + `system_stats`). Fase 2: el agente; la prioridad por máquina es agente > Beszel > nada (`metricsSource`).
 2. **Hilos T3.** T3 guarda su estado en `~/.t3/userdata/statev2.sqlite` en cada máquina. El agente de cada máquina lo abre **en solo lectura** (`node:sqlite`, `readOnly: true`, `PRAGMA query_only`) y expone `T3ThreadView[]`. El hub nunca abre bases remotas. Estado derivado: `active` (run `running` o provider thread `active`), `waiting` (runtime request pendiente), `idle` (sesión `ready`), `dormant` (sesión `stopped`/`not_loaded`), `archived`.
 3. **Uso de IA.** El proxy escribe un `UsageRecord` por request (append-only, sin prompts ni headers). Las ventanas 5 h/semanales salen de dos fuentes: headers de rate-limit del upstream (autoritativo, `source: provider-headers`) y agregación propia de records (`estimated`). El costo siempre es a **precio de lista** con la tabla de precios versionada del proxy. Los créditos de pago por uso vienen de la API del proveedor cuando existe o de un valor manual.
-4. **UI.** Una sola llamada `GET /api/v1/snapshot` cada 15 s (`HubSnapshot`). En fase 1 la UI usa el fixture canónico (`?data=live` para la API real).
+4. **UI.** Una sola llamada `GET /api/v1/snapshot` cada 15 s (`HubSnapshot`). La UI usa la API real por defecto; el fixture canónico solo con `?data=fixture` o `VITE_DATA_MODE=fixture`.
 
 ## 4. API entre componentes
 

@@ -29,12 +29,12 @@ export function deriveNavBadges(snapshot: HubSnapshot | null): Partial<Record<Ro
     out.subscriptions = {
       count: cooldown + errored,
       tone: errored > 0 ? "danger" : "warn",
-      label: errored > 0 ? "in cooldown or error" : "in cooldown",
+      label: errored > 0 ? "en cooldown o con error" : "en cooldown",
     };
   }
 
   const errors = snapshot.proxy?.lastHour.errors ?? 0;
-  if (errors > 0) out.proxy = { count: errors, tone: "warn", label: "errors in the last hour" };
+  if (errors > 0) out.proxy = { count: errors, tone: "warn", label: "errores en la última hora" };
 
   const bad = snapshot.secrets.filter((s) => s.status === "expired" || s.status === "invalid").length;
   const expiring = snapshot.secrets.filter((s) => s.status === "expiring").length;
@@ -42,7 +42,7 @@ export function deriveNavBadges(snapshot: HubSnapshot | null): Partial<Record<Ro
     out.secrets = {
       count: bad + expiring,
       tone: bad > 0 ? "danger" : "warn",
-      label: bad > 0 ? "expiring or invalid" : "expiring",
+      label: bad > 0 ? "por vencer o inválidos" : "por vencer",
     };
   }
   return out;

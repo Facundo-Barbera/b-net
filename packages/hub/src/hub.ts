@@ -118,6 +118,7 @@ export function createHub(deps: HubDeps): Hub {
       machines: deps.machines,
       tailscale: tailscale?.fresh(fastMaxAge) ?? null,
       beszel: beszel?.fresh(fastMaxAge) ?? null,
+      beszelConfigured: beszel !== null,
       agentMetrics,
       threads,
       proxy: proxy?.fresh(fastMaxAge) ?? null,

@@ -12,6 +12,7 @@ import {
   Stat,
   StatStrip,
   StatusDot,
+  TONE_SHAPE,
   Table,
   Tag,
   Callout,
@@ -60,9 +61,23 @@ describe("StatusDot", () => {
     const { container, rerender } = render(<StatusDot tone="warn" />);
     const dot = container.querySelector(".ui-dot")!;
     expect(dot.getAttribute("aria-hidden")).toBe("true");
-    expect(dot.className).toContain("tone-warn");
+    expect(dot.getAttribute("class")).toContain("tone-warn");
     rerender(<StatusDot tone="ok" label="online" pulse />);
-    expect(screen.getByRole("img", { name: "online" }).className).toContain("ui-dot--pulse");
+    expect(screen.getByRole("img", { name: "online" }).getAttribute("class")).toContain("ui-dot--pulse");
+  });
+
+  it("draws a different shape per status tone, so status never depends on color alone", () => {
+    const statusTones = ["ok", "warn", "danger", "info", "idle", "dormant"] as const;
+    const shapes = statusTones.map((t) => {
+      const { container, unmount } = render(<StatusDot tone={t} />);
+      const svg = container.querySelector("svg.ui-dot")!;
+      const out = { shape: svg.getAttribute("data-shape"), markup: svg.innerHTML };
+      unmount();
+      return out;
+    });
+    expect(new Set(shapes.map((s) => s.shape)).size).toBe(statusTones.length);
+    expect(new Set(shapes.map((s) => s.markup)).size).toBe(statusTones.length);
+    expect(TONE_SHAPE).toMatchObject({ ok: "circle", warn: "triangle", danger: "square", idle: "pause", dormant: "ring" });
   });
 });
 
@@ -214,8 +229,9 @@ describe("Badge dot / Tag", () => {
   it("prefixes a decorative dot only when asked", () => {
     const { container, rerender } = render(<Badge tone="ok">up</Badge>);
     expect(container.querySelector(".ui-badge__dot")).toBeNull();
-    rerender(<Badge tone="ok" dot>up</Badge>);
+    rerender(<Badge tone="warn" dot>up</Badge>);
     expect(container.querySelector(".ui-badge__dot")?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector(".ui-badge__dot")?.getAttribute("data-shape")).toBe("triangle");
     expect(container.textContent).toBe("up");
   });
 
@@ -242,15 +258,15 @@ describe("Meter extensions", () => {
     expect(screen.getByText("5.3 / 7.5 GB")).toBeTruthy();
   });
 
-  it("flags HIGH / CRIT only past the thresholds and only with `flag`", () => {
-    const { rerender } = render(<Meter value={80} label="RAM" flag />);
+  it("flags HIGH / CRIT past the thresholds by default; flag={false} opts out", () => {
+    const { rerender } = render(<Meter value={80} label="RAM" />);
     expect(screen.getByText("HIGH")).toBeTruthy();
-    rerender(<Meter value={95} label="RAM" flag />);
+    rerender(<Meter value={95} label="RAM" />);
     expect(screen.getByText("CRIT")).toBeTruthy();
-    rerender(<Meter value={20} label="RAM" flag />);
+    rerender(<Meter value={20} label="RAM" />);
     expect(screen.queryByText("HIGH")).toBeNull();
     expect(screen.queryByText("CRIT")).toBeNull();
-    rerender(<Meter value={95} label="RAM" />);
+    rerender(<Meter value={95} label="RAM" flag={false} />);
     expect(screen.queryByText("CRIT")).toBeNull();
   });
 

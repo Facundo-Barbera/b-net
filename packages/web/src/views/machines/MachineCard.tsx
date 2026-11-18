@@ -1,15 +1,19 @@
-import type { MachineView } from "@b-net/core";
-import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, StatusDot, toneForMachineStatus, toneForServiceStatus, type Tone } from "../../components/index.ts";
+import type { MachineView, SourceHealth } from "@b-net/core";
+import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, StatusDot, Tag, toneForMachineStatus, toneForServiceStatus, type Tone } from "../../components/index.ts";
+import { SOURCE_SETUP } from "../../data/sources.ts";
 import { DASH, formatBps, formatDuration, formatUsedOfGb } from "../../lib/format.ts";
+import { spanEs } from "../../lib/spanish.ts";
 import { STALE_METRICS_MS, TEMP_DANGER_C, TEMP_WARN_C } from "../../lib/thresholds.ts";
 import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, ageMs, ago, awake, linkLabel, metricsNote } from "./derive.ts";
 
+const TEMP_FLAG: Partial<Record<Tone, string>> = { warn: " · alta", danger: " · crítica" };
+
 export function MachineCard({
-  m, isHub, selected, nowMs, onSelect,
-}: { m: MachineView; isHub: boolean; selected: boolean; nowMs: number; onSelect: () => void }) {
+  m, isHub, selected, nowMs, sources, onSelect,
+}: { m: MachineView; isHub: boolean; selected: boolean; nowMs: number; sources: readonly SourceHealth[]; onSelect: () => void }) {
   const tone = toneForMachineStatus(m.status);
   const met = m.metrics;
-  const note = metricsNote(m);
+  const note = metricsNote(m, sources);
   const age = ageMs(m.metricsAt, nowMs);
   const stale = met !== null && age !== null && age > STALE_METRICS_MS;
   const down = m.status === "offline" || m.status === "paused";
@@ -25,46 +29,65 @@ export function MachineCard({
       data-testid={`card-${m.id}`}
       data-selected={selected || undefined}
       data-down={down || undefined}
-      aria-label={`${m.name} card`}
+      aria-label={`Tarjeta de ${m.name}`}
     >
       <header className="mv-card__head">
-        <button type="button" className="mv-card__select" aria-pressed={selected} aria-label={`Show details for ${m.name}`} onClick={onSelect}>
-          <StatusDot tone={tone} />
+        <button type="button" className="mv-card__select" aria-pressed={selected} aria-label={`Ver detalle de ${m.name}`} onClick={onSelect}>
           <span className="mv-card__name">{m.name}</span>
         </button>
         {isHub && <Badge tone="accent">HUB</Badge>}
-        <Badge tone={tone} data-testid={`status-${m.id}`}>{STATUS_LABEL[m.status]}</Badge>
+        <Badge dot tone={tone} data-testid={`status-${m.id}`}>{STATUS_LABEL[m.status]}</Badge>
       </header>
-      <p className="mv-card__sub">{ROLE_LABEL[m.role]} · {OS_LABEL[m.os]}</p>
+      <p className="mv-card__sub">
+        {ROLE_LABEL[m.role]} · {OS_LABEL[m.os]}
+        {m.metricsSource === "none" && <Tag className="mv-card__nosrc">sin métricas</Tag>}
+      </p>
 
       {met ? (
         <div className="mv-meters" data-stale={stale || undefined}>
-          <Meter label="CPU" value={met.cpuPct} flag />
-          <Meter label="RAM" value={met.memPct} flag detail={formatUsedOfGb(met.memUsedGb, met.memTotalGb)} />
-          <Meter label="Disk" value={met.diskPct} flag detail={formatUsedOfGb(met.diskUsedGb, met.diskTotalGb)} />
+          <Meter label="CPU" value={met.cpuPct} />
+          <Meter label="RAM" value={met.memPct} detail={formatUsedOfGb(met.memUsedGb, met.memTotalGb)} />
+          <Meter label="Disco" value={met.diskPct} detail={formatUsedOfGb(met.diskUsedGb, met.diskTotalGb)} />
         </div>
       ) : null}
-      {note && <Callout tone={tone === "ok" ? "idle" : tone} role="status">{note}</Callout>}
+      {note && (
+        <Callout tone={note.tone} role="status" icon={<StatusDot tone={note.tone} />} data-testid={`note-${m.id}`}>
+          <p>{note.text}</p>
+          {note.noSource && (
+            <p className="mv-card__how u-muted">
+              Conecta {SOURCE_SETUP.beszel.name} (beszelName en machines.json) o instala el agente (agentUrl).
+            </p>
+          )}
+        </Callout>
+      )}
 
       <KeyValue>
         <KV label="Tailscale">{m.tailscale.ip ?? DASH}</KV>
-        <KV label="Latency">{isHub ? "hub" : linkLabel(m)}</KV>
-        <KV label="Last seen">{m.tailscale.online ? "now" : <RelativeTime value={m.tailscale.lastSeen} fallback="never" />}</KV>
-        <KV label="Load 1m">{met?.load1 == null ? DASH : met.load1.toFixed(2)}</KV>
-        <KV label="Net ↓ / ↑">{met ? `${formatBps(met.netRxBps)} / ${formatBps(met.netTxBps)}` : DASH}</KV>
-        <KV label="Uptime">{met ? formatDuration(met.uptimeSec) : DASH}</KV>
-        <KV label="Temp" tone={tempTone}>{met?.tempC == null ? DASH : `${Math.round(met.tempC)} °C`}</KV>
-        <KV label="Metrics" tone={stale ? "warn" : undefined}>
-          {m.metricsSource === "none" ? "none" : `${m.metricsSource} · ${ago(m.metricsAt, nowMs)}`}
-          {stale && " (stale)"}
-        </KV>
-        <KV label="Sandboxes">{a} awake · {m.threadCounts.dormant} dormant</KV>
+        <KV label="Enlace">{isHub ? "hub" : linkLabel(m)}</KV>
+        <KV label="Visto">{m.tailscale.online ? "ahora" : <RelativeTime value={m.tailscale.lastSeen} format={spanEs} fallback="nunca" />}</KV>
+        <KV label="Sandboxes">{a} activos · {m.threadCounts.dormant} dormidos</KV>
+        {met && (
+          <>
+            <KV label="Carga 1m">{met.load1 == null ? DASH : met.load1.toFixed(2)}</KV>
+            <KV label="Red ↓ / ↑">{`${formatBps(met.netRxBps)} / ${formatBps(met.netTxBps)}`}</KV>
+            <KV label="Uptime">{formatDuration(met.uptimeSec)}</KV>
+            <KV label="Temp" tone={tempTone}>
+              {met.tempC == null ? DASH : `${Math.round(met.tempC)} °C${tempTone ? TEMP_FLAG[tempTone] : ""}`}
+            </KV>
+          </>
+        )}
+        {m.metricsSource !== "none" && (
+          <KV label="Métricas" tone={stale ? "warn" : undefined}>
+            {`${m.metricsSource} · ${ago(m.metricsAt, nowMs)}`}
+            {stale && " (desactualizadas)"}
+          </KV>
+        )}
       </KeyValue>
 
       {m.services.length > 0 && (
         <div className="mv-services">
-          <span className="ui-label">Services{servicesDown > 0 ? ` · ${servicesDown} down` : ""}</span>
-          <ul aria-label={`${m.name} services`}>
+          <span className="ui-label">Servicios{servicesDown > 0 ? ` · ${servicesDown} down` : ""}</span>
+          <ul aria-label={`Servicios de ${m.name}`}>
             {m.services.map((s) => {
               const st = toneForServiceStatus(s.status);
               return (

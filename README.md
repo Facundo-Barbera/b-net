@@ -32,6 +32,8 @@ pnpm typecheck     # tsc -b sobre todo el monorepo
 pnpm --filter @b-net/web build   # compila la UI a packages/web/dist/app (no levanta servidor)
 ```
 
+Para servir la UI en desarrollo (nunca en bixku-vps): `pnpm --filter @b-net/web dev`. Host, puerto, `allowedHosts` y el hub al que se reenvía `/api` salen de `WEB_*` (ver `.env.example`). La UI usa datos live; `?data=fixture` muestra el fixture.
+
 Todas las pruebas corren contra fixtures. No abren puertos ni tocan la red.
 
 ## Paquetes

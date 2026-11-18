@@ -21,7 +21,10 @@ export interface MeterProps {
   showValue?: boolean;
   /** Override the displayed text (e.g. "12.9 / 23.9 GB"). */
   valueText?: string;
-  /** Prefix the value with HIGH / CRIT when past a threshold, so state does not rely on color alone. */
+  /**
+   * Prefix the value with HIGH / CRIT past a threshold so state does not rely on color alone (default on).
+   * Turn off only when the caller states the level in words next to the meter.
+   */
   flag?: boolean;
   /** Muted mono line under the bar (e.g. "5.3 / 7.5 GB"). */
   detail?: ReactNode;
@@ -32,7 +35,7 @@ const FLAG: Partial<Record<Tone, string>> = { warn: "HIGH", danger: "CRIT" };
 
 /** Horizontal 0–100 bar that turns amber/red past thresholds. */
 export function Meter({
-  value, warnAt = USAGE_WARN_AT, dangerAt = USAGE_DANGER_AT, tone, label, ariaLabel, showValue, valueText, flag, detail, className,
+  value, warnAt = USAGE_WARN_AT, dangerAt = USAGE_DANGER_AT, tone, label, ariaLabel, showValue, valueText, flag = true, detail, className,
 }: MeterProps) {
   const has = typeof value === "number" && Number.isFinite(value);
   const v = has ? Math.min(100, Math.max(0, value)) : 0;

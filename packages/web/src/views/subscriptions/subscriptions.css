@@ -1,43 +1,38 @@
 /* Subscriptions view. Surfaces, tables, meters and badges come from src/components; only layout lives here. */
 .sv-group { display: flex; flex-direction: column; gap: var(--sp-3); }
 .sv-group-head { display: flex; align-items: center; gap: var(--sp-3); }
-.sv-group-head span:last-child { margin-left: auto; font-size: 11.5px; }
+.sv-group-head span:last-child { margin-left: auto; font-size: var(--fs-sm); }
 .sv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: var(--gap); align-items: start; }
 
 .sv-card__body { display: flex; flex-direction: column; gap: var(--sp-3); }
 .sv-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); }
-.sv-card-title h3 { font-size: 15px; font-weight: 600; }
-.sv-card-plan { display: flex; gap: 6px; margin-top: var(--sp-1); color: var(--text-muted); font-size: 12px; }
+.sv-card-title h3 { font-size: var(--fs-lg); font-weight: 600; }
+.sv-card-plan { display: flex; gap: 6px; margin-top: var(--sp-1); color: var(--text-muted); font-size: var(--fs-sm); }
 .sv-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-.sv-lastused { margin-left: auto; font-size: 11.5px; }
+.sv-lastused { margin-left: auto; font-size: var(--fs-sm); }
 
 .sv-alert .ui-callout__body { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
-.sv-alert code { font-size: 11.5px; overflow-wrap: anywhere; }
+.sv-alert code { font-size: var(--fs-sm); overflow-wrap: anywhere; }
 
 .sv-windows { display: flex; flex-direction: column; }
 .sv-window { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-3) 0; border-bottom: 1px dashed var(--border); }
 .sv-window:first-child { padding-top: 0; }
 .sv-window:last-child { border-bottom: 0; padding-bottom: 0; }
-.sv-window-head, .sv-window-foot { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); }
-.sv-window-label { font-size: 12.5px; font-weight: 500; }
-.sv-window-pct { font-size: 14px; font-weight: 600; }
-.sv-window-pct.tone-warn, .sv-window-pct.tone-danger { color: var(--tone); }
-.sv-window-pct[data-empty] { color: var(--text-muted); font-weight: 500; font-size: 12px; }
-.sv-window-foot { font-size: 11.5px; color: var(--text-muted); align-items: center; }
-.sv-measured { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); font-size: 11px; color: var(--text-faint); align-items: baseline; }
+.sv-window-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-muted); }
+.sv-measured { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); font-size: var(--fs-xs); color: var(--text-faint); align-items: baseline; }
 .sv-measured-strong { color: var(--text); padding: 6px var(--sp-2); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); }
 .sv-measured-strong .ui-label { color: var(--accent); }
-.sv-nowin { font-size: 12px; }
+.sv-nowin { font-size: var(--fs-sm); }
 
 .sv-credits { display: flex; flex-direction: column; gap: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
 .sv-credits-head { display: flex; justify-content: space-between; align-items: center; }
 .sv-credits-balance { display: flex; align-items: baseline; gap: var(--sp-2); }
-.sv-credits-balance-value { font-size: 26px; font-weight: 600; color: var(--accent); }
+.sv-credits-balance-value { font-size: var(--fs-2xl); font-weight: 600; color: var(--accent); }
 
 .sv-value { padding: var(--sp-3) var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2); background: var(--bg-elev-2); border-radius: var(--radius-sm); }
-.sv-value-text { font-size: 12.5px; color: var(--text-muted); }
+.sv-value-text { font-size: var(--fs-md); color: var(--text-muted); }
 .sv-value-text strong { color: var(--text); font-weight: 600; }
-.sv-value-text strong.u-accent { color: var(--accent); font-size: 15px; }
+.sv-value-text strong.u-accent { color: var(--accent); font-size: var(--fs-lg); }
 .sv-bar-bg { fill: var(--bg); stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .sv-bar-cost { fill: var(--accent); }
 .sv-bar-plan { fill: var(--info); }

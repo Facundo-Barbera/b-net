@@ -2,15 +2,15 @@ import { MoonIcon, MonitorIcon, SunIcon } from "../components/icons.tsx";
 import { THEME_PREFS, type ThemePref } from "../lib/theme.ts";
 
 const META: Record<ThemePref, { label: string; Icon: typeof SunIcon }> = {
-  system: { label: "System theme", Icon: MonitorIcon },
-  dark: { label: "Dark theme", Icon: MoonIcon },
-  light: { label: "Light theme", Icon: SunIcon },
+  system: { label: "Tema del sistema", Icon: MonitorIcon },
+  dark: { label: "Tema oscuro", Icon: MoonIcon },
+  light: { label: "Tema claro", Icon: SunIcon },
 };
 
 /** Three-way segmented control (system / dark / light). Buttons expose `aria-pressed`. */
 export function ThemeToggle({ pref, onChange }: { pref: ThemePref; onChange: (p: ThemePref) => void }) {
   return (
-    <div className="sh-theme" role="group" aria-label="Theme">
+    <div className="sh-theme" role="group" aria-label="Tema">
       {THEME_PREFS.map((p) => {
         const { label, Icon } = META[p];
         return (

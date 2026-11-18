@@ -37,7 +37,7 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 22. **PC-BiXKu**: ¿el agente corre en WSL (métricas de la VM) o hace falta un colector nativo de Windows? Si T3 corre en Windows, leer su SQLite desde `/mnt/c` puede dar problemas de locking.
 23. **Runs huérfanos**: si T3 se cierra a mitad de un run, el hilo aparece `active` para siempre. Propuesta: marcarlo `dormant` si no se actualiza en N horas y la sesión está detenida. Esto cambia la regla de `architecture.md`.
 24. **Umbrales**: el estado `degraded` se activa con CPU, RAM o disco por encima del 90 % o con métricas de más de 5 min. ¿Te sirven? ¿Los quieres por máquina (p. ej. el disco del PC)?
-25. ¿Una máquina sin fuente de métricas se ve como `paused` (como hoy) o como `online`?
+25. ~~¿Una máquina sin fuente de métricas se ve como `paused` o como `online`?~~ Decidido: `online` con `metricsSource: "none"` y la UI dice qué fuente falta; `paused` solo viene de Beszel.
 26. **Tailscale**: ¿LocalAPI (el usuario del servicio necesita leer el socket de tailscaled) o CLI? Para la latencia, ¿ping `disco` (actual) o `TSMP`? ¿Se mide solo del hub hacia cada nodo (topología en estrella) o entre todos los pares?
 27. **Historial del agente**: 60 s × 30 puntos son 30 min. ¿Basta? ¿Hay discos de datos además de `/` que deban sumarse?
 
@@ -50,7 +50,7 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 
 ## 6. UI
 
-32. **Tema por defecto**: hoy sigue al sistema. ¿Forzamos oscuro?
+32. ~~**Tema por defecto**~~: decidido, oscuro (`system` sigue disponible en el selector).
 33. **Panel de máquina**: ¿preseleccionamos una máquina, por ejemplo la de más hilos activos? ¿Guardamos la selección en la URL (`#/machines/bixku-vps`)?
 34. **Badge de Proxy en la barra lateral**: hoy cuenta errores de la última hora. ¿Prefieres rate-limits o failovers?
 35. **Fechas**: todas son relativas y la hora exacta aparece en el tooltip. ¿Quieres hora local absoluta en las tablas?

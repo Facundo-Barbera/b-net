@@ -40,7 +40,7 @@ export function Shell({ route, snapshot, mode, children }: ShellProps) {
 
   return (
     <div className="sh-root">
-      <a className="sh-skip" href="#main-content" onClick={skip}>Skip to content</a>
+      <a className="sh-skip" href="#main-content" onClick={skip}>Saltar al contenido</a>
       <Sidebar activeId={route.id} snapshot={snapshot} open={drawerOpen} onNavigate={closeDrawer} />
       {drawerOpen && <div className="sh-backdrop" data-testid="drawer-backdrop" onClick={closeDrawer} aria-hidden="true" />}
       <div className="sh-main">

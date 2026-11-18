@@ -9,13 +9,16 @@ export const THEME_PREFS: readonly ThemePref[] = ["system", "dark", "light"];
 
 const isPref = (v: unknown): v is ThemePref => v === "system" || v === "dark" || v === "light";
 
-/** Stored preference; "system" when nothing is stored or storage is unavailable. */
+/** Dark is the product default; "system" (follow the OS) is opt-in. Mirrored in index.html. */
+export const DEFAULT_THEME_PREF: ThemePref = "dark";
+
+/** Stored preference; the default when nothing is stored or storage is unavailable. */
 export function readThemePref(): ThemePref {
   try {
     const v = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return isPref(v) ? v : "system";
+    return isPref(v) ? v : DEFAULT_THEME_PREF;
   } catch {
-    return "system";
+    return DEFAULT_THEME_PREF;
   }
 }
 

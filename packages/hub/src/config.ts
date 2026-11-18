@@ -3,6 +3,7 @@
  * Secrets (passwords, tokens) are read preferably from *_FILE paths (systemd LoadCredential);
  * plain env vars are accepted as a fallback. Secret values are never logged or echoed in errors.
  */
+import { parseEnv } from "node:util";
 import { z } from "zod";
 import { BotName, MachineConfig } from "@b-net/core";
 import type { BotToken } from "./bot-auth.ts";
@@ -64,6 +65,14 @@ const intIn = (v: string | undefined, def: number, min: number, max: number, nam
 };
 
 const isPlaceholder = (v: string | null) => v === null || /^__CHANGE_ME__$/.test(v);
+
+/**
+ * The hub's env file (KEY=VALUE, `node:util` parseEnv syntax) layered UNDER the process environment:
+ * variables already set (systemd Environment=, the shell) win, so one-off overrides keep working.
+ */
+export function withEnvFile(env: Record<string, string | undefined>, fileText: string): Record<string, string | undefined> {
+  return { ...parseEnv(fileText), ...env };
+}
 
 export function parseMachines(raw: unknown): MachineConfig[] {
   const r = z.array(MachineConfig).safeParse(raw);

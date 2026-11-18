@@ -17,13 +17,13 @@ export interface SidebarProps {
 export function Sidebar({ activeId, snapshot, open, onNavigate }: SidebarProps) {
   const badges = deriveNavBadges(snapshot);
   return (
-    <aside id="sh-sidebar" className="sh-sidebar" data-open={open} aria-label="Sidebar">
+    <aside id="sh-sidebar" className="sh-sidebar" data-open={open} aria-label="Barra lateral">
       <a className="sh-brand" href={routes[0]!.path} onClick={onNavigate}>
         <span className="sh-brand__mark" aria-hidden="true" />
         <span className="sh-brand__name sh-collapse">b-net</span>
       </a>
 
-      <nav className="sh-nav" aria-label="Primary">
+      <nav className="sh-nav" aria-label="Principal">
         <ul>
           {routes.map((r) => {
             const Icon = r.icon ?? DotIcon;

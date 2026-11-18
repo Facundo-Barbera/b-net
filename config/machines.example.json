@@ -1,8 +1,8 @@
 [
   { "id": "bixku-homelab", "name": "bixku-homelab", "role": "hub", "os": "linux", "tailscaleHost": "bixku-homelab", "beszelName": "bixku-homelab", "notes": "Mac mini con Ubuntu" },
   { "id": "bixku-vps", "name": "bixku-vps", "role": "vps", "os": "linux", "tailscaleHost": "bixku-vps", "beszelName": "bixku-vps", "agentUrl": "http://bixku-vps:8781" },
-  { "id": "bixku-focaltec", "name": "Mac mini Focaltec", "role": "workstation", "os": "macos", "tailscaleHost": "bixku-focaltec", "beszelName": "focaltec", "agentUrl": "http://bixku-focaltec:8781" },
-  { "id": "pc-bixku", "name": "PC-BiXKu", "role": "workstation", "os": "wsl", "tailscaleHost": "pc-bixku", "agentUrl": "http://pc-bixku:8781" },
+  { "id": "bixku-focaltec", "name": "Mac mini Focaltec", "role": "workstation", "os": "macos", "tailscaleHost": "bixku-mini-server", "beszelName": "focaltec", "agentUrl": "http://bixku-mini-server:8781" },
+  { "id": "pc-bixku", "name": "PC-BiXKu", "role": "workstation", "os": "wsl", "tailscaleHost": "bixku-pc", "agentUrl": "http://bixku-pc:8781" },
   { "id": "bixku-mbp", "name": "MBP Omarchy", "role": "laptop", "os": "linux", "tailscaleHost": "bixku-mbp" },
   { "id": "bixku-mba", "name": "MBA", "role": "laptop", "os": "macos", "tailscaleHost": "bixku-mba" }
 ]

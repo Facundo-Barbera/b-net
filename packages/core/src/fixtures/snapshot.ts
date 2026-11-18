@@ -84,7 +84,7 @@ const machines: MachineView[] = [
   }),
   machine({
     id: "bixku-mba", name: "MBA", role: "laptop", os: "macos",
-    status: "paused",
+    // Reachable but with no metrics source: online, and the UI says which source is missing.
     tailscale: { ip: "100.64.0.60", online: true, lastSeen: ago(3), latencyMs: 34, path: "peer-relay", relay: null },
     metrics: null, metricsSource: "none", metricsAt: null,
     notes: "Sin agente ni Beszel todavía.",

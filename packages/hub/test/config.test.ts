@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { botFromAuth, generateToken, hashToken } from "../src/bot-auth.ts";
-import { ConfigError, loadHubConfig, parseBotTokens } from "../src/config.ts";
+import { ConfigError, loadHubConfig, parseBotTokens, withEnvFile } from "../src/config.ts";
 import { machinesExample } from "./helpers.ts";
 
 const files: Record<string, string> = {
@@ -59,6 +59,23 @@ describe("config loader", () => {
     } catch (e) {
       expect(String(e)).not.toContain("placeholder-secret");
     }
+  });
+});
+
+describe("env file", () => {
+  it("fills in values from the file; the process environment wins", () => {
+    const text = "# comment\nHUB_LISTEN_HOST=100.64.0.99\nHUB_LISTEN_PORT=8790\nBESZEL_EMAIL=\"from-file@example.invalid\"\n";
+    const merged = withEnvFile({ HUB_LISTEN_HOST: "100.64.0.10" }, text);
+    expect(merged.HUB_LISTEN_HOST).toBe("100.64.0.10");
+    expect(merged.HUB_LISTEN_PORT).toBe("8790");
+    expect(merged.BESZEL_EMAIL).toBe("from-file@example.invalid");
+    expect(loadHubConfig({ ...merged, HUB_MACHINES_FILE: "config/machines.json" }, read).listenPort).toBe(8790);
+  });
+
+  it("parses the shipped .env.example", () => {
+    const merged = withEnvFile({}, readFileSync(new URL("../../../.env.example", import.meta.url), "utf8"));
+    expect(merged.HUB_LISTEN_PORT).toBe("8780");
+    expect(merged.TAILSCALE_SOURCE).toBe("localapi");
   });
 });
 
