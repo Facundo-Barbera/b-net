@@ -164,3 +164,34 @@ describe("hub snapshot with pushed metrics", () => {
     expect(snap.sources.find((s) => s.source === "agent" && s.machineId === "bixku-mba")).toMatchObject({ ok: false, error: "no push received" });
   });
 });
+
+describe("GPU and WSL fields", () => {
+  const gpu = { name: "NVIDIA GeForce RTX 3050", count: 1, utilPct: 40, memUsedMb: 1000, memTotalMb: 8192, tempC: 50 };
+
+  it("round-trip through raw storage, and samples without them read back without the keys", () => {
+    const s = new SqliteMetricsStore(":memory:");
+    s.insert("pc-bixku", nowSec - 30, sample({ gpu, wslVm: true }));
+    s.insert("bixku-mbp", nowSec - 30, sample());
+    expect(s.recent("pc-bixku", 0)[0]!.metrics).toEqual(sample({ gpu, wslVm: true }));
+    const plain = s.recent("bixku-mbp", 0)[0]!.metrics;
+    expect("gpu" in plain || "wslVm" in plain).toBe(false);
+  });
+
+  it("are averaged (numbers) and kept (name, count, WSL flag) in the 5-minute rollup", () => {
+    const s = new SqliteMetricsStore(":memory:");
+    const b = Math.floor(nowSec / 300) * 300 - 300;
+    s.insert("pc-bixku", b + 10, sample({ gpu, wslVm: true }));
+    s.insert("pc-bixku", b + 40, sample({ gpu: { ...gpu, utilPct: 80, tempC: null }, wslVm: true }));
+    s.maintain(b + 300);
+    expect(s.rollups("pc-bixku", 0)[0]!.metrics).toMatchObject({ gpu: { ...gpu, utilPct: 60, tempC: 50 }, wslVm: true });
+  });
+
+  it("the ingest contract accepts them and rejects unknown GPU keys", async () => {
+    const store = new SqliteMetricsStore(":memory:");
+    const token = store.issueToken("pc-bixku");
+    const ingest = createIngestHandler({ store, knownMachines: known, clock: () => new Date(NOW) });
+    const body = { machineId: "pc-bixku", agentVersion: "0.3.0", metrics: sample({ gpu, wslVm: true }) };
+    expect((await ingest(post(token, body))).status).toBe(204);
+    expect((await ingest(post(token, { ...body, metrics: { ...body.metrics, gpu: { ...gpu, fan: 30 } } }))).status).toBe(400);
+  });
+});

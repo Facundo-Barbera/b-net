@@ -17,25 +17,37 @@ export const RAW_RETENTION_SEC = 24 * 3600;
 export const ROLLUP_STEP_SEC = 300;
 export const ROLLUP_RETENTION_SEC = 30 * 24 * 3600;
 
-/** Every MachineMetrics field, in column order. Shared by both tables so the rollup is one SELECT. */
-const FIELDS = [
-  ["cpu_pct", "cpuPct"],
-  ["mem_pct", "memPct"],
-  ["mem_used_gb", "memUsedGb"],
-  ["mem_total_gb", "memTotalGb"],
-  ["disk_pct", "diskPct"],
-  ["disk_used_gb", "diskUsedGb"],
-  ["disk_total_gb", "diskTotalGb"],
-  ["load1", "load1"],
-  ["net_rx_bps", "netRxBps"],
-  ["net_tx_bps", "netTxBps"],
-  ["uptime_sec", "uptimeSec"],
-  ["temp_c", "tempC"],
-] as const satisfies ReadonlyArray<readonly [string, keyof MachineMetrics]>;
+/**
+ * Every stored MachineMetrics field, in column order. Shared by both tables so the rollup is one
+ * SELECT: numbers are averaged (AVG ignores NULLs), the GPU name/count and the WSL flag take MAX.
+ */
+type Get = (m: MachineMetrics) => number | string | null;
+const COLUMNS: ReadonlyArray<{ col: string; type: "REAL" | "TEXT" | "INTEGER"; notNull?: true; agg: "AVG" | "MAX"; get: Get }> = [
+  { col: "cpu_pct", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.cpuPct },
+  { col: "mem_pct", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.memPct },
+  { col: "mem_used_gb", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.memUsedGb },
+  { col: "mem_total_gb", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.memTotalGb },
+  { col: "disk_pct", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.diskPct },
+  { col: "disk_used_gb", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.diskUsedGb },
+  { col: "disk_total_gb", type: "REAL", notNull: true, agg: "AVG", get: (m) => m.diskTotalGb },
+  { col: "load1", type: "REAL", agg: "AVG", get: (m) => m.load1 },
+  { col: "net_rx_bps", type: "REAL", agg: "AVG", get: (m) => m.netRxBps },
+  { col: "net_tx_bps", type: "REAL", agg: "AVG", get: (m) => m.netTxBps },
+  { col: "uptime_sec", type: "REAL", agg: "AVG", get: (m) => m.uptimeSec },
+  { col: "temp_c", type: "REAL", agg: "AVG", get: (m) => m.tempC },
+  // gpu_count NULL = no GPU data in that sample (no nvidia-smi, or it failed).
+  { col: "gpu_name", type: "TEXT", agg: "MAX", get: (m) => m.gpu?.name ?? null },
+  { col: "gpu_count", type: "INTEGER", agg: "MAX", get: (m) => m.gpu?.count ?? null },
+  { col: "gpu_util_pct", type: "REAL", agg: "AVG", get: (m) => m.gpu?.utilPct ?? null },
+  { col: "gpu_mem_used_mb", type: "REAL", agg: "AVG", get: (m) => m.gpu?.memUsedMb ?? null },
+  { col: "gpu_mem_total_mb", type: "REAL", agg: "AVG", get: (m) => m.gpu?.memTotalMb ?? null },
+  { col: "gpu_temp_c", type: "REAL", agg: "AVG", get: (m) => m.gpu?.tempC ?? null },
+  { col: "wsl_vm", type: "INTEGER", agg: "MAX", get: (m) => (m.wslVm ? 1 : null) },
+];
 
-const COLS = FIELDS.map(([c]) => c);
-const NULLABLE = new Set<string>(["load1", "net_rx_bps", "net_tx_bps", "uptime_sec", "temp_c"]);
-const colDefs = COLS.map((c) => `${c} REAL${NULLABLE.has(c) ? "" : " NOT NULL"}`).join(", ");
+const COLS = COLUMNS.map((c) => c.col);
+const colDefs = COLUMNS.map((c) => `${c.col} ${c.type}${c.notNull ? " NOT NULL" : ""}`).join(", ");
+const aggExprs = COLUMNS.map((c) => `${c.agg}(${c.col})`).join(", ");
 
 export function hashAgentToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
@@ -58,15 +70,38 @@ export interface RollupPoint {
   metrics: MachineMetrics;
 }
 
-type Row = Record<string, number | null>;
+type Row = Record<string, number | string | null>;
+
+const num = (v: number | string | null | undefined): number | null => (v === null || v === undefined ? null : Number(v));
 
 function rowToMetrics(r: Row): MachineMetrics {
-  const m: Record<string, number | null> = {};
-  for (const [col, key] of FIELDS) {
-    const v = r[col] ?? null;
-    m[key] = v === null ? null : Number(v);
+  const m: MachineMetrics = {
+    cpuPct: num(r.cpu_pct)!,
+    memPct: num(r.mem_pct)!,
+    memUsedGb: num(r.mem_used_gb)!,
+    memTotalGb: num(r.mem_total_gb)!,
+    diskPct: num(r.disk_pct)!,
+    diskUsedGb: num(r.disk_used_gb)!,
+    diskTotalGb: num(r.disk_total_gb)!,
+    load1: num(r.load1),
+    netRxBps: num(r.net_rx_bps),
+    netTxBps: num(r.net_tx_bps),
+    uptimeSec: num(r.uptime_sec),
+    tempC: num(r.temp_c),
+  };
+  // Optional keys only when present, so samples without GPU/WSL read back exactly as pushed.
+  if (r.gpu_count !== null && r.gpu_count !== undefined) {
+    m.gpu = {
+      name: String(r.gpu_name ?? ""),
+      count: Number(r.gpu_count),
+      utilPct: num(r.gpu_util_pct),
+      memUsedMb: num(r.gpu_mem_used_mb),
+      memTotalMb: num(r.gpu_mem_total_mb),
+      tempC: num(r.gpu_temp_c),
+    };
   }
-  return m as unknown as MachineMetrics;
+  if (num(r.wsl_vm) === 1) m.wslVm = true;
+  return m;
 }
 
 export class SqliteMetricsStore {
@@ -136,7 +171,7 @@ export class SqliteMetricsStore {
   insert(machineId: string, tsSec: number, m: MachineMetrics): void {
     this.db
       .prepare(`INSERT OR REPLACE INTO metrics_raw (machine_id, ts, ${COLS.join(", ")}) VALUES (?, ?, ${COLS.map(() => "?").join(", ")})`)
-      .run(machineId, tsSec, ...FIELDS.map(([, k]) => m[k]));
+      .run(machineId, tsSec, ...COLUMNS.map((c) => c.get(m)));
     if (tsSec >= this.nextMaintenanceAt) this.maintain(tsSec);
   }
 
@@ -171,7 +206,7 @@ export class SqliteMetricsStore {
         this.db
           .prepare(
             `INSERT OR REPLACE INTO metrics_5m (machine_id, bucket, samples, ${COLS.join(", ")})
-             SELECT machine_id, (ts / ${ROLLUP_STEP_SEC}) * ${ROLLUP_STEP_SEC} AS b, COUNT(*), ${COLS.map((c) => `AVG(${c})`).join(", ")}
+             SELECT machine_id, (ts / ${ROLLUP_STEP_SEC}) * ${ROLLUP_STEP_SEC} AS b, COUNT(*), ${aggExprs}
              FROM metrics_raw WHERE ts >= ? AND ts < ? GROUP BY machine_id, b`,
           )
           .run(from, closedUntil);
