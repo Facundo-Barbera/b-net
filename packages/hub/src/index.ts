@@ -1,9 +1,12 @@
 export { aggregate, threadCountsFor, type AggregateInput } from "./aggregate.ts";
-export { loadHubConfig, parseMachines, ConfigError, type HubConfig } from "./config.ts";
+export { loadHubConfig, parseMachines, parseBotTokens, ConfigError, type HubConfig } from "./config.ts";
+export { botFromAuth, generateToken, hashToken, type BotToken } from "./bot-auth.ts";
+export { DeliverableFiles, DELIVERABLE_MAX_BYTES, UploadError } from "./deliverables.ts";
+export { createProjectsApi, type ProjectsApi, type ProjectsApiDeps } from "./projects-http.ts";
 export { SourceTracker, sanitizeError } from "./health.ts";
 export { createHandler, fsStaticReader, type Handler, type StaticReader } from "./http.ts";
 export { createHub, HUB_VERSION, type Hub, type HubDeps } from "./hub.ts";
 export { fetchAgentMetrics, fetchAgentThreads, fetchProxy, ingestUsage, pollTailscale, projectSecrets } from "./sources.ts";
 export { deriveStatus, DEFAULT_THRESHOLDS, type StatusThresholds } from "./status.ts";
 export { MemoryUsageStore, type UsageStore } from "./store.ts";
-// SqliteUsageStore lives in ./store-sqlite.ts (imports node:sqlite) and is loaded on demand.
+// SqliteUsageStore (./store-sqlite.ts) and ProjectStore (./projects-store.ts) import node:sqlite and are loaded on demand.

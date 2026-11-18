@@ -64,6 +64,7 @@ bixku-vps es **solo para escribir código**: nada de servicios ahí durante el d
 Definida en `packages/core/src/contracts/api.ts`:
 
 - Hub → UI: `HubRoutes` (`/api/v1/snapshot`, `/machines`, `/threads`, `/usage/accounts`, `/usage/records`, `/proxy/status`, `/secrets`, `/health`). Solo lectura en fase 1.
+- Bots → Hub (fase 2): `/api/v1/projects` y `/api/v1/projects/:id/deliverables` (contratos en `contracts/projects.ts`). Es la única escritura del hub: `POST` siempre con un token bearer **por bot** (en `HUB_BOT_TOKENS_FILE`, guardado como sha256), y el autor del entregable sale del token. Los archivos van en streaming a `<HUB_DATA_DIR>/deliverables` (1 GiB por archivo, cuota total `HUB_DELIVERABLES_QUOTA_GB`) con el tipo verificado por contenido, y los metadatos van a `hub.sqlite`. El contenido se sirve con `Content-Security-Policy: sandbox` (salvo PDF), `nosniff` y `Content-Disposition`.
 - Proxy → Hub: `ProxyInternalRoutes` (`/internal/v1/...`), con bearer token de admin. Paginación de records por cursor ULID.
 - Proxy → clientes: `ProxyPublicRoutes` (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, `/v1/messages`, `/v1/messages/count_tokens`).
 - Agente → Hub: `AgentRoutes` (`/agent/v1/health`, `/metrics`, `/t3/threads`), con bearer token por agente.
