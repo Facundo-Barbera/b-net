@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# Installs the b-net push agent for the current user (Linux: systemd --user, macOS: launchd).
+# Never uses sudo. The token is read from stdin so it never lands in shell history or argv:
+#
+#   <token from `agent-token.ts issue <id>` on the hub> | \
+#     packages/agent/deploy/install.sh --machine-id bixku-mbp --hub-url http://<hub-tailscale-name>:8780
+#
+# Options: --interval <sec> (30), --runtime bun|node (auto: bun if found), --uninstall.
+# Re-running updates the binary/unit; with no token on stdin the existing token file is kept.
+set -euo pipefail
+
+MACHINE_ID="" HUB_URL="" INTERVAL=30 RUNTIME="" UNINSTALL=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --machine-id) MACHINE_ID="${2:-}"; shift 2 ;;
+    --hub-url) HUB_URL="${2:-}"; shift 2 ;;
+    --interval) INTERVAL="${2:-}"; shift 2 ;;
+    --runtime) RUNTIME="${2:-}"; shift 2 ;;
+    --uninstall) UNINSTALL=1; shift ;;
+    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+OS="$(uname -s)"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/b-net-agent"
+LIB_DIR="$HOME/.local/lib/b-net-agent"
+AGENT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+UNIT="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/b-net-agent.service"
+PLIST="$HOME/Library/LaunchAgents/dev.b-net.agent.plist"
+die() { echo "install.sh: $*" >&2; exit 1; }
+
+if [ "$UNINSTALL" = 1 ]; then
+  if [ "$OS" = Darwin ]; then
+    launchctl bootout "gui/$(id -u)/dev.b-net.agent" 2>/dev/null || true
+    rm -f "$PLIST"
+  else
+    systemctl --user disable --now b-net-agent.service 2>/dev/null || true
+    rm -f "$UNIT"
+    systemctl --user daemon-reload || true
+  fi
+  rm -rf "$LIB_DIR"
+  echo "uninstalled (config and token kept in $CONFIG_DIR; delete it by hand if wanted)"
+  exit 0
+fi
+
+[[ "$MACHINE_ID" =~ ^[a-z0-9-]+$ ]] || die "--machine-id is required and must match [a-z0-9-]+"
+[[ "$HUB_URL" =~ ^https?://[^/@[:space:]]+(/.*)?$ ]] || die "--hub-url must be http(s)://host[:port] without credentials"
+[[ "$INTERVAL" =~ ^[0-9]+$ ]] && [ "$INTERVAL" -ge 5 ] && [ "$INTERVAL" -le 3600 ] || die "--interval must be 5..3600"
+case "$OS" in Linux|Darwin) ;; *) die "only Linux and macOS are supported" ;; esac
+
+# --- token: stdin if piped, else keep the existing file ---
+mkdir -p "$CONFIG_DIR"
+chmod 700 "$CONFIG_DIR"
+if [ ! -t 0 ]; then
+  TOKEN="$(head -n 1 | tr -d '[:space:]')"
+  [ "${#TOKEN}" -ge 16 ] || die "token on stdin missing or too short"
+  (umask 077 && printf '%s\n' "$TOKEN" > "$CONFIG_DIR/token")
+  unset TOKEN
+fi
+[ -s "$CONFIG_DIR/token" ] || die "no token: pipe the token printed by the hub's agent-token.ts into this script"
+chmod 600 "$CONFIG_DIR/token"
+
+# --- runtime: a compiled bun binary is the lightest (see README), node is the fallback ---
+if [ -z "$RUNTIME" ]; then
+  if command -v bun >/dev/null 2>&1; then RUNTIME=bun; else RUNTIME=node; fi
+fi
+mkdir -p "$LIB_DIR"
+case "$RUNTIME" in
+  bun)
+    command -v bun >/dev/null 2>&1 || die "bun not found (use --runtime node)"
+    bun build "$AGENT_DIR/src/push.ts" --compile --minify \
+      --no-compile-autoload-dotenv --no-compile-autoload-bunfig \
+      --outfile "$LIB_DIR/b-net-agent.tmp" >/dev/null
+    mv -f "$LIB_DIR/b-net-agent.tmp" "$LIB_DIR/b-net-agent"
+    EXEC=("$LIB_DIR/b-net-agent")
+    ;;
+  node)
+    NODE="$(command -v node)" || die "neither bun nor node found"
+    "$NODE" -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=18)?0:1)' \
+      || die "node >= 22.18 required (type stripping)"
+    # Runs the TypeScript source straight from this checkout; small heaps because the agent holds almost nothing.
+    EXEC=("$NODE" --disable-warning=ExperimentalWarning --max-semi-space-size=1 --max-old-space-size=32 "$AGENT_DIR/src/push.ts")
+    ;;
+  *) die "--runtime must be bun or node" ;;
+esac
+
+if [ "$OS" = Linux ]; then
+  command -v systemctl >/dev/null 2>&1 || die "systemctl not found"
+  cat > "$CONFIG_DIR/env" <<EOF
+AGENT_MACHINE_ID=$MACHINE_ID
+AGENT_HUB_URL=$HUB_URL
+AGENT_INTERVAL_SEC=$INTERVAL
+EOF
+  chmod 600 "$CONFIG_DIR/env"
+  mkdir -p "$(dirname "$UNIT")"
+  EXEC_START="${EXEC[*]}"
+  TEMPLATE="$(cat "$AGENT_DIR/deploy/b-net-agent.user.service")"
+  printf '%s\n' "${TEMPLATE//@EXEC_START@/$EXEC_START}" > "$UNIT"
+  systemctl --user daemon-reload
+  systemctl --user enable b-net-agent.service >/dev/null
+  systemctl --user restart b-net-agent.service
+  # Without lingering the user manager (and the agent) stops when the last session ends.
+  if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || echo no)" != yes ]; then
+    loginctl enable-linger "$USER" 2>/dev/null \
+      || echo "warning: could not enable linger; the agent only runs while $USER is logged in (ask an admin: loginctl enable-linger $USER)" >&2
+  fi
+  echo "installed: systemctl --user status b-net-agent  ·  logs: journalctl --user -u b-net-agent"
+else
+  xml() { local s="${1//&/&amp;}"; s="${s//</&lt;}"; printf '%s' "${s//>/&gt;}"; }
+  ARGS=""
+  for a in "${EXEC[@]}"; do ARGS+="    <string>$(xml "$a")</string>"$'\n'; done
+  ARGS="${ARGS%$'\n'}"
+  LOG_FILE="$HOME/Library/Logs/b-net-agent.log"
+  mkdir -p "$(dirname "$PLIST")" "$(dirname "$LOG_FILE")"
+  P="$(cat "$AGENT_DIR/deploy/dev.b-net.agent.plist")"
+  P="${P//@PROGRAM_ARGS@/$ARGS}"
+  P="${P//@MACHINE_ID@/$MACHINE_ID}"
+  P="${P//@HUB_URL@/$(xml "$HUB_URL")}"
+  P="${P//@INTERVAL@/$INTERVAL}"
+  P="${P//@CONFIG_DIR@/$(xml "$CONFIG_DIR")}"
+  P="${P//@LOG_FILE@/$(xml "$LOG_FILE")}"
+  printf '%s\n' "$P" > "$PLIST"
+  launchctl bootout "gui/$(id -u)/dev.b-net.agent" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$PLIST"
+  echo "installed: launchctl print gui/$(id -u)/dev.b-net.agent  ·  logs: $LOG_FILE"
+fi

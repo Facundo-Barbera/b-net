@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- EXAMPLE ONLY - placeholders. Copy to ~/Library/LaunchAgents/dev.b-net.agent.plist, then:
+<!-- PULL MODE (listens on a port): only for the optional T3 thread exporter (src/serve.ts).
+     For metrics use the push agent: deploy/install.sh + dev.b-net.agent.plist (no port).
+     EXAMPLE ONLY - placeholders. Copy to ~/Library/LaunchAgents/dev.b-net.agent.plist, then:
      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.b-net.agent.plist
      Keep the token in a file readable only by you (chmod 600); it is never put in this plist. -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

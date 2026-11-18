@@ -1,0 +1,33 @@
+# systemd USER unit for the push agent. Template: install.sh fills @EXEC_START@ and copies it to
+# ~/.config/systemd/user/b-net-agent.service. No root needed. The agent opens no port.
+[Unit]
+Description=b-net agent (pushes metrics to the hub every 30 s; opens no port)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/b-net-agent/env
+Environment=AGENT_TOKEN_FILE=%h/.config/b-net-agent/token
+ExecStart=@EXEC_START@
+Restart=on-failure
+RestartSec=30
+# 78 = EX_CONFIG: a broken config is not retried in a loop.
+RestartPreventExitStatus=78
+
+# Stay out of the way: lowest CPU and IO priority, small hard memory cap.
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+CPUWeight=1
+IOWeight=1
+# MemoryHigh/Max need the memory controller delegated to the user manager (default on recent
+# systemd); without it systemd ignores them and Nice/idle scheduling still apply.
+MemoryHigh=64M
+MemoryMax=128M
+MemorySwapMax=0
+TasksMax=16
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

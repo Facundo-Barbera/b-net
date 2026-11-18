@@ -1,3 +1,5 @@
+# PULL MODE (listens on a port): only needed for the optional T3 thread exporter (src/serve.ts).
+# For metrics use the push agent: deploy/install.sh + b-net-agent.user.service (no port, no root).
 # EXAMPLE ONLY - placeholders. Copy to /etc/systemd/system/b-net-agent.service and adapt.
 # The token is delivered as a systemd credential, never in the unit or the environment.
 #   systemd-creds encrypt --name=agent-token - /etc/b-net/agent-token.cred   (paste the token on stdin)
