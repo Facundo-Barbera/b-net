@@ -21,12 +21,19 @@ describe("status rules", () => {
     expect(st({ metrics: null, metricsAt: null })).toBe("degraded");
     expect(st({ beszelStatus: "down" })).toBe("degraded");
   });
-  it("offline / unknown / paused", () => {
+  it("offline / unknown / paused (paused only comes from Beszel)", () => {
     expect(st({ tailscaleOnline: false, metricsAt: minutesAgo(10) })).toBe("offline");
     expect(st({ tailscaleOnline: false })).toBe("online"); // fresh metrics beat a stale tailscale view
     expect(st({ tailscaleOnline: null, metrics: null, metricsAt: null })).toBe("unknown");
     expect(st({ beszelStatus: "paused" })).toBe("paused");
-    expect(st({ hasMetricsSource: false, metrics: null, metricsAt: null })).toBe("paused");
+    expect(st({ beszelStatus: "paused", metrics: null, metricsAt: null })).toBe("paused");
+  });
+  it("a reachable machine without a metrics source is online, not paused", () => {
+    const r = deriveStatus({ ...base, hasMetricsSource: false, metrics: null, metricsAt: null, beszelStatus: null });
+    expect(r).toEqual({ status: "online", reasons: ["no metrics source configured"] });
+    // Tailscale still decides reachability.
+    expect(st({ hasMetricsSource: false, metrics: null, metricsAt: null, beszelStatus: null, tailscaleOnline: false })).toBe("offline");
+    expect(st({ hasMetricsSource: false, metrics: null, metricsAt: null, beszelStatus: null, tailscaleOnline: null })).toBe("unknown");
   });
   it("custom thresholds", () => {
     expect(deriveStatus({ ...base, metrics: { ...metrics, cpuPct: 85 } }, { cpuPct: 80, memPct: 90, diskPct: 90, staleMetricsSec: 300 }).status).toBe("degraded");

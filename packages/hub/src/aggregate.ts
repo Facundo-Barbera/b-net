@@ -18,6 +18,8 @@ export interface AggregateInput {
   tailscale: { status: TailscaleStatus; pings: Record<string, PingOutcome> } | null;
   /** null = Beszel not configured or no fresh data. */
   beszel: BeszelMachine[] | null;
+  /** Beszel credentials are configured in the hub (independent of whether the last poll succeeded). */
+  beszelConfigured: boolean;
   /** Latest agent metrics by machine id. */
   agentMetrics: Record<string, AgentMetrics>;
   threads: T3ThreadView[];
@@ -65,7 +67,9 @@ export function aggregate(input: AggregateInput): HubSnapshot {
         tailscaleOnline: tsIndex ? (entry ? link.online : false) : null,
         metrics: picked.metrics,
         metricsAt: picked.at,
-        hasMetricsSource: Boolean(m.beszelName || m.agentUrl),
+        // A beszelName only counts when the hub can reach Beszel at all; otherwise the machine would be
+        // flagged "degraded / metrics missing" for a source that was never connected.
+        hasMetricsSource: Boolean(m.agentUrl) || (Boolean(m.beszelName) && input.beszelConfigured),
         beszelStatus: picked.beszelStatus,
         now: input.now,
       },
