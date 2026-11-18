@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ConfigError, loadHubConfig, withEnvFile } from "../src/config.ts";
+import { botFromAuth, generateToken, hashToken } from "../src/bot-auth.ts";
+import { ConfigError, loadHubConfig, parseBotTokens, withEnvFile } from "../src/config.ts";
 import { machinesExample } from "./helpers.ts";
 
 const files: Record<string, string> = {
@@ -75,5 +76,59 @@ describe("env file", () => {
     const merged = withEnvFile({}, readFileSync(new URL("../../../.env.example", import.meta.url), "utf8"));
     expect(merged.HUB_LISTEN_PORT).toBe("8780");
     expect(merged.TAILSCALE_SOURCE).toBe("localapi");
+  });
+});
+
+describe("bot tokens and deliverables quota", () => {
+  const hash = "ab".repeat(32);
+  const withFile = (content: string) => (p: string) => (p === "/etc/b-net/bot-tokens.json" ? content : read(p));
+  const botEnv = { ...env, HUB_BOT_TOKENS_FILE: "/etc/b-net/bot-tokens.json" };
+
+  it("defaults: no bots (nobody can write) and a 100 GiB quota", () => {
+    const c = loadHubConfig(env, read);
+    expect(c.botTokens).toEqual([]);
+    expect(c.deliverablesQuotaBytes).toBe(100 * 1024 ** 3);
+    expect(loadHubConfig({ ...env, HUB_DELIVERABLES_QUOTA_GB: "250" }, read).deliverablesQuotaBytes).toBe(250 * 1024 ** 3);
+    expect(() => loadHubConfig({ ...env, HUB_DELIVERABLES_QUOTA_GB: "0" }, read)).toThrow(ConfigError);
+  });
+
+  it("loads hashed tokens per bot from the local file", () => {
+    const c = loadHubConfig(botEnv, withFile(JSON.stringify({ bots: [{ name: "fstack-vps", tokenSha256: hash }] })));
+    expect(c.botTokens).toEqual([{ name: "fstack-vps", tokenSha256: hash }]);
+  });
+
+  it("the example file parses", () => {
+    const example = readFileSync(new URL("../../../config/bot-tokens.example.json", import.meta.url), "utf8");
+    expect(parseBotTokens(JSON.parse(example))).toHaveLength(1);
+  });
+
+  it("rejects raw tokens, duplicate names, shared tokens and unreadable files", () => {
+    const bad = (bots: unknown) => () => loadHubConfig(botEnv, withFile(JSON.stringify({ bots })));
+    expect(bad([{ name: "a", token: "raw-secret" }])).toThrow(ConfigError);
+    expect(bad([{ name: "a", tokenSha256: "short" }])).toThrow(/tokenSha256/);
+    expect(bad([{ name: "a", tokenSha256: hash }, { name: "a", tokenSha256: "cd".repeat(32) }])).toThrow(/duplicate bot a/);
+    expect(bad([{ name: "a", tokenSha256: hash }, { name: "b", tokenSha256: hash }])).toThrow(/reuses/);
+    expect(() => loadHubConfig(botEnv, read)).toThrow(/HUB_BOT_TOKENS_FILE/);
+    // Errors never echo the hash.
+    try {
+      bad([{ name: "a", tokenSha256: hash }, { name: "b", tokenSha256: hash }])();
+    } catch (e) {
+      expect(String(e)).not.toContain(hash);
+    }
+  });
+});
+
+describe("botFromAuth", () => {
+  const bots = [{ name: "fstack-vps", tokenSha256: hashToken("placeholder-bot-token") }];
+  it("maps a valid bearer token to its bot and nothing else", () => {
+    expect(botFromAuth("Bearer placeholder-bot-token", bots)).toBe("fstack-vps");
+    expect(botFromAuth("bearer placeholder-bot-token", bots)).toBe("fstack-vps");
+    expect(botFromAuth("Bearer placeholder-bot-tokenX", bots)).toBeNull();
+    expect(botFromAuth(`Bearer ${bots[0]!.tokenSha256}`, bots)).toBeNull(); // the stored hash is not a credential
+    expect(botFromAuth(null, bots)).toBeNull();
+    expect(botFromAuth("Bearer placeholder-bot-token", [])).toBeNull();
+  });
+  it("generated tokens are 256-bit base64url", () => {
+    expect(generateToken()).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 });
