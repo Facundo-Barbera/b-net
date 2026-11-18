@@ -1,7 +1,7 @@
-import { formatCountdown, formatRelativeSpan } from "../../lib/format.ts";
+import { formatCountdown, formatRelativeSpan } from "./format.ts";
 
 /**
- * Copy for the Subscriptions / Proxy / Secrets views is Spanish (Machines and the shell are English).
+ * UI copy is Spanish (status names stay as the product enums: online, degraded, cooldown...).
  * These adapters feed `RelativeTime`'s `format` prop so the wording stays in one place.
  */
 type When = string | number | Date;

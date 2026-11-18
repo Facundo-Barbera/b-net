@@ -5,8 +5,11 @@
 ## Qué hay
 
 - **Shell** (`shell/`): `App` (datos + ruta hash + tema) → `Shell` (skip link, `Sidebar`, `Topbar`, `<main id="main-content">`). `App` acepta `mode` para tests (`<App mode="fixture" />`).
+- **Datos**: live por defecto (`GET /api/v1/snapshot` cada 15 s). Fixture solo con `?data=fixture` o `VITE_DATA_MODE=fixture`; `?data=live` gana sobre la variable.
+- **Dev** (nunca en bixku-vps): `pnpm --filter @b-net/web dev`. `vite.config.ts` lee de env o del `.env` de la raíz `WEB_HOST`, `WEB_PORT`, `WEB_ALLOWED_HOSTS` (lista separada por comas) y `WEB_HUB_URL` (destino del proxy de `/api`, por defecto `http://127.0.0.1:8780`).
+- **Fuentes** (`data/sources.ts`): el hub solo reporta salud de las fuentes que tiene configuradas, así que "no está en `snapshot.sources`" = sin conectar. `sourceStatus()` da `ok | failing | missing`; `SOURCE_SETUP` dice qué alimenta cada fuente y cómo conectarla. La barra lateral lista también tailscale/beszel/proxy cuando faltan ("sin conectar"); las vistas usan `views/shared/SourceNotice` en vez de quedar vacías.
 - **Responsive**: ≥900 px sidebar completa (232 px) · 600–899 px riel de iconos (56 px, etiquetas solo para lectores de pantalla) · <600 px cajón con botón de menú (Escape, backdrop y navegar lo cierran).
-- **Tema**: `system | dark | light` en `localStorage["b-net.theme"]` (todo en try/catch), escribe `data-theme` en `<html>`. `index.html` aplica el tema guardado antes del primer paint.
+- **Tema**: `system | dark | light` en `localStorage["b-net.theme"]` (todo en try/catch), escribe `data-theme` en `<html>`. **Oscuro por defecto**; `system` es opcional. `index.html` aplica el tema guardado antes del primer paint.
 - **Reloj**: `NowProvider`/`useNow()`. En modo fixture "ahora" = `snapshot.generatedAt` (el fixture se ve vivo y los tiempos relativos son deterministas); en modo live es el reloj real con tick cada 30 s. **Regla única para las vistas, ver Convenciones.**
 - **Badges del nav** (`shell/badges.ts`, `deriveNavBadges`): Machines = offline (si no hay, degraded) · Subscriptions = cuentas en cooldown/error · Proxy = errores de la última hora · Secrets = expiring/expired/invalid.
 
@@ -15,10 +18,11 @@
 | Nombre | API |
 |---|---|
 | `Card` / `Panel` | `title?, subtitle?, actions?, flush?, headingLevel?=2, as?: "section"\|"article", bodyClassName?` + props de `<section>` |
-| `StatusDot` | `tone?, label?, pulse?` (sin `label` es decorativo) |
+| `StatusDot` | `tone?, label?, pulse?` (sin `label` es decorativo). SVG cuya **forma** depende del tono (`ToneGlyph`): ok ● · warn ▲ · danger ■ · info ◆ · idle ‖ · dormant ○ |
+| `ToneGlyph` / `TONE_SHAPE` | la forma de un tono en una caja 10×10, para usar dentro de otros SVG (nodos de la topología) |
 | `Badge` | `tone?, variant?: "soft"\|"outline", dot?` + props de `<span>` |
 | `Tag` | chip mono discreto para metadatos (versión, origen, prioridad) |
-| `Meter` | `value (0–100\|null), warnAt?, dangerAt?` (por defecto `lib/thresholds`), `tone?, label?, ariaLabel?, showValue?, valueText?, flag? (HIGH/CRIT), detail?` (`role="meter"`, `aria-valuenow` redondeado) |
+| `Meter` | `value (0–100\|null), warnAt?, dangerAt?` (por defecto `lib/thresholds`), `tone?, label?, ariaLabel?, showValue?, valueText?, flag? (HIGH/CRIT, activo por defecto), detail?` (`role="meter"`, `aria-valuenow` redondeado) |
 | `Sparkline` | `values, width?=96, height?=24, min?, max?, tone?=info, series? (1–4 → --chart-N), stretch?, refLine?, label?` |
 | `Stat` / `StatStrip` | `Stat`: `label, value, unit?, hint?, tone?` (`<dl>`; valor en mono). `StatStrip`: fila de tiles unidos (KPI), grupo si lleva `aria-label` |
 | `RelativeTime` | `value, now?, format?, fallback?` → `<time>` con tooltip UTC; `format(value, now)` permite texto preciso o localizado |
@@ -47,12 +51,14 @@ Utilidades CSS: `.ui-label` (etiqueta pequeña en mayúsculas), `.num` (mono tab
 - **Umbrales**: `lib/thresholds.ts` es la única fuente: `USAGE_WARN_AT = 70`, `USAGE_DANGER_AT = 90` (inclusivos, `>=`), `TEMP_WARN_C = 75`, `TEMP_DANGER_C = 85`, `LATENCY_WARN_MS = 250`, `STALE_METRICS_MS = 5 min`. Se eligió 70/90 porque ya era el default del `Meter`, el de las ventanas de uso y los tests de primitivas; Machines usaba 75 (disco al 71 % ahora sale en warn). No definir umbrales en las vistas.
 - **Tiempo relativo**: `formatRelative` (compacto) para listas/tablas; `formatRelativeSpan`/`formatSpan` (preciso) para cuentas atrás y vencimientos. No escribir formateadores locales.
 - **Estructura de una vista**: `<section className="ui-view …">` → `PageHeader` → `StatStrip` (KPI) → `Card`s. Etiquetas con `.ui-label`, números con `.num`, tablas con `Table`, vacíos con `EmptyState`, avisos con `Callout`, pares clave/valor con `KeyValue`. El CSS de cada vista solo contiene layout propio (prefijo `mv-`/`sv-`/`px-`/`se-`).
-- **Colores y temas**: solo `var(--token)`; `test/styles.test.ts` falla si un CSS usa un color literal o una variable que no exista en ambos temas.
-- **Idioma**: Machines y shell en inglés; Subscriptions/Proxy/Secrets en español (sin unificar; pregunta abierta).
+- **Colores y temas**: solo `var(--token)`; `test/styles.test.ts` falla si un CSS usa un color literal o una variable que no exista en ambos temas. Paleta apta para daltonismo (familia Okabe–Ito): ok es **azul**, warn ámbar, danger bermellón, info magenta; comprobada con simulación deutan/protan/tritan y ≥ 4.5:1 sobre `--bg`.
+- **Nunca solo color**: todo estado lleva forma (`StatusDot`/`Badge dot`) y palabra; los umbrales llevan `HIGH`/`CRIT`; los enlaces de la topología tienen patrón de línea propio y el nombre de la ruta en la etiqueta.
+- **Tipografía**: solo la escala `--fs-2xs … --fs-2xl` de `tokens.css`; nada de `font-size` en px en las vistas.
+- **Idioma**: toda la UI en español; los nombres de estado son los del contrato (`online`, `degraded`, `cooldown`, `expiring`…). Los textos de tiempo relativo salen de `lib/spanish.ts`.
 
 ## Propuestas / preguntas abiertas
 
-1. **Tema por defecto**: hoy `system` (un OS claro verá el tema claro). Alternativa: forzar `dark` hasta que el usuario elija. Pendiente de Facundo.
+1. ~~**Tema por defecto**~~: decidido, oscuro.
 2. **`netRxBps`/`netTxBps`**: el contrato no dice la unidad; asumí **bytes/s** (`formatBps`). Si es bits/s hay que aclararlo en `contracts/machines.ts`.
 3. **Badge de Proxy** cuenta errores de la última hora; podría ser rate-limits o failovers. ¿Qué prefiere ver?
 4. **Fuentes en el riel de iconos**: solo puntos de estado (con `title`); en <600 px se ven completas dentro del cajón.

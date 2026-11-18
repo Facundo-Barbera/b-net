@@ -28,7 +28,7 @@ describe("aggregation (golden)", async () => {
       "bixku-focaltec": ["online", "direct", 12.3, null, "beszel"], // beszelName "focaltec"
       "pc-bixku": ["degraded", "derp", 87, "mia", "agent"], // cpu 91.5 > 90
       "bixku-mbp": ["offline", "unknown", null, null, "none"],
-      "bixku-mba": ["paused", "peer-relay", 34, null, "none"], // no metrics source configured
+      "bixku-mba": ["online", "peer-relay", 34, null, "none"], // reachable, no metrics source configured
     });
     for (const m of snap.machines) {
       const canon = snapshotFixture.machines.find((x) => x.id === m.id)!;
@@ -81,7 +81,7 @@ describe("aggregation (golden)", async () => {
 describe("aggregation rules", () => {
   const base = {
     now: NOW, hubVersion: "t", hubMachineId: "bixku-homelab", machines: machinesExample, tailscale: null, beszel: null,
-    agentMetrics: {}, threads: [], proxy: null, sources: [],
+    beszelConfigured: true, agentMetrics: {}, threads: [], proxy: null, sources: [],
   };
 
   it("without tailscale data and metrics everything is unknown", () => {
@@ -98,6 +98,16 @@ describe("aggregation rules", () => {
     expect([fresh.metricsSource, fresh.metrics?.cpuPct]).toEqual(["agent", 55]);
     const stale = aggregate({ ...base, beszel, agentMetrics: agentM(minutesAgo(30)) }).machines.find((m) => m.id === "bixku-vps")!;
     expect([stale.metricsSource, stale.metrics?.cpuPct]).toEqual(["beszel", 10]);
+  });
+
+  it("a beszelName without Beszel configured is not a metrics source", async () => {
+    const { hub } = buildHub({ deps: { beszel: null } });
+    await hub.pollAll();
+    const byId = Object.fromEntries(hub.snapshot().machines.map((m) => [m.id, m]));
+    // Only a beszelName: reachable and online (not degraded for a source that was never connected).
+    expect([byId["bixku-homelab"]!.status, byId["bixku-homelab"]!.metricsSource]).toEqual(["online", "none"]);
+    // agentUrl configured but the agent answers 503: that source is broken, so degraded is right.
+    expect([byId["bixku-vps"]!.status, byId["bixku-vps"]!.metricsSource]).toEqual(["degraded", "none"]);
   });
 
   it("drops threads of machines not in config", () => {

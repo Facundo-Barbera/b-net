@@ -29,7 +29,7 @@ describe("shell navigation", () => {
   it("renders brand, one nav link per route and defaults to machines", () => {
     render(<App mode="fixture" />);
     expect(document.querySelector(".sh-brand__name")?.textContent).toBe("b-net");
-    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const nav = screen.getByRole("navigation", { name: "Principal" });
     const links = within(nav).getAllByRole("link");
     expect(links).toHaveLength(routes.length);
     expect(links.map((l) => l.getAttribute("href"))).toEqual(routes.map((r) => r.path));
@@ -39,7 +39,7 @@ describe("shell navigation", () => {
 
   it("marks only the active link with aria-current and follows hashchange", async () => {
     render(<App mode="fixture" />);
-    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const nav = screen.getByRole("navigation", { name: "Principal" });
     const current = () => within(nav).getAllByRole("link").filter((l) => l.getAttribute("aria-current") === "page");
     expect(current().map((l) => l.getAttribute("href"))).toEqual(["#/machines"]);
 
@@ -75,7 +75,7 @@ describe("shell navigation", () => {
   it("skip link focuses <main> without changing the hash", () => {
     location.hash = "#/proxy";
     render(<App mode="fixture" />);
-    fireEvent.click(screen.getByText("Skip to content"));
+    fireEvent.click(screen.getByText("Saltar al contenido"));
     expect(document.activeElement).toBe(screen.getByRole("main"));
     expect(location.hash).toBe("#/proxy");
   });
@@ -87,16 +87,19 @@ describe("shell top bar", () => {
     expect(screen.getByTestId("data-mode").textContent).toContain("fixture");
     const gen = screen.getByTestId("generated-at");
     // Fixture mode computes relative time against generatedAt, so it reads as fresh.
-    expect(gen.textContent).toContain("just now");
+    expect(gen.textContent).toContain("hace <1m");
     expect(gen.querySelector("time")?.getAttribute("dateTime")).toBe(snapshotFixture.generatedAt);
   });
 
   it("shows loading, then an error state in live mode when the hub is unreachable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("boom")));
     render(<App mode="live" />);
-    expect(screen.getByRole("status").textContent).toContain("Loading");
+    expect(screen.getByRole("status").textContent).toContain("Cargando");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("boom");
+    // says what to check, and how to see the UI without a hub
+    expect(alert.textContent).toContain("WEB_HUB_URL");
+    expect(alert.textContent).toContain("?data=fixture");
     expect(screen.getByTestId("data-mode").textContent).toContain("live");
   });
 });
@@ -106,17 +109,17 @@ describe("theme toggle", () => {
 
   it("sets data-theme on <html>, persists it and reflects aria-pressed", () => {
     render(<App mode="fixture" />);
-    // jsdom has no matchMedia → "system" resolves to dark.
+    // Dark is the default preference (not "follow the system").
     expect(theme()).toBe("dark");
-    expect(screen.getByRole("button", { name: "System theme" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Tema oscuro" }).getAttribute("aria-pressed")).toBe("true");
 
-    press("Light theme");
+    press("Tema claro");
     expect(theme()).toBe("light");
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
-    expect(screen.getByRole("button", { name: "Light theme" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: "System theme" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "Tema claro" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Tema oscuro" }).getAttribute("aria-pressed")).toBe("false");
 
-    press("Dark theme");
+    press("Tema oscuro");
     expect(theme()).toBe("dark");
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
@@ -125,10 +128,11 @@ describe("theme toggle", () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, "light");
     render(<App mode="fixture" />);
     expect(theme()).toBe("light");
-    expect(screen.getByRole("button", { name: "Light theme" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Tema claro" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("follows the OS preference in system mode", () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, "system");
     window.matchMedia = ((q: string) => ({
       matches: q.includes("light"),
       media: q,
@@ -137,7 +141,7 @@ describe("theme toggle", () => {
     })) as unknown as typeof window.matchMedia;
     render(<App mode="fixture" />);
     expect(theme()).toBe("light");
-    press("Dark theme");
+    press("Tema oscuro");
     expect(theme()).toBe("dark");
   });
 
@@ -150,9 +154,9 @@ describe("theme toggle", () => {
     });
     render(<App mode="fixture" />);
     expect(theme()).toBe("dark");
-    expect(() => press("Light theme")).not.toThrow();
+    expect(() => press("Tema claro")).not.toThrow();
     expect(theme()).toBe("light");
-    expect(screen.getByRole("button", { name: "Light theme" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Tema claro" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("survives an inaccessible localStorage object", () => {
@@ -165,7 +169,7 @@ describe("theme toggle", () => {
     });
     try {
       render(<App mode="fixture" />);
-      expect(() => press("Light theme")).not.toThrow();
+      expect(() => press("Tema claro")).not.toThrow();
       expect(theme()).toBe("light");
     } finally {
       Object.defineProperty(window, "localStorage", original);
@@ -178,16 +182,29 @@ describe("source health", () => {
     render(<App mode="fixture" />);
     const items = screen.getAllByTestId("source-item");
     expect(items).toHaveLength(snapshotFixture.sources.length);
-    expect(items[0]!.getAttribute("data-ok")).toBe("false");
+    expect(items[0]!.getAttribute("data-state")).toBe("failing");
     expect(items[0]!.textContent).toContain("t3 · bixku-mbp");
     expect(items[0]!.getAttribute("title")).toContain("agent unreachable");
-    expect(within(items[0]!).getByRole("img", { name: "error" })).toBeTruthy();
-    expect(items.filter((i) => i.getAttribute("data-ok") === "true")).toHaveLength(6);
+    expect(within(items[0]!).getByRole("img", { name: "con error" }).getAttribute("data-shape")).toBe("square");
+    expect(items.filter((i) => i.getAttribute("data-state") === "ok")).toHaveLength(6);
     expect(screen.getByTestId("sources-summary").textContent).toBe("6/7");
-    expect(within(items[1]!).getByRole("img", { name: "ok" })).toBeTruthy();
+    expect(within(items[1]!).getByRole("img", { name: "ok" }).getAttribute("data-shape")).toBe("circle");
     // lastSuccessAt rendered relative to the snapshot time
-    expect(items.at(-1)!.textContent).toMatch(/just now|\ds ago/);
-    expect(items[0]!.textContent).toContain("1d ago");
+    expect(items.at(-1)!.textContent).toContain("hace <1m");
+    expect(items[0]!.textContent).toContain("hace 1d 2h");
+  });
+
+  it("lists core sources the hub has not configured as 'sin conectar', with how to connect them", async () => {
+    const snap = { ...snapshotFixture, sources: snapshotFixture.sources.filter((s) => s.source !== "beszel" && s.source !== "proxy") };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(snap), { status: 200 })));
+    render(<App mode="live" />);
+    // Before the first snapshot every core source reads "sin conectar"; wait for the loaded one.
+    await screen.findByTestId("view-machines");
+    const missing = screen.getAllByTestId("source-item").filter((i) => i.getAttribute("data-state") === "missing");
+    expect(missing.map((i) => i.textContent)).toEqual(["beszelsin conectar", "proxysin conectar"]);
+    expect(missing[0]!.getAttribute("title")).toContain("BESZEL_URL");
+    expect(within(missing[0]!).getByRole("img", { name: "sin conectar" }).getAttribute("data-shape")).toBe("ring");
+    expect(screen.getByTestId("sources-summary").textContent).toBe("4/7");
   });
 });
 
@@ -195,9 +212,9 @@ describe("nav badges", () => {
   it("derives counts from the fixture", () => {
     expect(deriveNavBadges(snapshotFixture)).toEqual({
       machines: { count: 1, tone: "danger", label: "offline" },
-      subscriptions: { count: 1, tone: "warn", label: "in cooldown" },
-      proxy: { count: 4, tone: "warn", label: "errors in the last hour" },
-      secrets: { count: 1, tone: "warn", label: "expiring" },
+      subscriptions: { count: 1, tone: "warn", label: "en cooldown" },
+      proxy: { count: 4, tone: "warn", label: "errores en la última hora" },
+      secrets: { count: 1, tone: "warn", label: "por vencer" },
     });
   });
 
@@ -208,7 +225,7 @@ describe("nav badges", () => {
     expect(screen.getByTestId("nav-badge-subscriptions").className).toContain("tone-warn");
     expect(screen.getByTestId("nav-badge-proxy").textContent).toContain("4");
     expect(screen.getByRole("link", { name: /Machines.*1 offline/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Secrets.*1 expiring/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Secrets.*1 por vencer/ })).toBeTruthy();
   });
 
   it("escalates tones and omits badges when everything is fine", () => {
@@ -237,7 +254,7 @@ describe("nav badges", () => {
 describe("responsive drawer", () => {
   it("toggles with the menu button, Escape and navigation", () => {
     render(<App mode="fixture" />);
-    const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+    const toggle = screen.getByRole("button", { name: "Mostrar u ocultar la navegación" });
     const sidebar = document.getElementById("sh-sidebar")!;
     expect(sidebar.getAttribute("data-open")).toBe("false");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");

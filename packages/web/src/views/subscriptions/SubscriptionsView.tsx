@@ -1,8 +1,10 @@
 import type { AccountView, ProviderId } from "@b-net/core";
-import { Card, EmptyState, PageHeader, Stat, StatStrip, StatusDot, useNow } from "../../components/index.ts";
+import { Card, EmptyState, PageHeader, Stat, StatStrip, useNow } from "../../components/index.ts";
+import { sourceStatus } from "../../data/sources.ts";
 import { DASH, formatSpan, formatUsdHeadline } from "../../lib/format.ts";
 import type { ViewProps } from "../../routes.tsx";
 import { AccountCard, windowLabel } from "./AccountCard.tsx";
+import { SourceNotice } from "../shared/SourceNotice.tsx";
 import "./subscriptions.css";
 
 const PROVIDER_ORDER: ProviderId[] = ["anthropic", "openai", "google", "openrouter", "other"];
@@ -27,6 +29,17 @@ function nearestReset(accounts: AccountView[], nowMs: number) {
   return best;
 }
 
+/** Accounts come from b-net-proxy: say whether it is missing, failing, or connected with no accounts. */
+function NoAccounts({ snapshot }: ViewProps) {
+  const status = sourceStatus(snapshot.sources, "proxy");
+  if (status.state !== "ok") return <SourceNotice status={status} testId="subs-empty" />;
+  return (
+    <Card>
+      <EmptyState data-testid="subs-empty" data-source-state="ok" title="Sin cuentas" description="b-net-proxy está conectado pero no tiene cuentas en su pool. Se agregan en su config (accounts)." />
+    </Card>
+  );
+}
+
 export function SubscriptionsView({ snapshot }: ViewProps) {
   const nowMs = useNow();
   const accounts = snapshot.accounts;
@@ -43,9 +56,19 @@ export function SubscriptionsView({ snapshot }: ViewProps) {
     accounts: accounts.filter((a) => a.provider === provider).sort((a, b) => a.priority - b.priority),
   })).filter((g) => g.accounts.length > 0);
 
+  const header = <PageHeader title="Subscriptions" subtitle="Costos a precio de lista, no lo facturado · ventanas según el proveedor" />;
+  if (accounts.length === 0) {
+    return (
+      <section className="ui-view sv" data-testid="view-subscriptions">
+        {header}
+        <NoAccounts snapshot={snapshot} />
+      </section>
+    );
+  }
+
   return (
     <section className="ui-view sv" data-testid="view-subscriptions">
-      <PageHeader title="Subscriptions" subtitle="Costos a precio de lista, no lo facturado · ventanas según el proveedor" />
+      {header}
 
       <StatStrip data-testid="subs-summary">
         <Stat
@@ -80,16 +103,9 @@ export function SubscriptionsView({ snapshot }: ViewProps) {
         />
       </StatStrip>
 
-      {groups.length === 0 ? (
-        <Card>
-          <EmptyState data-testid="subs-empty" title="Sin cuentas" description="El proxy todavía no reporta cuentas. Revisa la vista Proxy y el estado de las fuentes." />
-        </Card>
-      ) : null}
-
       {groups.map((g) => (
         <section key={g.provider} className="sv-group" aria-label={PROVIDER_NAME[g.provider]} data-testid={`provider-${g.provider}`}>
           <header className="sv-group-head">
-            <StatusDot tone="accent" />
             <h2 className="ui-label">{PROVIDER_NAME[g.provider]}</h2>
             <span className="u-faint num">
               {g.accounts.length} {g.accounts.length === 1 ? "cuenta" : "cuentas"} · {formatUsdHeadline(g.accounts.reduce((s, a) => s + a.last30d.costUsd, 0))} / 30 d

@@ -29,6 +29,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const threadsOf = (id: string) => snapshotFixture.threads.filter((t) => t.machineId === id);
 const pcMachine = snapshotFixture.machines.find((m) => m.id === "pc-bixku")!;
 
+const AGENT_HOST_TO_MACHINE: Record<string, string> = { "bixku-mini-server": "bixku-focaltec", "bixku-pc": "pc-bixku" };
+
 export const PROXY_TOKEN = "placeholder-proxy-token";
 export const AGENT_TOKEN = "placeholder-agent-token";
 
@@ -83,7 +85,8 @@ export function fakeFetch(world: FakeWorld = {}) {
 
     if (u.port === "8781") {
       if (auth !== `Bearer ${AGENT_TOKEN}`) return json({ error: "unauthorized" }, 401);
-      const machine = u.hostname;
+      // Agents are addressed by Tailscale host (machines.example.json agentUrl), not by machine id.
+      const machine = AGENT_HOST_TO_MACHINE[u.hostname] ?? u.hostname;
       if (u.pathname === "/agent/v1/t3/threads") {
         // agents report their own machineId; vps lies on purpose to test that config binding wins
         const list: T3ThreadView[] = threadsOf(machine).map((t) => (machine === "bixku-vps" ? { ...t, machineId: "wrong-id" } : t));

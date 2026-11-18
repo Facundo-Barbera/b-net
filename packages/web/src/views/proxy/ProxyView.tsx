@@ -1,8 +1,10 @@
 import type { ApiFormat, ClientKeyView, ProxyStatus, UsageRecord } from "@b-net/core";
 import { Badge, Card, EmptyState, KV, KeyValue, PageHeader, RelativeTime, Stat, StatStrip, StatusDot, Table, Tag, type Tone } from "../../components/index.ts";
 import { formatInt, formatMs, formatPercent, formatSpan, formatTokens, formatUsd } from "../../lib/format.ts";
+import { sourceStatus } from "../../data/sources.ts";
 import type { ViewProps } from "../../routes.tsx";
-import { spanEs, spanEsSeconds } from "../subscriptions/spanish.ts";
+import { SourceNotice } from "../shared/SourceNotice.tsx";
+import { spanEs, spanEsSeconds } from "../../lib/spanish.ts";
 import "./proxy.css";
 
 /** Port part of "host:port". */
@@ -288,20 +290,21 @@ export function ProxyView({ snapshot }: ViewProps) {
   const src = snapshot.sources.find((s) => s.source === "proxy");
 
   if (!proxy) {
+    const status = sourceStatus(snapshot.sources, "proxy");
+    const legacyNote = <p className="u-faint">CLIProxyAPI sigue siendo el proxy en uso mientras no haya aprobación para cambiarlo.</p>;
     return (
       <section className="ui-view px" data-testid="view-proxy">
         <PageHeader title="Proxy" />
-        <Card>
-          <EmptyState
-            data-testid="proxy-empty"
-            icon={<Badge tone="idle">sin datos</Badge>}
-            title="Sin estado de b-net-proxy"
-            description="El hub no tiene estado de b-net-proxy todavía. Puede que aún no esté desplegado (paso 1 del plan de migración) o que el hub no lo alcance."
-          >
-            {src?.error ? <code className="u-danger">{src.error}</code> : null}
-            <p className="u-faint">CLIProxyAPI sigue siendo el proxy en uso mientras no haya aprobación para cambiarlo.</p>
-          </EmptyState>
-        </Card>
+        {status.state === "ok" ? (
+          // Connected and healthy, but the first status has not arrived yet.
+          <Card>
+            <EmptyState data-testid="proxy-empty" role="status" title="Esperando el primer estado de b-net-proxy">
+              {legacyNote}
+            </EmptyState>
+          </Card>
+        ) : (
+          <SourceNotice status={status} testId="proxy-empty">{legacyNote}</SourceNotice>
+        )}
       </section>
     );
   }

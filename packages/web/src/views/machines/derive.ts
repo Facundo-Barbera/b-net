@@ -1,6 +1,9 @@
 /** View-local derivations over the snapshot: status/tone mapping, summary, link labels, thread grouping. */
-import type { MachineStatus, MachineView, T3ThreadView, ThreadState } from "@b-net/core";
-import { formatMs, formatRelative } from "../../lib/format.ts";
+import type { MachineStatus, MachineView, SourceHealth, T3ThreadView, ThreadState } from "@b-net/core";
+import type { Tone } from "../../components/index.ts";
+import { missingMetricsReason } from "../../data/sources.ts";
+import { formatMs } from "../../lib/format.ts";
+import { spanEs } from "../../lib/spanish.ts";
 
 export const STATUS_LABEL: Record<MachineStatus, string> = {
   online: "Online",
@@ -12,9 +15,9 @@ export const STATUS_LABEL: Record<MachineStatus, string> = {
 export const ROLE_LABEL: Record<MachineView["role"], string> = {
   hub: "Hub",
   vps: "VPS",
-  workstation: "Workstation",
+  workstation: "Estación",
   laptop: "Laptop",
-  server: "Server",
+  server: "Servidor",
 };
 export const OS_LABEL: Record<MachineView["os"], string> = {
   linux: "Linux",
@@ -24,7 +27,7 @@ export const OS_LABEL: Record<MachineView["os"], string> = {
 };
 
 export type Counts = MachineView["threadCounts"];
-/** "Awake" sandboxes = threads with a live provider session (active + waiting + idle). */
+/** "Activos" (awake) sandboxes = threads with a live provider session (active + waiting + idle). */
 export const awake = (c: Counts) => c.active + c.waiting + c.idle;
 
 /* ------------------------------ topology links ----------------------------- */
@@ -41,16 +44,16 @@ export function linkKind(m: MachineView): LinkKind {
   }
 }
 
-/** Label drawn on the topology link (and read by assistive tech through the node name). */
+/** Label drawn on the topology link (and read by assistive tech through the node name). Always names the path in words. */
 export function linkLabel(m: MachineView): string {
   const kind = linkKind(m);
   const lat = m.tailscale.latencyMs;
   switch (kind) {
     case "offline": return "offline";
-    case "direct": return formatMs(lat);
+    case "direct": return `${formatMs(lat)} · directo`;
     case "derp": return `${formatMs(lat)} · DERP ${m.tailscale.relay ?? "?"}`;
     case "peer-relay": return `${formatMs(lat)} · peer relay`;
-    default: return lat === null ? "path unknown" : `${formatMs(lat)} · path unknown`;
+    default: return lat === null ? "ruta desconocida" : `${formatMs(lat)} · ruta desconocida`;
   }
 }
 
@@ -64,6 +67,8 @@ export interface Summary {
   offline: number;
   paused: number;
   unknown: number;
+  /** Machines with no metrics source configured (metricsSource "none"), whatever their status. */
+  noMetrics: number;
   awake: number;
   dormant: number;
   worst: { machine: MachineView; latencyMs: number } | null;
@@ -84,6 +89,7 @@ export function summarize(machines: MachineView[], hubId: string): Summary {
     offline: by("offline"),
     paused: by("paused"),
     unknown: by("unknown"),
+    noMetrics: machines.filter((m) => m.metricsSource === "none").length,
     awake: machines.reduce((a, m) => a + awake(m.threadCounts), 0),
     dormant: machines.reduce((a, m) => a + m.threadCounts.dormant, 0),
     worst,
@@ -92,11 +98,23 @@ export function summarize(machines: MachineView[], hubId: string): Summary {
 
 /* ---------------------------- metrics availability --------------------------- */
 
-/** Why a machine has no (fresh) numbers. Explicit so every empty state reads differently. */
-export function metricsNote(m: MachineView): string | null {
-  if (m.status === "offline") return m.metrics ? "Offline: showing last known values" : "Offline: no metrics";
-  if (m.status === "paused") return m.metrics ? "Paused: showing last known values" : "Paused: no metrics collected";
-  if (!m.metrics) return m.metricsSource === "none" ? "No metrics source (no agent, not in Beszel)" : "Metrics not reported yet";
+export interface MetricsNote {
+  tone: Tone;
+  text: string;
+  /** No metrics source at all: the card offers how to connect one. */
+  noSource: boolean;
+}
+
+/**
+ * Why a machine has no (fresh) numbers. Explicit so every empty state reads differently: offline,
+ * paused in Beszel, no metrics source (and which one is missing), or a source that has not reported yet.
+ */
+export function metricsNote(m: MachineView, sources: readonly SourceHealth[]): MetricsNote | null {
+  const noSource = m.metricsSource === "none";
+  if (m.status === "offline") return { tone: "danger", noSource, text: m.metrics ? "Offline: últimos valores conocidos" : "Offline: sin métricas" };
+  if (m.status === "paused") return { tone: "idle", noSource, text: m.metrics ? "Pausada en Beszel: últimos valores conocidos" : "Pausada en Beszel: sin métricas" };
+  if (noSource) return { tone: "neutral", noSource, text: `Sin fuente de métricas: ${missingMetricsReason(m, sources)}` };
+  if (!m.metrics) return { tone: "warn", noSource, text: "Métricas aún sin reportar" };
   return null;
 }
 
@@ -107,15 +125,15 @@ export function ageMs(iso: string | null | undefined, nowMs: number): number | n
   return Number.isNaN(t) ? null : nowMs - t;
 }
 
-/** Relative time for inline text, "never" when the instant is unknown. */
-export const ago = (iso: string | null | undefined, nowMs: number): string => (iso ? formatRelative(iso, nowMs) : "never");
+/** Relative time for inline text ("hace 5m"), "nunca" when the instant is unknown. */
+export const ago = (iso: string | null | undefined, nowMs: number): string => (iso ? spanEs(iso, nowMs) : "nunca");
 
 /* --------------------------------- threads -------------------------------- */
 
 export const ACTIVE_STATES = ["active", "waiting", "idle", "dormant"] as const;
 export const GROUP_TITLE: Record<ThreadState, string> = {
   active: "Active",
-  waiting: "Waiting · needs you",
+  waiting: "Waiting · te necesita",
   idle: "Idle",
   dormant: "Dormant",
   archived: "Archived",

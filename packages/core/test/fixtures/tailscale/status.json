@@ -23,12 +23,12 @@
       "LastSeen": "0001-01-01T00:00:00Z", "RxBytes": 123456, "TxBytes": 654321, "SomeFutureField": {"x": 1}
     },
     "nodekey:00000000000000000000000000000000000000000000000000000000000000b2": {
-      "ID": "nFAKE0003", "HostName": "bixku-focaltec", "DNSName": "bixku-focaltec.tail0fake.ts.net.", "OS": "macOS",
+      "ID": "nFAKE0003", "HostName": "bixku-mini-server", "DNSName": "bixku-mini-server.tail0fake.ts.net.", "OS": "macOS",
       "TailscaleIPs": ["100.64.0.30"], "Relay": "mia", "CurAddr": "192.0.2.30:41641", "Online": true, "Active": true,
       "LastSeen": "2026-11-15T20:29:58.123456789Z"
     },
     "nodekey:00000000000000000000000000000000000000000000000000000000000000b3": {
-      "ID": "nFAKE0004", "HostName": "PC-BiXKu", "DNSName": "pc-bixku.tail0fake.ts.net.", "OS": "windows",
+      "ID": "nFAKE0004", "HostName": "BiXKu-PC", "DNSName": "bixku-pc.tail0fake.ts.net.", "OS": "windows",
       "TailscaleIPs": ["100.64.0.40"], "Relay": "mia", "CurAddr": "", "Online": true, "Active": true,
       "LastSeen": "0001-01-01T00:00:00Z"
     },

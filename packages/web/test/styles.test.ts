@@ -59,6 +59,13 @@ describe("styles: tokens only, both themes", () => {
     }
   });
 
+  it("font sizes come from the type scale (--fs-*), not raw pixel values", () => {
+    for (const f of files.filter((x) => x !== tokens)) {
+      expect(f.css, f.name).not.toMatch(/font-size:\s*[\d.]+px/);
+      expect(f.css, f.name).not.toMatch(/font:\s*\d+\s+[\d.]+px/);
+    }
+  });
+
   it("view components do not set inline colors", () => {
     const tsx = (dir: string): string[] =>
       readdirSync(dir).flatMap((n) => {
