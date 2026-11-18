@@ -1,12 +1,12 @@
 /**
  * Fetch-API handler for all HubRoutes + static UI. `(req: Request) => Promise<Response>`.
- * GET/HEAD everywhere; POST only on /api/v1/projects/** and only with a bot token.
+ * GET/HEAD everywhere (GET /api/v1/work derives the work home from the snapshot and the projects store); POST only on /api/v1/projects/** and only with a bot token.
  * Reads: optional hub bearer token on /api/* (bot tokens are accepted too). Secrets: SecretMeta only.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@b-net/core";
+import { HubRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
 import { botFromAuth, type BotToken } from "./bot-auth.ts";
 import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
 import { SECURITY_HEADERS, error, json } from "./respond.ts";
@@ -25,6 +25,8 @@ export interface HandlerDeps {
   projects?: ProjectsApi | null;
   /** Bots allowed to write, as sha256 hashes. */
   botTokens?: readonly BotToken[];
+  /** Reference time for derived views such as /api/v1/work (tests pin it). */
+  clock?: () => Date;
 }
 
 const BOT_CHALLENGE = { "www-authenticate": 'Bearer realm="b-net", error="invalid_token"' };
@@ -100,6 +102,7 @@ const ACCOUNT_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export function createHandler(deps: HandlerDeps): Handler {
   const bots = deps.botTokens ?? [];
+  const clock = deps.clock ?? (() => new Date());
   return async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -169,6 +172,11 @@ export function createHandler(deps: HandlerDeps): Handler {
         return json({ secrets: deps.snapshot().secrets.filter((s) => SecretMeta.safeParse(s).success) });
       case HubRoutes.health:
         return json({ ok: true, sources: deps.snapshot().sources });
+      case HubRoutes.work: {
+        // Derived on request: threads come from the snapshot, projects from the store (null when not configured).
+        const snap = deps.snapshot();
+        return json(deriveWork({ now: clock(), threads: snap.threads, sources: snap.sources, catalog: deps.projects?.catalog() ?? null }));
+      }
     }
     const m = machineRe.exec(path);
     if (m) {

@@ -2,7 +2,7 @@ import type { ApiFormat, ClientKeyView, ProxyStatus, UsageRecord } from "@b-net/
 import { Badge, Card, EmptyState, KV, KeyValue, PageHeader, RelativeTime, Stat, StatStrip, StatusDot, Table, Tag, type Tone } from "../../components/index.ts";
 import { formatInt, formatMs, formatPercent, formatSpan, formatTokens, formatUsd } from "../../lib/format.ts";
 import { sourceStatus } from "../../data/sources.ts";
-import type { ViewProps } from "../../routes.tsx";
+import type { SnapshotViewProps } from "../../routes.tsx";
 import { SourceNotice } from "../shared/SourceNotice.tsx";
 import { spanEs, spanEsSeconds } from "../../lib/spanish.ts";
 import "./proxy.css";
@@ -285,7 +285,7 @@ function RecentTable({ proxy }: { proxy: ProxyStatus }) {
 
 /* ------------------------------------------------------------------ view */
 
-export function ProxyView({ snapshot }: ViewProps) {
+export function ProxyView({ snapshot }: SnapshotViewProps) {
   const proxy = snapshot.proxy;
   const src = snapshot.sources.find((s) => s.source === "proxy");
 

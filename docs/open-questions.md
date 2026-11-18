@@ -55,6 +55,10 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 34. **Badge de Proxy en la barra lateral**: hoy cuenta errores de la última hora. ¿Prefieres rate-limits o failovers?
 35. **Fechas**: todas son relativas y la hora exacta aparece en el tooltip. ¿Quieres hora local absoluta en las tablas?
 36. **Tipografía**: se usa la del sistema y una monoespaciada, sin CDN. ¿Empaquetamos Inter y JetBrains Mono?
+37. **Enlace a hilos de T3**: la UI usa `t3-thread://<threadId>?machine=<machineId>` (`t3ThreadHref` en core, un solo lugar para cambiarlo). ¿Es el formato que abre T3 Code? Solo funciona en la máquina donde corre ese T3.
+38. **Ventana de «Listo hace poco»**: 72 h (`WORK_RECENT_HOURS`). ¿Más corta, o "desde tu última visita"?
+39. **PRs por revisar**: hoy solo se ven los PRs que los bots enlazan en sus entregables (`prUrl`), sin estado. Para "por revisar" hace falta un conector de GitHub en el hub (token de solo lectura). ¿Lo hacemos y con qué alcance (tus repos, o los `gitRemotes` de cada proyecto)?
+40. **Tareas e ideas**: no hay fuente. ¿Vienen de un archivo por repo, de issues de GitHub o de una tabla propia del hub?
 
 ## 7. Cambios de contrato propuestos (no aplicados)
 

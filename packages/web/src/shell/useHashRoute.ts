@@ -3,7 +3,7 @@ import { routes, type RouteDef } from "../routes.tsx";
 
 const DEFAULT_ROUTE = routes[0]!;
 
-/** Match a location hash to a route ("#/proxy", "#/proxy/x", "#/proxy?y"); unknown/empty → machines. */
+/** Match a location hash to a route ("#/proxy", "#/proxy/x", "#/proxy?y"); unknown/empty → the first route (work). */
 export function resolveRoute(hash: string): RouteDef {
   const path = hash.split("?")[0]!;
   return routes.find((r) => path === r.path || path.startsWith(`${r.path}/`)) ?? DEFAULT_ROUTE;

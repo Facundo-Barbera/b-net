@@ -4,7 +4,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { DeliverableId, DeliverableUploadQuery, Project, ProjectId, ProjectInput, type Deliverable } from "@b-net/core";
+import { DeliverableId, DeliverableUploadQuery, Project, ProjectId, ProjectInput, type Deliverable, type ProjectCatalogEntry } from "@b-net/core";
 import { DELIVERABLE_MAX_BYTES, DeliverableFiles, MIME_BY_KIND, UploadError, contentResponse, defaultFilename, receiveUpload, sanitizeFilename } from "./deliverables.ts";
 import type { ProjectStore } from "./projects-store.ts";
 import { error, json } from "./respond.ts";
@@ -22,6 +22,8 @@ export interface ProjectsApi {
   /** Null when the path is not a projects route. */
   read(req: Request, path: string, q: URLSearchParams): Promise<Response | null>;
   write(req: Request, path: string, q: URLSearchParams, bot: string): Promise<Response | null>;
+  /** Every project with all its deliverables, for the work home (GET /api/v1/work). */
+  catalog(): ProjectCatalogEntry[];
 }
 
 const JSON_BODY_MAX = 64 * 1024;
@@ -176,5 +178,8 @@ export function createProjectsApi(deps: ProjectsApiDeps): ProjectsApi {
     return json(deliverable, 201);
   }
 
-  return { read, write };
+  const catalog = (): ProjectCatalogEntry[] =>
+    deps.store.listProjects().map((project) => ({ project, deliverables: deps.store.listDeliverables(project.id) }));
+
+  return { read, write, catalog };
 }

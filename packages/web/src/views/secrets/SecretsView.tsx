@@ -1,7 +1,7 @@
 import type { SecretMeta } from "@b-net/core";
 import { Badge, Callout, Card, EmptyState, PageHeader, RelativeTime, SecretsIcon, Stat, StatStrip, Table, toneForSecretStatus, useNow } from "../../components/index.ts";
 import { sourceStatus } from "../../data/sources.ts";
-import type { ViewProps } from "../../routes.tsx";
+import type { SnapshotViewProps } from "../../routes.tsx";
 import { SourceNotice } from "../shared/SourceNotice.tsx";
 import { spanEs } from "../../lib/spanish.ts";
 import "./secrets.css";
@@ -75,7 +75,7 @@ function Row({ s, hubMachineId, nowMs }: { s: SecretMeta; hubMachineId: string; 
 }
 
 /** Secret metadata comes from b-net-proxy: missing/failing source vs. an empty inventory. */
-function NoSecrets({ snapshot }: ViewProps) {
+function NoSecrets({ snapshot }: SnapshotViewProps) {
   const status = sourceStatus(snapshot.sources, "proxy");
   if (status.state !== "ok") return <SourceNotice status={status} testId="secrets-empty" />;
   return (
@@ -85,7 +85,7 @@ function NoSecrets({ snapshot }: ViewProps) {
   );
 }
 
-export function SecretsView({ snapshot }: ViewProps) {
+export function SecretsView({ snapshot }: SnapshotViewProps) {
   const nowMs = useNow();
   const secrets = snapshot.secrets;
   const groups = KIND_ORDER.map((kind) => ({ kind, items: secrets.filter((s) => s.kind === kind) })).filter((g) => g.items.length > 0);
@@ -93,7 +93,7 @@ export function SecretsView({ snapshot }: ViewProps) {
 
   return (
     <section className="ui-view se" data-testid="view-secrets">
-      <PageHeader title="Secrets" subtitle="Inventario de credenciales: solo metadatos" />
+      <PageHeader title="Secretos" subtitle="Inventario de credenciales: solo metadatos" />
 
       <Callout tone="accent" role="note" data-testid="secrets-note" icon={<SecretsIcon />} className="se-note">
         <p>

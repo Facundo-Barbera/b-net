@@ -195,3 +195,23 @@
 .ui-kv__item { min-width: 0; }
 .ui-kv__item dt { margin-bottom: 1px; }
 .ui-kv__item dd { font-size: var(--fs-md); color: var(--tone, var(--text)); overflow-wrap: anywhere; }
+
+/* ActionLink */
+.ui-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: border-color var(--ease), background var(--ease);
+}
+.ui-action:hover { text-decoration: none; border-color: var(--accent); }
+.ui-action > svg { flex: none; color: var(--text-muted); }
+.ui-action__ext { font-size: var(--fs-xs); }

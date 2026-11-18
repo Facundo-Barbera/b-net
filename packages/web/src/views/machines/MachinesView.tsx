@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { HubSnapshot } from "@b-net/core";
 import { Callout, Card, EmptyState, PageHeader, StatusDot, useNow } from "../../components/index.ts";
 import { SOURCE_SETUP, metricsCoverage } from "../../data/sources.ts";
-import type { ViewProps } from "../../routes.tsx";
+import type { SnapshotViewProps } from "../../routes.tsx";
 import "./machines.css";
 import { summarize } from "./derive.ts";
 import { MachineCard } from "./MachineCard.tsx";
@@ -10,7 +10,7 @@ import { MachineDetail } from "./MachineDetail.tsx";
 import { SummaryStrip } from "./SummaryStrip.tsx";
 import { Topology } from "./Topology.tsx";
 
-export interface MachinesViewProps extends ViewProps {
+export interface MachinesViewProps extends SnapshotViewProps {
   /** Preselect a machine (otherwise the detail panel starts empty). */
   initialSelectedId?: string | null;
 }
@@ -47,7 +47,7 @@ export function MachinesView({ snapshot, initialSelectedId = null }: MachinesVie
   return (
     <section className="ui-view mv" data-testid="view-machines" aria-labelledby="mv-title">
       <PageHeader
-        title="Machines"
+        title="Máquinas"
         titleId="mv-title"
         subtitle={<span className="num">{machines.length} máquinas en el tailnet · hub {snapshot.hubMachineId}</span>}
       />

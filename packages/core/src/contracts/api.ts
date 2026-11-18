@@ -48,6 +48,7 @@ export const HubRoutes = {
   proxyStatus: "/api/v1/proxy/status", // ProxyStatus
   secrets: "/api/v1/secrets", // { secrets: SecretMeta[] } (metadata only)
   health: "/api/v1/health", // { ok: true, sources: SourceHealth[] }
+  work: "/api/v1/work", // WorkSnapshot (contracts/work.ts)
   projects: "/api/v1/projects", // GET -> { projects: ProjectSummary[] }; POST ProjectInput -> 201 Project
   project: "/api/v1/projects/:id", // ProjectSummary
   deliverables: "/api/v1/projects/:id/deliverables", // GET -> { deliverables: Deliverable[] }; POST raw body ?DeliverableUploadQuery -> 201 Deliverable

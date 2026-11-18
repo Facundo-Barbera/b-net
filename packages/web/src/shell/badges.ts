@@ -1,4 +1,4 @@
-import type { HubSnapshot } from "@b-net/core";
+import type { HubSnapshot, WorkSnapshot } from "@b-net/core";
 import type { Tone } from "../components/tone.ts";
 import type { RouteDef } from "../routes.tsx";
 
@@ -11,12 +11,14 @@ export interface NavBadge {
 
 /**
  * Attention counts for the sidebar, derived from the snapshot (undefined entry = nothing to flag):
- * machines offline (else degraded), accounts in cooldown/error, proxy errors in the last hour,
+ * work items waiting on Facundo, machines offline (else degraded), accounts in cooldown/error, proxy errors in the last hour,
  * secrets expiring/expired/invalid.
  */
-export function deriveNavBadges(snapshot: HubSnapshot | null): Partial<Record<RouteDef["id"], NavBadge>> {
-  if (!snapshot) return {};
+export function deriveNavBadges(snapshot: HubSnapshot | null, work: WorkSnapshot | null = null): Partial<Record<RouteDef["id"], NavBadge>> {
   const out: Partial<Record<RouteDef["id"], NavBadge>> = {};
+  const waiting = work?.waiting.length ?? 0;
+  if (waiting > 0) out.work = { count: waiting, tone: "warn", label: "te esperan" };
+  if (!snapshot) return out;
 
   const offline = snapshot.machines.filter((m) => m.status === "offline").length;
   const degraded = snapshot.machines.filter((m) => m.status === "degraded").length;
