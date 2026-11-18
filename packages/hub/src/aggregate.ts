@@ -20,6 +20,8 @@ export interface AggregateInput {
   beszel: BeszelMachine[] | null;
   /** Latest agent metrics by machine id. */
   agentMetrics: Record<string, AgentMetrics>;
+  /** Machines with an ingest token: they count as having a metrics source even without agentUrl/beszelName. */
+  pushAgents?: ReadonlySet<string>;
   threads: T3ThreadView[];
   proxy: { status: ProxyStatus | null; accounts: AccountView[]; secrets: SecretMeta[] } | null;
   sources: SourceHealth[];
@@ -65,7 +67,7 @@ export function aggregate(input: AggregateInput): HubSnapshot {
         tailscaleOnline: tsIndex ? (entry ? link.online : false) : null,
         metrics: picked.metrics,
         metricsAt: picked.at,
-        hasMetricsSource: Boolean(m.beszelName || m.agentUrl),
+        hasMetricsSource: Boolean(m.beszelName || m.agentUrl || input.pushAgents?.has(m.id)),
         beszelStatus: picked.beszelStatus,
         now: input.now,
       },

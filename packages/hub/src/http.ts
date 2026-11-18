@@ -1,11 +1,12 @@
 /**
  * Fetch-API handler for all HubRoutes + static UI. `(req: Request) => Promise<Response>`.
- * Read-only: only GET/HEAD. Optional bearer token on /api/*. Secrets: SecretMeta only.
+ * Read-only: only GET/HEAD, except the agent ingest route (POST, its own per-machine token).
+ * Optional bearer token on /api/*. Secrets: SecretMeta only.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@b-net/core";
+import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, type HubSnapshot } from "@b-net/core";
 import type { UsageStore } from "./store.ts";
 
 export type Handler = (req: Request) => Promise<Response>;
@@ -17,6 +18,8 @@ export interface HandlerDeps {
   store: UsageStore;
   apiToken?: string | null;
   staticFiles?: StaticReader | null;
+  /** POST IngestRoutes.metrics; absent = route answers 404. */
+  ingest?: Handler | null;
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -106,6 +109,7 @@ export function createHandler(deps: HandlerDeps): Handler {
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const head = req.method === "HEAD";
+    if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
     if (req.method !== "GET" && !head) return error(405, "method not allowed");
 
     if (path === "/api" || path.startsWith("/api/")) {
