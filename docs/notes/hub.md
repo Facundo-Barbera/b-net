@@ -17,15 +17,16 @@ Rama: `t3/hub-api-aggregation-clients`. Todo se validó con fixtures FALSOS (IPs
 | Runtime (pollers, staleness, snapshot) | `packages/hub/src/hub.ts` |
 | UsageStore (memoria + `node:sqlite`) | `packages/hub/src/store.ts`, `store-sqlite.ts` |
 | Handler Fetch-API + estáticos | `packages/hub/src/http.ts` |
-| Entrypoint `node:http` (NO se ejecutó aquí) | `packages/hub/src/serve.ts` |
+| Entrypoint `node:http` (NO se ejecutó aquí); carga su env de `HUB_ENV_FILE` (por defecto `.env` en la raíz del repo), sin pisar variables ya definidas | `packages/hub/src/serve.ts` |
 
 ## Decisiones
 
 1. **Reglas de estado** (en orden, `status.ts`):
    - `unknown`: no hay datos frescos de Tailscale ni métricas frescas.
    - `offline`: Tailscale dice offline (o el nodo no está en el tailnet) y no hay métricas frescas. Si hay métricas frescas, ganan sobre un "offline" de Tailscale.
-   - `paused`: Beszel tiene el sistema en `paused`, o la máquina no tiene fuente de métricas configurada (ni `beszelName` ni `agentUrl`). Así queda MBA en el fixture canónico.
-   - `degraded`: CPU, RAM o disco **> 90 %** (estricto), métricas más viejas que **300 s** teniendo fuente configurada, o Beszel en `down` con Tailscale online.
+   - `paused`: solo cuando Beszel tiene el sistema en `paused`.
+   - `online` sin métricas: alcanzable por Tailscale pero sin fuente de métricas (ni `agentUrl`, ni `beszelName` con Beszel configurado en el hub). Llega con `metricsSource: "none"` y la UI dice qué fuente falta. Así queda MBA en el fixture canónico. Antes salía `paused`, que se leía como "alguien la detuvo".
+   - `degraded`: CPU, RAM o disco **> 90 %** (estricto), métricas más viejas que **300 s** teniendo fuente configurada, o Beszel en `down` con Tailscale online. Un `beszelName` sin Beszel configurado no cuenta como fuente (no marca `degraded` por una fuente nunca conectada).
    - `online`: el resto.
    Los umbrales están en `DEFAULT_THRESHOLDS` y se pueden inyectar.
 2. **Prioridad de métricas**: agente fresco > Beszel (con datos) > agente viejo > nada. "Fresco" significa ≤ `staleMetricsSec`.
@@ -57,7 +58,7 @@ Rama: `t3/hub-api-aggregation-clients`. Todo se validó con fixtures FALSOS (IPs
 ## Preguntas abiertas para Facundo
 
 1. ¿Te sirven los umbrales de 90 % para CPU/RAM/disco? ¿Quieres umbrales por máquina (p. ej. disco del PC)?
-2. ¿Una máquina sin fuente de métricas debería verse `paused` (como hoy, alineado con el fixture) u `online`?
+2. ~~¿Una máquina sin fuente de métricas debería verse `paused` u `online`?~~ Decidido: `online` con `metricsSource: "none"`; `paused` queda solo para Beszel.
 3. ¿Un token por agente o uno común (`HUB_AGENT_TOKEN_FILE`)? Hoy es uno común.
 4. ¿Qué versión de Beszel tienes? ¿Existe el tipo `1m` en `system_stats`? ¿Las unidades de red son MB/s?
 5. ¿LocalAPI (necesita que el usuario del servicio pueda leer el socket de tailscaled) o CLI? Por defecto se usa `localapi`.
