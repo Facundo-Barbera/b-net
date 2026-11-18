@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "../lib/cx.ts";
+import { StatusDot } from "./StatusDot.tsx";
 import type { Tone } from "./tone.ts";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -7,7 +8,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: Tone;
   /** "soft" = tinted fill (default), "outline" = border only. */
   variant?: "soft" | "outline";
-  /** Prefix a small status dot in the badge tone. */
+  /** Prefix the tone's status glyph (shape per tone, see ToneGlyph). */
   dot?: boolean;
 }
 
@@ -15,7 +16,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 export function Badge({ tone = "neutral", variant = "soft", dot, className, children, ...rest }: BadgeProps) {
   return (
     <span className={cx("ui-badge", `ui-badge--${variant}`, `tone-${tone}`, className)} {...rest}>
-      {dot && <span className="ui-badge__dot" aria-hidden="true" />}
+      {dot && <StatusDot tone={tone} className="ui-badge__dot" />}
       {children}
     </span>
   );

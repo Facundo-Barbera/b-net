@@ -1,8 +1,8 @@
 import type { AccountView, UsageTotals, UsageWindow } from "@b-net/core";
-import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, Table, Tag, meterTone, toneForPoolState, type Tone } from "../../components/index.ts";
+import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, Table, Tag, toneForPoolState } from "../../components/index.ts";
 import { USAGE_DANGER_AT } from "../../lib/thresholds.ts";
 import { formatCountdown, formatInt, formatMoney, formatTokens, formatUsd, formatUsdHeadline, DASH } from "../../lib/format.ts";
-import { expiresText, resetText, spanEs } from "./spanish.ts";
+import { expiresText, resetText, spanEs } from "../../lib/spanish.ts";
 
 const SOURCE_HINT: Record<UsageWindow["source"], string> = {
   "provider-headers": "Leído de los headers de rate-limit del proveedor (autoritativo)",
@@ -28,16 +28,10 @@ function Measured({ t, emphasis }: { t: UsageTotals; emphasis?: boolean }) {
 function WindowRow({ account, w }: { account: AccountView; w: UsageWindow }) {
   const id = `win-${account.id}-${w.kind}${w.scope ? `-${w.scope}` : ""}`;
   const label = windowLabel(w);
-  const tone: Tone = w.usedPct === null ? "neutral" : meterTone(w.usedPct);
   return (
     <li className="sv-window" data-testid={id}>
-      <div className="sv-window-head">
-        <span className="sv-window-label">{label}</span>
-        <span className={`sv-window-pct num tone-${tone}`} data-empty={w.usedPct === null || undefined}>
-          {w.usedPct === null ? "sin dato" : `${w.usedPct}%`}
-        </span>
-      </div>
-      <Meter value={w.usedPct} ariaLabel={`Uso ${label} de ${account.label}`} valueText={w.usedPct === null ? "sin dato" : undefined} />
+      {/* Label + value + HIGH/CRIT flag come from the shared Meter, as in Machines. */}
+      <Meter label={label} value={w.usedPct} ariaLabel={`Uso ${label} de ${account.label}`} valueText={w.usedPct === null ? "sin dato" : undefined} />
       <div className="sv-window-foot">
         {w.resetsAt ? <RelativeTime className="num" value={w.resetsAt} format={resetText} /> : <span className="num">reset desconocido</span>}
         <Tag title={SOURCE_HINT[w.source]}>{w.source}</Tag>

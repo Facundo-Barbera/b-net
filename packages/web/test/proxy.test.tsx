@@ -116,5 +116,14 @@ describe("ProxyView", () => {
     };
     renderAt(<ProxyView snapshot={snap} />);
     expect(within(screen.getByTestId("proxy-empty")).getByText(/ECONNREFUSED/)).toBeTruthy();
+    expect(screen.getByTestId("proxy-empty").getAttribute("data-source-state")).toBe("failing");
+  });
+
+  it("null proxy without the source configured explains how to connect it", () => {
+    renderAt(<ProxyView snapshot={{ ...snapshotFixture, proxy: null, sources: snapshotFixture.sources.filter((s) => s.source !== "proxy") }} />);
+    const empty = screen.getByTestId("proxy-empty");
+    expect(empty.getAttribute("data-source-state")).toBe("missing");
+    expect(empty.textContent).toContain("HUB_PROXY_URL");
+    expect(empty.textContent).toContain("CLIProxyAPI sigue siendo el proxy en uso");
   });
 });

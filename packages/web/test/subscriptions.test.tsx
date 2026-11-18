@@ -131,8 +131,22 @@ describe("SubscriptionsView", () => {
     expect(within(card("anthropic-max-2")).getByText("reanuda en 30m")).toBeTruthy();
   });
 
-  it("empty accounts => empty state", () => {
+  it("empty accounts with the proxy connected => plain empty state, no KPI zeros", () => {
     renderAt(<SubscriptionsView snapshot={{ ...snapshotFixture, accounts: [] }} />);
-    expect(screen.getByTestId("subs-empty")).toBeTruthy();
+    expect(screen.getByTestId("subs-empty").getAttribute("data-source-state")).toBe("ok");
+    expect(screen.queryByTestId("subs-summary")).toBeNull();
+  });
+
+  it("empty accounts because the proxy is missing or failing => says so and how to connect it", () => {
+    const noProxy = snapshotFixture.sources.filter((s) => s.source !== "proxy");
+    const { unmount } = renderAt(<SubscriptionsView snapshot={{ ...snapshotFixture, accounts: [], sources: noProxy }} />);
+    const missing = screen.getByTestId("subs-empty");
+    expect(missing.getAttribute("data-source-state")).toBe("missing");
+    expect(missing.textContent).toContain("HUB_PROXY_TOKEN_FILE");
+    unmount();
+    const failing = snapshotFixture.sources.map((s) => (s.source === "proxy" ? { ...s, ok: false, error: "timeout" } : s));
+    renderAt(<SubscriptionsView snapshot={{ ...snapshotFixture, accounts: [], sources: failing }} />);
+    expect(screen.getByTestId("subs-empty").getAttribute("data-source-state")).toBe("failing");
+    expect(screen.getByTestId("subs-empty").textContent).toContain("b-net-proxy no responde");
   });
 });

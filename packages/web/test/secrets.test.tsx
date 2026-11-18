@@ -8,7 +8,7 @@ import { NOW_MS, renderAt } from "./helpers.tsx";
 const row = (id: string) => within(screen.getByTestId(`secret-row-${id}`));
 
 /** Attributes the view is allowed to put on any element (no value-carrying ones). */
-const ALLOWED_DATA_ATTRS = new Set(["data-testid", "data-status"]);
+const ALLOWED_DATA_ATTRS = new Set(["data-testid", "data-status", "data-tone", "data-shape"]);
 const FORBIDDEN_ATTRS = ["value", "defaultvalue", "href", "download", "contenteditable", "draggable", "onclick"];
 
 describe("SecretsView", () => {
@@ -83,6 +83,9 @@ describe("SecretsView", () => {
         // allowed data attrs must be derived from ids / enum statuses, never from free-form values
         if (name === "data-testid") expect(attr.value).toMatch(/^[a-z0-9-]+$/);
         if (name === "data-status") expect(["ok", "expiring", "expired", "invalid", "unknown"]).toContain(attr.value);
+        // status glyphs (Badge dot): tone and shape are closed enums
+        if (name === "data-tone") expect(["ok", "warn", "danger", "info", "idle", "dormant", "accent", "neutral"]).toContain(attr.value);
+        if (name === "data-shape") expect(["circle", "triangle", "square", "diamond", "pause", "ring"]).toContain(attr.value);
       }
     }
   });
@@ -120,7 +123,16 @@ describe("SecretsView", () => {
     expect(row("sec-anthropic-max-2").getByText(/venció hace 30m/)).toBeTruthy();
     unmount();
     renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: [] }} />);
-    expect(screen.getByTestId("secrets-empty")).toBeTruthy();
+    expect(screen.getByTestId("secrets-empty").getAttribute("data-source-state")).toBe("ok");
     expect(screen.getByTestId("secrets-note")).toBeTruthy();
+    expect(screen.queryByTestId("secrets-summary")).toBeNull(); // no row of zeros
+  });
+
+  it("without b-net-proxy configured, says which source is missing and how to connect it", () => {
+    renderAt(<SecretsView snapshot={{ ...snapshotFixture, secrets: [], sources: snapshotFixture.sources.filter((s) => s.source !== "proxy") }} />);
+    const empty = screen.getByTestId("secrets-empty");
+    expect(empty.getAttribute("data-source-state")).toBe("missing");
+    expect(empty.textContent).toContain("b-net-proxy no está conectado");
+    expect(empty.textContent).toContain("HUB_PROXY_URL");
   });
 });
