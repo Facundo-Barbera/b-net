@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { snapshotFixture, type HubSnapshot } from "@b-net/core";
+import { snapshotFixture, workFixture, type HubSnapshot } from "@b-net/core";
 import { App } from "../src/shell/App.tsx";
 import { deriveNavBadges } from "../src/shell/badges.ts";
 import { resolveRoute } from "../src/shell/useHashRoute.ts";
@@ -26,22 +26,22 @@ afterEach(() => {
 const theme = () => document.documentElement.getAttribute("data-theme");
 
 describe("shell navigation", () => {
-  it("renders brand, one nav link per route and defaults to machines", () => {
+  it("renders brand, one nav link per route and defaults to work", () => {
     render(<App mode="fixture" />);
     expect(document.querySelector(".sh-brand__name")?.textContent).toBe("b-net");
     const nav = screen.getByRole("navigation", { name: "Principal" });
     const links = within(nav).getAllByRole("link");
     expect(links).toHaveLength(routes.length);
     expect(links.map((l) => l.getAttribute("href"))).toEqual(routes.map((r) => r.path));
-    expect(screen.getByTestId("view-machines")).toBeTruthy();
-    expect(screen.getByTestId("page-title").textContent).toBe("Machines");
+    expect(screen.getByTestId("view-work")).toBeTruthy();
+    expect(screen.getByTestId("page-title").textContent).toBe("Trabajo");
   });
 
   it("marks only the active link with aria-current and follows hashchange", async () => {
     render(<App mode="fixture" />);
     const nav = screen.getByRole("navigation", { name: "Principal" });
     const current = () => within(nav).getAllByRole("link").filter((l) => l.getAttribute("aria-current") === "page");
-    expect(current().map((l) => l.getAttribute("href"))).toEqual(["#/machines"]);
+    expect(current().map((l) => l.getAttribute("href"))).toEqual(["#/work"]);
 
     act(() => {
       location.hash = "#/proxy";
@@ -57,19 +57,20 @@ describe("shell navigation", () => {
     expect(await screen.findByTestId("view-secrets")).toBeTruthy();
   });
 
-  it("falls back to machines for an unknown hash and rewrites it", () => {
+  it("falls back to work for an unknown hash and rewrites it", () => {
     location.hash = "#/does-not-exist";
     render(<App mode="fixture" />);
-    expect(screen.getByTestId("view-machines")).toBeTruthy();
-    expect(location.hash).toBe("#/machines");
+    expect(screen.getByTestId("view-work")).toBeTruthy();
+    expect(location.hash).toBe("#/work");
   });
 
   it("resolveRoute handles sub-paths, queries and empty hashes", () => {
-    expect(resolveRoute("").id).toBe("machines");
+    expect(resolveRoute("").id).toBe("work");
+    expect(resolveRoute("#/projects/b-net/d/x").id).toBe("projects");
     expect(resolveRoute("#/subscriptions").id).toBe("subscriptions");
     expect(resolveRoute("#/proxy/records").id).toBe("proxy");
     expect(resolveRoute("#/secrets?x=1").id).toBe("secrets");
-    expect(resolveRoute("#/proxyfoo").id).toBe("machines");
+    expect(resolveRoute("#/proxyfoo").id).toBe("work");
   });
 
   it("skip link focuses <main> without changing the hash", () => {
@@ -196,7 +197,8 @@ describe("source health", () => {
 
   it("lists core sources the hub has not configured as 'sin conectar', with how to connect them", async () => {
     const snap = { ...snapshotFixture, sources: snapshotFixture.sources.filter((s) => s.source !== "beszel" && s.source !== "proxy") };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(snap), { status: 200 })));
+    location.hash = "#/machines";
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url === "/api/v1/work" ? workFixture : snap), { status: 200 }))));
     render(<App mode="live" />);
     // Before the first snapshot every core source reads "sin conectar"; wait for the loaded one.
     await screen.findByTestId("view-machines");
@@ -224,8 +226,9 @@ describe("nav badges", () => {
     expect(screen.getByTestId("nav-badge-machines").className).toContain("tone-danger");
     expect(screen.getByTestId("nav-badge-subscriptions").className).toContain("tone-warn");
     expect(screen.getByTestId("nav-badge-proxy").textContent).toContain("4");
-    expect(screen.getByRole("link", { name: /Machines.*1 offline/ })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Secrets.*1 por vencer/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Máquinas.*1 offline/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Secretos.*1 por vencer/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Trabajo.*te esperan/ })).toBeTruthy();
   });
 
   it("escalates tones and omits badges when everything is fine", () => {
@@ -272,7 +275,7 @@ describe("responsive drawer", () => {
     expect(sidebar.getAttribute("data-open")).toBe("false");
 
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole("link", { name: /Secrets/ }));
+    fireEvent.click(screen.getByRole("link", { name: /Secretos/ }));
     expect(sidebar.getAttribute("data-open")).toBe("false");
   });
 });

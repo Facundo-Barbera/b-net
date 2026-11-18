@@ -185,3 +185,17 @@
   .sh-topbar__updated { display: none; }
   .sh-content { padding: 14px 12px 28px; }
 }
+
+/* ---------- Nav sections and shortcut hints ---------- */
+.sh-nav { display: grid; gap: var(--sp-4); }
+.sh-nav__group { display: grid; gap: var(--sp-1); }
+.sh-nav__heading { padding: 0 10px; color: var(--text-faint); }
+.sh-nav__kbd {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-faint);
+  font-size: var(--fs-2xs);
+  line-height: 16px;
+}

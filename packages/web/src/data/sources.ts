@@ -1,4 +1,4 @@
-import type { HubSnapshot, MachineView, SourceHealth } from "@b-net/core";
+import type { HubSnapshot, MachineView, SourceHealth, WorkSources } from "@b-net/core";
 
 /**
  * Which hub data sources are connected, read from `snapshot.sources`. The hub only reports health for
@@ -79,3 +79,32 @@ export function metricsCoverage(snapshot: HubSnapshot) {
   const agents = snapshot.machines.filter((m) => sourceStatus(snapshot.sources, "agent", m.id).state !== "missing").length;
   return { without, total: snapshot.machines.length, beszel: sourceStatus(snapshot.sources, "beszel").state, agents };
 }
+
+/**
+ * Sources of the work home (WorkSnapshot.sources) and what connecting each one takes. threads reuses the
+ * T3 text; pullRequests, git and tasks have no connector in the hub yet, and the copy says so plainly.
+ */
+export type WorkSourceKind = keyof WorkSources;
+export const WORK_SOURCE_SETUP: Record<WorkSourceKind, { name: string; feeds: string; connect: string }> = {
+  threads: { name: "T3", feeds: "hilos que te esperan, corriendo y terminados", connect: SOURCE_SETUP.t3.connect },
+  projects: {
+    name: "Proyectos y entregables",
+    feeds: "proyectos registrados y los resúmenes HTML que publican los bots",
+    connect: "En el env del hub: HUB_DATA_DIR (guarda hub.sqlite y los entregables) y HUB_BOT_TOKENS_FILE para que los bots publiquen.",
+  },
+  pullRequests: {
+    name: "GitHub",
+    feeds: "PRs abiertos y por revisar",
+    connect: "El hub todavía no tiene conector de GitHub. Mientras tanto se muestran los PRs que los bots enlazan en sus entregables (prUrl).",
+  },
+  git: {
+    name: "Git",
+    feeds: "commits y ramas por proyecto",
+    connect: "Todavía no hay lector de git en el agente. Las ramas que ves vienen de los hilos de T3.",
+  },
+  tasks: {
+    name: "Tareas",
+    feeds: "ideas y tareas por proyecto",
+    connect: "Todavía no hay fuente de tareas conectada al hub.",
+  },
+};
