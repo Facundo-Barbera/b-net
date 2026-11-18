@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile, readdir, statfs } from "node:fs/promises";
+import { readFileSync, readdirSync, statfsSync } from "node:fs";
 import os from "node:os";
 import { promisify } from "node:util";
 import type { MachineMetrics } from "@b-net/core";
@@ -13,6 +13,7 @@ import {
   parseLoadavg,
   parseMeminfo,
   parseNetDev,
+  parseNetstatIb,
   parseProcStat,
   parseThermalZones,
   parseUptime,
@@ -46,13 +47,18 @@ export interface CollectorDeps {
 
 const execFileP = promisify(execFile);
 
+/**
+ * Sync fs calls on purpose: /proc and /sys files report size 0, so the async readFile path does
+ * several thread-pool round trips per file. Measured on Linux: ~2.7 ms CPU per async read of
+ * /proc/stat vs ~0.03 ms sync, and these reads never block on disk.
+ */
 export function defaultCollectorDeps(): CollectorDeps {
   return {
     platform: process.platform,
-    readFile: (p) => readFile(p, "utf8"),
-    listDir: (p) => readdir(p),
+    readFile: async (p) => readFileSync(p, "utf8"),
+    listDir: async (p) => readdirSync(p),
     statfs: async (p) => {
-      const s = await statfs(p);
+      const s = statfsSync(p);
       return { bsize: Number(s.bsize), blocks: Number(s.blocks), bfree: Number(s.bfree), bavail: Number(s.bavail) };
     },
     exec: async (cmd, args) => (await execFileP(cmd, args, { timeout: 5_000, maxBuffer: 1 << 20 })).stdout,
@@ -76,7 +82,7 @@ async function attempt<T>(fn: () => Promise<T | null>): Promise<T | null> {
 
 /**
  * Builds a collector. Linux (and WSL, which exposes the same /proc) reads /proc and statfs;
- * macOS uses the os module plus `vm_stat` and `df -k`; any other platform gets the os-module
+ * macOS uses the os module plus `vm_stat`, `df -k` and `netstat -ib`; any other platform gets the os-module
  * fallback (cpu, mem, load, uptime) with disk/net/temp left empty.
  * Every source fails soft: a missing file degrades one field instead of the whole sample.
  */
@@ -142,8 +148,10 @@ export function createCollector(deps: CollectorDeps): Collector {
   }
 
   async function netRates(): Promise<{ rx: number | null; tx: number | null }> {
-    if (!linux) return { rx: null, tx: null }; // TODO(macOS): parse `netstat -ib` if ever needed
-    const totals = await attempt(async () => parseNetDev(await deps.readFile("/proc/net/dev")));
+    if (!linux && !mac) return { rx: null, tx: null };
+    const totals = linux
+      ? await attempt(async () => parseNetDev(await deps.readFile("/proc/net/dev")))
+      : await attempt(async () => parseNetstatIb(await deps.exec("netstat", ["-ib", "-n"])));
     if (!totals) return { rx: null, tx: null };
     const at = deps.now();
     const prev = prevNet;

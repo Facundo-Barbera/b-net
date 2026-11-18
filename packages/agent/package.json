@@ -1,6 +1,6 @@
 {
   "name": "@b-net/agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -11,6 +11,9 @@
     "@b-net/core": "workspace:*"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning src/serve.ts"
+    "push": "node --disable-warning=ExperimentalWarning src/push.ts",
+    "start": "node --disable-warning=ExperimentalWarning src/serve.ts",
+    "build:bin": "bun build src/push.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig --outfile dist/b-net-agent",
+    "measure": "node scripts/measure.ts"
   }
 }

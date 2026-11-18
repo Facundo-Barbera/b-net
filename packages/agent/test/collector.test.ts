@@ -133,21 +133,43 @@ describe("macOS collector (injected exec)", () => {
           calls.push([cmd, ...args].join(" "));
           if (cmd === "vm_stat") return fx("vm_stat.txt");
           if (cmd === "df" && args[1] === "/System/Volumes/Data") return fx("df-mac-data.txt");
+          if (cmd === "netstat") return fx("netstat-ib-mac.txt");
           throw new Error("unexpected");
         },
       }),
     );
     const m = await c.sample();
-    expect(calls).toEqual(["vm_stat", "df -k /System/Volumes/Data"]);
+    expect(calls).toEqual(["vm_stat", "df -k /System/Volumes/Data", "netstat -ib -n"]);
     expect(m.cpuPct).toBe(50);
     expect(m.memTotalGb).toBe(16);
     expect(m.memPct).toBeCloseTo(((16 * 1024 ** 3 - 140000 * 16384) / 16 / 1024 ** 3) * 100 * 1, 0);
     expect(m.diskPct).toBeCloseTo((500 / 900) * 100, 1);
     expect(m.load1).toBe(2.25);
     expect(m.uptimeSec).toBe(5000);
-    expect(m.netRxBps).toBeNull();
+    expect(m.netRxBps).toBeNull(); // first sample: no delta yet
     expect(m.tempC).toBeNull();
     expect(MachineMetrics.safeParse(m).success).toBe(true);
+  });
+
+  it("derives macOS network rates from two netstat -ib samples", async () => {
+    let t = 0;
+    let rx = 1000;
+    const c = createCollector(
+      fakeDeps({
+        platform: "darwin",
+        now: () => t,
+        exec: async (cmd) => {
+          if (cmd === "netstat") return `Name Mtu Network Address Ipkts Ierrs Ibytes Opkts Oerrs Obytes Coll\nen0 1500 <Link#6> 02:00:00:aa:bb:01 1 0 ${rx} 1 0 ${rx * 2} 0\n`;
+          throw new Error("unexpected");
+        },
+      }),
+    );
+    await c.sample();
+    t = 30_000;
+    rx = 31_000;
+    const m = await c.sample();
+    expect(m.netRxBps).toBe(1000);
+    expect(m.netTxBps).toBe(2000);
   });
 
   it("falls back to os.freemem and df / when vm_stat or the Data volume are unavailable", async () => {

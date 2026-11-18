@@ -103,6 +103,33 @@ export function parseNetDev(text: string): NetTotals | null {
   return seen ? { rxBytes: rx, txBytes: tx } : null;
 }
 
+/** macOS interfaces that would double count (tunnels such as Tailscale's utun, AWDL, bridges) or are loopback. */
+const SKIP_IFACE_MAC = /^(lo\d*|utun\d*|awdl\d*|llw\d*|bridge\d*|gif\d*|stf\d*|anpi\d*|ap\d+)$/;
+
+/**
+ * macOS `netstat -ib -n`: sum Ibytes/Obytes of the link-level rows (`<Link#N>`).
+ * Columns are counted from the right because Address is empty for some interfaces:
+ * ... Ipkts Ierrs Ibytes Opkts Oerrs Obytes Coll.
+ */
+export function parseNetstatIb(text: string): NetTotals | null {
+  let rx = 0;
+  let tx = 0;
+  let seen = false;
+  for (const l of text.split("\n")) {
+    const f = l.trim().split(/\s+/);
+    if (f.length < 10 || !f[2]?.startsWith("<Link#")) continue;
+    const name = f[0]!.replace(/\*$/, "");
+    if (SKIP_IFACE_MAC.test(name)) continue;
+    const ib = Number(f[f.length - 5]);
+    const ob = Number(f[f.length - 2]);
+    if (!Number.isFinite(ib) || !Number.isFinite(ob)) continue;
+    rx += ib;
+    tx += ob;
+    seen = true;
+  }
+  return seen ? { rxBytes: rx, txBytes: tx } : null;
+}
+
 /** Bytes/s between two cumulative counters; null on counter reset or zero elapsed time. */
 export function ratePerSec(prev: number, cur: number, elapsedSec: number): number | null {
   if (elapsedSec <= 0 || cur < prev) return null;
