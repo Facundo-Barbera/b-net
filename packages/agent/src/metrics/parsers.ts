@@ -103,6 +103,33 @@ export function parseNetDev(text: string): NetTotals | null {
   return seen ? { rxBytes: rx, txBytes: tx } : null;
 }
 
+/** macOS interfaces that would double count (tunnels such as Tailscale's utun, AWDL, bridges) or are loopback. */
+const SKIP_IFACE_MAC = /^(lo\d*|utun\d*|awdl\d*|llw\d*|bridge\d*|gif\d*|stf\d*|anpi\d*|ap\d+)$/;
+
+/**
+ * macOS `netstat -ib -n`: sum Ibytes/Obytes of the link-level rows (`<Link#N>`).
+ * Columns are counted from the right because Address is empty for some interfaces:
+ * ... Ipkts Ierrs Ibytes Opkts Oerrs Obytes Coll.
+ */
+export function parseNetstatIb(text: string): NetTotals | null {
+  let rx = 0;
+  let tx = 0;
+  let seen = false;
+  for (const l of text.split("\n")) {
+    const f = l.trim().split(/\s+/);
+    if (f.length < 10 || !f[2]?.startsWith("<Link#")) continue;
+    const name = f[0]!.replace(/\*$/, "");
+    if (SKIP_IFACE_MAC.test(name)) continue;
+    const ib = Number(f[f.length - 5]);
+    const ob = Number(f[f.length - 2]);
+    if (!Number.isFinite(ib) || !Number.isFinite(ob)) continue;
+    rx += ib;
+    tx += ob;
+    seen = true;
+  }
+  return seen ? { rxBytes: rx, txBytes: tx } : null;
+}
+
 /** Bytes/s between two cumulative counters; null on counter reset or zero elapsed time. */
 export function ratePerSec(prev: number, cur: number, elapsedSec: number): number | null {
   if (elapsedSec <= 0 || cur < prev) return null;
@@ -174,3 +201,50 @@ export function clampPct(n: number): number {
 
 export const BYTES_PER_GB = 1024 ** 3;
 export const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+export interface GpuReading {
+  name: string;
+  count: number;
+  utilPct: number | null;
+  memUsedMb: number | null;
+  memTotalMb: number | null;
+  tempC: number | null;
+}
+
+/** Field list for `nvidia-smi --query-gpu=... --format=csv,noheader,nounits` (order matters for the parser). */
+export const NVIDIA_SMI_QUERY = "name,utilization.gpu,memory.used,memory.total,temperature.gpu";
+
+/**
+ * One CSV line per GPU: `name, util, memUsed, memTotal, temp`. Fields are read from the right so a
+ * comma in the name cannot shift them; "[N/A]" / "[Not Supported]" become null. Several GPUs are
+ * folded: max util and temp, summed memory.
+ */
+export function parseNvidiaSmi(text: string): GpuReading | null {
+  const val = (s: string | undefined): number | null => {
+    const n = Number(s?.trim());
+    return s !== undefined && s.trim() !== "" && Number.isFinite(n) ? n : null;
+  };
+  const maxOf = (a: number | null, b: number | null) => (a === null ? b : b === null ? a : Math.max(a, b));
+  const sumOf = (a: number | null, b: number | null) => (a === null ? b : b === null ? a : a + b);
+  let out: GpuReading | null = null;
+  for (const line of text.split("\n")) {
+    const f = line.split(",");
+    if (f.length < 5) continue;
+    const temp = val(f.pop());
+    const total = val(f.pop());
+    const used = val(f.pop());
+    const util = val(f.pop());
+    const name = f.join(",").trim().slice(0, 128);
+    if (!name) continue;
+    out = out
+      ? { name: out.name, count: out.count + 1, utilPct: maxOf(out.utilPct, util), memUsedMb: sumOf(out.memUsedMb, used), memTotalMb: sumOf(out.memTotalMb, total), tempC: maxOf(out.tempC, temp) }
+      : { name, count: 1, utilPct: util, memUsedMb: used, memTotalMb: total, tempC: temp };
+  }
+  if (out?.utilPct != null) out.utilPct = clampPct(out.utilPct);
+  return out;
+}
+
+/** WSL kernels say so in /proc/sys/kernel/osrelease ("...-microsoft-standard-WSL2"). */
+export function isWslRelease(osrelease: string): boolean {
+  return /microsoft|wsl/i.test(osrelease);
+}

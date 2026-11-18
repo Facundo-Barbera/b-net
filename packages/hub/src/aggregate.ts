@@ -22,6 +22,8 @@ export interface AggregateInput {
   beszelConfigured: boolean;
   /** Latest agent metrics by machine id. */
   agentMetrics: Record<string, AgentMetrics>;
+  /** Machines with an ingest token: they count as having a metrics source even without agentUrl/beszelName. */
+  pushAgents?: ReadonlySet<string>;
   threads: T3ThreadView[];
   proxy: { status: ProxyStatus | null; accounts: AccountView[]; secrets: SecretMeta[] } | null;
   sources: SourceHealth[];
@@ -69,7 +71,7 @@ export function aggregate(input: AggregateInput): HubSnapshot {
         metricsAt: picked.at,
         // A beszelName only counts when the hub can reach Beszel at all; otherwise the machine would be
         // flagged "degraded / metrics missing" for a source that was never connected.
-        hasMetricsSource: Boolean(m.agentUrl) || (Boolean(m.beszelName) && input.beszelConfigured),
+        hasMetricsSource: Boolean(m.agentUrl) || (Boolean(m.beszelName) && input.beszelConfigured) || Boolean(input.pushAgents?.has(m.id)),
         beszelStatus: picked.beszelStatus,
         now: input.now,
       },

@@ -2,16 +2,20 @@
  * Hub runtime: owns one SourceTracker per source, runs poll cycles (on demand or on timers)
  * and builds the HubSnapshot from fresh data. All I/O is injected so tests drive it with fakes.
  */
-import type { AgentMetrics, HubSnapshot, MachineConfig, T3ThreadView } from "@b-net/core";
+import type { AgentMetrics, HubSnapshot, MachineConfig, SourceHealth, T3ThreadView } from "@b-net/core";
 import type { BeszelClient, BeszelMachine } from "@b-net/core/clients/beszel";
 import type { PingOutcome, TailscaleSource, TailscaleStatus } from "@b-net/core/clients/tailscale";
 import { aggregate } from "./aggregate.ts";
 import { SourceTracker, type Clock } from "./health.ts";
+import { historyFrom, type SqliteMetricsStore } from "./metrics-store.ts";
 import { fetchAgentMetrics, fetchAgentThreads, fetchProxy, ingestUsage, pollTailscale, type FetchLike } from "./sources.ts";
 import type { StatusThresholds } from "./status.ts";
 import type { UsageStore } from "./store.ts";
 
 export const HUB_VERSION = "0.1.0";
+/** Sparkline window built from pushed raw samples (60 points at the agent's default 30 s). */
+const PUSH_HISTORY_SEC = 30 * 60;
+const PUSH_DEFAULT_STEP_SEC = 30;
 
 export interface HubDeps {
   machines: MachineConfig[];
@@ -26,6 +30,8 @@ export interface HubDeps {
   t3Exporters?: string[];
   proxy?: { url: string; token: string | null } | null;
   store: UsageStore;
+  /** Metrics pushed by agents (POST /ingest/v1/metrics). Preferred over pulled agent metrics. */
+  metrics?: Pick<SqliteMetricsStore, "listTokens" | "recent"> | null;
   pollFastSec?: number;
   pollAgentSec?: number;
   thresholds?: StatusThresholds;
@@ -62,6 +68,29 @@ export function createHub(deps: HubDeps): Hub {
     metrics: new SourceTracker<AgentMetrics>("agent", a.machineId, clock),
     threads: new SourceTracker<T3ThreadView[]>("t3", a.machineId, clock),
   }));
+  const pushSources = () => {
+    const metrics = deps.metrics;
+    if (!metrics) return [];
+    const nowSec = clock().getTime() / 1000;
+    return metrics.listTokens().map(({ machineId }) => {
+      const samples = metrics.recent(machineId, Math.floor(nowSec - PUSH_HISTORY_SEC));
+      const last = samples.at(-1) ?? null;
+      const ageSec = last ? nowSec - last.ts : null;
+      const fresh = ageSec !== null && ageSec * 1000 <= agentMaxAge;
+      const at = last ? new Date(last.ts * 1000).toISOString() : null;
+      const stepSec = samples.length > 1 ? Math.max(1, Math.round((last!.ts - samples[0]!.ts) / (samples.length - 1))) : PUSH_DEFAULT_STEP_SEC;
+      const health: SourceHealth = {
+        source: "agent",
+        machineId,
+        ok: fresh,
+        lastSuccessAt: at,
+        error: fresh ? null : ageSec === null ? "no push received" : `no push for ${Math.round(ageSec)} s`,
+      };
+      const value: AgentMetrics | null = fresh ? { machineId, at: at!, metrics: last!.metrics, history: historyFrom(samples, stepSec) } : null;
+      return { machineId, health, value };
+    });
+  };
+
   const exporters = (deps.t3Exporters ?? []).map((url) => ({ url, threads: new SourceTracker<T3ThreadView[]>("t3", null, clock) }));
 
   async function pollFast() {
@@ -97,6 +126,9 @@ export function createHub(deps: HubDeps): Hub {
       const m = a.metrics.fresh(agentMaxAge);
       if (m) agentMetrics[a.machineId] = m;
     }
+    // Fresh pushed samples win over pulled ones; aggregate() then prefers agent > Beszel > none.
+    const pushed = pushSources();
+    for (const p of pushed) if (p.value) agentMetrics[p.machineId] = p.value;
     for (const list of [...agents.map((a) => a.threads.fresh(agentMaxAge)), ...exporters.map((e) => e.threads.fresh(agentMaxAge))]) {
       for (const t of list ?? []) {
         const key = `${t.machineId}/${t.id}`;
@@ -109,6 +141,7 @@ export function createHub(deps: HubDeps): Hub {
       proxy?.health(),
       ...agents.flatMap((a) => [a.metrics.health(), a.threads.health()]),
       ...exporters.map((e) => e.threads.health()),
+      ...pushed.map((p) => p.health),
     ].filter((s) => s !== undefined);
 
     return aggregate({
@@ -120,6 +153,7 @@ export function createHub(deps: HubDeps): Hub {
       beszel: beszel?.fresh(fastMaxAge) ?? null,
       beszelConfigured: beszel !== null,
       agentMetrics,
+      pushAgents: new Set(pushed.map((p) => p.machineId)),
       threads,
       proxy: proxy?.fresh(fastMaxAge) ?? null,
       sources,

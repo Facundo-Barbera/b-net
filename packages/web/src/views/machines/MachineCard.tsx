@@ -1,4 +1,4 @@
-import type { MachineView, SourceHealth } from "@b-net/core";
+import type { GpuMetrics, MachineView, SourceHealth } from "@b-net/core";
 import { Badge, Callout, Card, KV, KeyValue, Meter, RelativeTime, StatusDot, Tag, toneForMachineStatus, toneForServiceStatus, type Tone } from "../../components/index.ts";
 import { SOURCE_SETUP } from "../../data/sources.ts";
 import { DASH, formatBps, formatDuration, formatUsedOfGb } from "../../lib/format.ts";
@@ -7,6 +7,14 @@ import { STALE_METRICS_MS, TEMP_DANGER_C, TEMP_WARN_C } from "../../lib/threshol
 import { OS_LABEL, ROLE_LABEL, STATUS_LABEL, ageMs, ago, awake, linkLabel, metricsNote } from "./derive.ts";
 
 const TEMP_FLAG: Partial<Record<Tone, string>> = { warn: " · alta", danger: " · crítica" };
+
+/** "37 % · 1.0 / 8.0 GB · 52 °C" (missing parts become a dash). */
+function gpuLabel(g: GpuMetrics): string {
+  const util = g.utilPct === null ? DASH : `${Math.round(g.utilPct)} %`;
+  const mem = g.memUsedMb === null || g.memTotalMb === null ? DASH : formatUsedOfGb(g.memUsedMb / 1024, g.memTotalMb / 1024);
+  const temp = g.tempC === null ? DASH : `${Math.round(g.tempC)} °C`;
+  return `${util} · ${mem} · ${temp}`;
+}
 
 export function MachineCard({
   m, isHub, selected, nowMs, sources, onSelect,
@@ -74,12 +82,18 @@ export function MachineCard({
             <KV label="Temp" tone={tempTone}>
               {met.tempC == null ? DASH : `${Math.round(met.tempC)} °C${tempTone ? TEMP_FLAG[tempTone] : ""}`}
             </KV>
+            {met.gpu && (
+              <KV label="GPU" title={met.gpu.count > 1 ? `${met.gpu.name} (+${met.gpu.count - 1})` : met.gpu.name}>
+                {gpuLabel(met.gpu)}
+              </KV>
+            )}
           </>
         )}
         {m.metricsSource !== "none" && (
           <KV label="Métricas" tone={stale ? "warn" : undefined}>
             {`${m.metricsSource} · ${ago(m.metricsAt, nowMs)}`}
             {stale && " (desactualizadas)"}
+            {met?.wslVm && <span title="CPU, RAM, disco y red son los de la VM de WSL, no del Windows anfitrión"> · WSL VM</span>}
           </KV>
         )}
       </KeyValue>

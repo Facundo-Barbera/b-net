@@ -228,3 +228,23 @@ describe("MachinesView: accessibility of the map", () => {
     expect(screen.getByTestId("machine-detail").getAttribute("data-machine")).toBe("bixku-vps");
   });
 });
+
+describe("MachineCard: pushed GPU and WSL data", () => {
+  it("shows the GPU row and the WSL VM note only when the agent reports them", () => {
+    const snap: HubSnapshot = {
+      ...snapshotFixture,
+      machines: snapshotFixture.machines.map((m) =>
+        m.id === "pc-bixku" && m.metrics
+          ? { ...m, metrics: { ...m.metrics, wslVm: true, gpu: { name: "NVIDIA GeForce RTX 3050", count: 1, utilPct: 37, memUsedMb: 1024, memTotalMb: 8192, tempC: 52 } } }
+          : m,
+      ),
+    };
+    renderView(snap);
+    const pc = screen.getByTestId("card-pc-bixku");
+    expect(within(pc).getByText("37 % · 1.0 / 8.0 GB · 52 °C")).toBeTruthy();
+    expect(within(pc).getByText(/WSL VM/)).toBeTruthy();
+    const home = screen.getByTestId("card-bixku-homelab");
+    expect(within(home).queryByText("GPU")).toBeNull();
+    expect(within(home).queryByText(/WSL VM/)).toBeNull();
+  });
+});

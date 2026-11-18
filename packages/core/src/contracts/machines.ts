@@ -38,6 +38,20 @@ export const TailscaleLink = z.object({
 });
 export type TailscaleLink = z.infer<typeof TailscaleLink>;
 
+/**
+ * NVIDIA GPU(s) read by the agent with nvidia-smi. Several GPUs are folded into one entry:
+ * highest utilisation and temperature, summed memory, `count` says how many.
+ */
+export const GpuMetrics = z.object({
+  name: z.string().max(128),
+  count: z.number().int().positive(),
+  utilPct: z.number().min(0).max(100).nullable(),
+  memUsedMb: z.number().nonnegative().nullable(),
+  memTotalMb: z.number().nonnegative().nullable(),
+  tempC: z.number().nullable(),
+});
+export type GpuMetrics = z.infer<typeof GpuMetrics>;
+
 export const MachineMetrics = z.object({
   cpuPct: z.number().min(0).max(100),
   memPct: z.number().min(0).max(100),
@@ -51,6 +65,10 @@ export const MachineMetrics = z.object({
   netTxBps: z.number().nonnegative().nullable(),
   uptimeSec: z.number().nonnegative().nullable(),
   tempC: z.number().nullable(),
+  /** Only from the b-net agent, and only when nvidia-smi exists. Absent = no GPU data. */
+  gpu: GpuMetrics.strict().nullable().optional(),
+  /** true when cpu/mem/disk/net are those of the WSL VM, not the Windows host (agent only). */
+  wslVm: z.boolean().optional(),
 });
 export type MachineMetrics = z.infer<typeof MachineMetrics>;
 

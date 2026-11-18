@@ -10,5 +10,8 @@
   "dependencies": {
     "@b-net/core": "workspace:*",
     "zod": "^4.1.0"
+  },
+  "scripts": {
+    "agent-token": "node scripts/agent-token.ts"
   }
 }

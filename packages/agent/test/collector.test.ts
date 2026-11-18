@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MachineMetrics } from "@b-net/core";
-import { createCollector, type CollectorDeps } from "../src/metrics/collector.ts";
+import { GPU_BACKOFF_SAMPLES, GPU_TIMEOUT_MS, createCollector, type CollectorDeps } from "../src/metrics/collector.ts";
 import { MetricHistoryBuffer } from "../src/metrics/history.ts";
 import { Sampler } from "../src/sampler.ts";
 import { fx } from "./helpers.ts";
@@ -133,21 +133,43 @@ describe("macOS collector (injected exec)", () => {
           calls.push([cmd, ...args].join(" "));
           if (cmd === "vm_stat") return fx("vm_stat.txt");
           if (cmd === "df" && args[1] === "/System/Volumes/Data") return fx("df-mac-data.txt");
+          if (cmd === "netstat") return fx("netstat-ib-mac.txt");
           throw new Error("unexpected");
         },
       }),
     );
     const m = await c.sample();
-    expect(calls).toEqual(["vm_stat", "df -k /System/Volumes/Data"]);
+    expect(calls).toEqual(["vm_stat", "df -k /System/Volumes/Data", "netstat -ib -n"]);
     expect(m.cpuPct).toBe(50);
     expect(m.memTotalGb).toBe(16);
     expect(m.memPct).toBeCloseTo(((16 * 1024 ** 3 - 140000 * 16384) / 16 / 1024 ** 3) * 100 * 1, 0);
     expect(m.diskPct).toBeCloseTo((500 / 900) * 100, 1);
     expect(m.load1).toBe(2.25);
     expect(m.uptimeSec).toBe(5000);
-    expect(m.netRxBps).toBeNull();
+    expect(m.netRxBps).toBeNull(); // first sample: no delta yet
     expect(m.tempC).toBeNull();
     expect(MachineMetrics.safeParse(m).success).toBe(true);
+  });
+
+  it("derives macOS network rates from two netstat -ib samples", async () => {
+    let t = 0;
+    let rx = 1000;
+    const c = createCollector(
+      fakeDeps({
+        platform: "darwin",
+        now: () => t,
+        exec: async (cmd) => {
+          if (cmd === "netstat") return `Name Mtu Network Address Ipkts Ierrs Ibytes Opkts Oerrs Obytes Coll\nen0 1500 <Link#6> 02:00:00:aa:bb:01 1 0 ${rx} 1 0 ${rx * 2} 0\n`;
+          throw new Error("unexpected");
+        },
+      }),
+    );
+    await c.sample();
+    t = 30_000;
+    rx = 31_000;
+    const m = await c.sample();
+    expect(m.netRxBps).toBe(1000);
+    expect(m.netTxBps).toBe(2000);
   });
 
   it("falls back to os.freemem and df / when vm_stat or the Data volume are unavailable", async () => {
@@ -204,5 +226,77 @@ describe("Sampler + MetricHistoryBuffer", () => {
     await Promise.all([s.tick(), s.tick()]); // one real sample
     expect(calls).toBe(2);
     expect((await s.snapshot()).history!.cpuPct).toEqual([1, 2]);
+  });
+});
+
+describe("GPU (nvidia-smi) and WSL", () => {
+  it("never spawns anything when nvidia-smi does not exist, and omits gpu/wslVm", async () => {
+    const execs: string[] = [];
+    const c = createCollector(
+      fakeDeps({
+        exists: () => false,
+        env: { PATH: "/usr/bin:/bin" },
+        exec: async (cmd) => (execs.push(cmd), ""),
+      }),
+    );
+    const m = await c.sample();
+    await c.sample();
+    expect(execs).toEqual([]);
+    expect("gpu" in m).toBe(false);
+    expect("wslVm" in m).toBe(false);
+  });
+
+  it("finds nvidia-smi in the WSL driver dir, uses a short timeout, and flags the WSL VM", async () => {
+    const calls: Array<{ cmd: string; args: string[]; timeoutMs: number | undefined }> = [];
+    let existsCalls = 0;
+    const c = createCollector(
+      fakeDeps({
+        files: () => ({ "/proc/sys/kernel/osrelease": "5.15.167.4-microsoft-standard-WSL2\n" }),
+        env: { PATH: "/usr/bin:/bin" },
+        exists: (p) => (existsCalls++, p === "/usr/lib/wsl/lib/nvidia-smi"),
+        exec: async (cmd, args, opts) => (calls.push({ cmd, args, timeoutMs: opts?.timeoutMs }), fx("nvidia-smi.txt")),
+      }),
+    );
+    const m = await c.sample();
+    const probes = existsCalls;
+    await c.sample();
+    expect(existsCalls).toBe(probes); // path resolved once
+    expect(calls[0]).toEqual({
+      cmd: "/usr/lib/wsl/lib/nvidia-smi",
+      args: ["--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu", "--format=csv,noheader,nounits"],
+      timeoutMs: GPU_TIMEOUT_MS,
+    });
+    expect(m.gpu).toEqual({ name: "NVIDIA GeForce RTX 3050", count: 1, utilPct: 37, memUsedMb: 1024, memTotalMb: 8192, tempC: 52 });
+    expect(m.wslVm).toBe(true);
+    expect(MachineMetrics.safeParse(m).success).toBe(true);
+  });
+
+  it("backs off after a failed or hung nvidia-smi instead of retrying every sample", async () => {
+    let n = 0;
+    const c = createCollector(
+      fakeDeps({
+        exists: (p) => p === "/usr/bin/nvidia-smi",
+        exec: async () => {
+          n++;
+          throw new Error("timeout");
+        },
+      }),
+    );
+    const first = await c.sample();
+    expect(first.gpu).toBeNull(); // present but unreadable
+    for (let i = 0; i < GPU_BACKOFF_SAMPLES; i++) await c.sample();
+    expect(n).toBe(1);
+    await c.sample();
+    expect(n).toBe(2);
+  });
+
+  it("AGENT_GPU=off disables probing entirely", async () => {
+    const c = createCollector(fakeDeps({ exists: () => true, env: { AGENT_GPU: "off" }, exec: async () => fx("nvidia-smi.txt") }));
+    expect("gpu" in (await c.sample())).toBe(false);
+  });
+
+  it("WSL_DISTRO_NAME alone is enough to flag WSL", async () => {
+    const c = createCollector(fakeDeps({ env: { WSL_DISTRO_NAME: "Ubuntu-24.04" } }));
+    expect((await c.sample()).wslVm).toBe(true);
   });
 });

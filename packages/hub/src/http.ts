@@ -1,12 +1,13 @@
 /**
  * Fetch-API handler for all HubRoutes + static UI. `(req: Request) => Promise<Response>`.
- * GET/HEAD everywhere (GET /api/v1/work derives the work home from the snapshot and the projects store); POST only on /api/v1/projects/** and only with a bot token.
+ * GET/HEAD everywhere (GET /api/v1/work derives the work home from the snapshot and the projects store);
+ * POST on /api/v1/projects/** (bot token) and on the agent ingest route (per-machine token).
  * Reads: optional hub bearer token on /api/* (bot tokens are accepted too). Secrets: SecretMeta only.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
+import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
 import { botFromAuth, type BotToken } from "./bot-auth.ts";
 import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
 import { SECURITY_HEADERS, error, json } from "./respond.ts";
@@ -27,6 +28,8 @@ export interface HandlerDeps {
   botTokens?: readonly BotToken[];
   /** Reference time for derived views such as /api/v1/work (tests pin it). */
   clock?: () => Date;
+  /** POST IngestRoutes.metrics; absent = route answers 404. */
+  ingest?: Handler | null;
 }
 
 const BOT_CHALLENGE = { "www-authenticate": 'Bearer realm="b-net", error="invalid_token"' };
@@ -107,6 +110,8 @@ export function createHandler(deps: HandlerDeps): Handler {
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const head = req.method === "HEAD";
+    // Ingest uses its own per-machine token and is not under /api/.
+    if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
     const isApi = path === "/api" || path.startsWith("/api/");
     if (req.method === "POST" && isApi && isProjectsPath(path)) return write(req, path, url.searchParams);
     if (req.method !== "GET" && !head) return error(405, "method not allowed");

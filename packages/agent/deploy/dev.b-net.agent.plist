@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- launchd user agent for the push agent. Template: install.sh fills the @...@ placeholders and
+     copies it to ~/Library/LaunchAgents/dev.b-net.agent.plist. No root needed; opens no port.
+     macOS enforces no RSS cap for user agents; ProcessType=Background gives the darwin background
+     policy (CPU and IO throttled while the machine is busy). -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>dev.b-net.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+@PROGRAM_ARGS@
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>AGENT_MACHINE_ID</key><string>@MACHINE_ID@</string>
+    <key>AGENT_HUB_URL</key><string>@HUB_URL@</string>
+    <key>AGENT_INTERVAL_SEC</key><string>@INTERVAL@</string>
+    <key>AGENT_TOKEN_FILE</key><string>@CONFIG_DIR@/token</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>LowPriorityIO</key><true/>
+  <key>LowPriorityBackgroundIO</key><true/>
+  <key>Nice</key><integer>15</integer>
+  <key>StandardOutPath</key><string>@LOG_FILE@</string>
+  <key>StandardErrorPath</key><string>@LOG_FILE@</string>
+</dict>
+</plist>
