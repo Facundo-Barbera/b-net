@@ -4,7 +4,8 @@
  * plain env vars are accepted as a fallback. Secret values are never logged or echoed in errors.
  */
 import { z } from "zod";
-import { MachineConfig } from "@b-net/core";
+import { BotName, MachineConfig } from "@b-net/core";
+import type { BotToken } from "./bot-auth.ts";
 
 export type ReadTextFile = (path: string) => string;
 
@@ -26,6 +27,10 @@ export interface HubConfig {
   proxy: { url: string; token: string | null } | null;
   pollFastSec: number;
   pollAgentSec: number;
+  /** Bots allowed to write (POST). Loaded from HUB_BOT_TOKENS_FILE; only hashes are kept. */
+  botTokens: BotToken[];
+  /** Cap on the sum of all stored deliverables. */
+  deliverablesQuotaBytes: number;
 }
 
 export class ConfigError extends Error {
@@ -73,6 +78,44 @@ export function parseMachines(raw: unknown): MachineConfig[] {
   }
   return r.data;
 }
+
+const BotTokensFile = z
+  .object({
+    bots: z.array(z.object({ name: BotName, tokenSha256: z.string().regex(/^[0-9a-f]{64}$/, "64 lowercase hex chars") }).strict()),
+  })
+  .strict();
+
+/** Validates the bot token file. Errors name the offending path, never a hash. */
+export function parseBotTokens(raw: unknown): BotToken[] {
+  const r = BotTokensFile.safeParse(raw);
+  if (!r.success) {
+    const i = r.error.issues[0];
+    throw new ConfigError(`bot tokens file invalid at ${i?.path.join(".") ?? "?"}: ${i?.message ?? ""}`);
+  }
+  const names = new Set<string>();
+  const hashes = new Set<string>();
+  for (const b of r.data.bots) {
+    if (names.has(b.name)) throw new ConfigError(`bot tokens file: duplicate bot ${b.name}`);
+    // Two bots sharing a token would make the author ambiguous.
+    if (hashes.has(b.tokenSha256)) throw new ConfigError(`bot tokens file: bot ${b.name} reuses another bot's token`);
+    names.add(b.name);
+    hashes.add(b.tokenSha256);
+  }
+  return r.data.bots;
+}
+
+function loadBotTokens(file: string | undefined, read: ReadTextFile): BotToken[] {
+  if (!file) return [];
+  let raw: unknown;
+  try {
+    raw = JSON.parse(read(file));
+  } catch {
+    throw new ConfigError("cannot read/parse HUB_BOT_TOKENS_FILE");
+  }
+  return parseBotTokens(raw);
+}
+
+const GIB = 1024 ** 3;
 
 export function loadHubConfig(env: Record<string, string | undefined>, read: ReadTextFile): HubConfig {
   const listenHost = env.HUB_LISTEN_HOST?.trim() ?? "";
@@ -125,5 +168,7 @@ export function loadHubConfig(env: Record<string, string | undefined>, read: Rea
     proxy: proxyUrl ? { url: proxyUrl.replace(/\/+$/, ""), token: secret(env, "HUB_PROXY_TOKEN", read) } : null,
     pollFastSec: intIn(env.HUB_POLL_FAST_SEC, 15, 5, 3600, "HUB_POLL_FAST_SEC"),
     pollAgentSec: intIn(env.HUB_POLL_AGENT_SEC, 30, 5, 3600, "HUB_POLL_AGENT_SEC"),
+    botTokens: loadBotTokens(env.HUB_BOT_TOKENS_FILE?.trim(), read),
+    deliverablesQuotaBytes: intIn(env.HUB_DELIVERABLES_QUOTA_GB, 100, 1, 100_000, "HUB_DELIVERABLES_QUOTA_GB") * GIB,
   };
 }
