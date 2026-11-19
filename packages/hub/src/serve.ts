@@ -9,12 +9,14 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve } from "node:path";
 import { Readable } from "node:stream";
-import { INGEST_MAX_BYTES, IngestRoutes } from "@b-net/core";
+import { INGEST_MAX_BYTES, IngestRoutes, type ProjectSummary } from "@b-net/core";
 import { createBeszelClient } from "@b-net/core/clients/beszel";
 import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
 import { ConfigError, loadHubConfig, withEnvFile } from "./config.ts";
+import { createBoardAuthenticate, type BoardAuthenticate } from "./board/auth.ts";
 import { loadBoardConfig } from "./board/config.ts";
-import { createHandler, fsStaticReader, type Handler } from "./http.ts";
+import type { SqliteBoardTokenStore } from "./board/tokens.ts";
+import { createHandler, fsStaticReader, isBoardPath, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
 import { DeliverableFiles } from "./deliverables.ts";
 import { createIngestHandler } from "./ingest.ts";
@@ -79,10 +81,40 @@ async function writeResponse(res: ServerResponse, r: Response) {
   Readable.fromWeb(r.body as import("node:stream/web").ReadableStream).pipe(res);
 }
 
-export function mount(handler: Handler, host: string, port: number) {
+/** A handler that also learns the TCP peer, which the Fetch Request cannot carry. */
+export type PeerHandler = (req: Request, remoteAddress: string | undefined) => Promise<Response>;
+
+/**
+ * Board's authenticate sees only headers, so the Tailscale login and a bot's channel scope are
+ * rewritten here from the TCP peer before Board gets the request (auth.ts explains why). Other
+ * routes never read those headers and pass through untouched.
+ */
+export function withBoardPeer(handler: Handler, auth: Pick<BoardAuthenticate, "prepare"> | null): PeerHandler {
+  if (!auth) return (req) => handler(req);
+  return (req, remoteAddress) => handler(isBoardPath(new URL(req.url).pathname) ? auth.prepare(req, remoteAddress) : req);
+}
+
+/**
+ * The Board access of the hub: HUB_BOARD_ADMINS by Tailscale login, each bot by its Board token
+ * (only its hash is stored), granted the `<slug>/` channels of the projects it owns. Ownership is
+ * read per request, so reassigning a project changes the bot's channels without a restart.
+ */
+export function boardAccess(deps: {
+  admins: readonly string[];
+  tokens: Pick<SqliteBoardTokenStore, "botForToken">;
+  projects: () => readonly ProjectSummary[];
+}): BoardAuthenticate {
+  return createBoardAuthenticate({
+    admins: deps.admins,
+    botForToken: (token) => deps.tokens.botForToken(token),
+    projectsOfBot: (bot) => deps.projects().filter((p) => p.ownerBot === bot).map((p) => p.id),
+  });
+}
+
+export function mount(handler: PeerHandler, host: string, port: number) {
   const server = createServer((req, res) => {
     adaptRequest(req, `${host}:${port}`)
-      .then(handler)
+      .then((r) => handler(r, req.socket.remoteAddress))
       .then((r) => writeResponse(res, r))
       .catch((e) => {
         if (res.headersSent || res.destroyed) return;
@@ -134,12 +166,23 @@ async function main() {
   }
   const metrics = new SqliteMetricsStore(dbPath);
 
-  // Board lives in this process (no `vb serve`), its file under $HUB_DATA_DIR/board. Until the access and
-  // events modules are plugged in here (authenticate, watch, onStart), it refuses every caller and runs no watchers.
+  // Board lives in this process (no `vb serve`), its file under $HUB_DATA_DIR/board. The events module
+  // (watch, onStart) is not plugged in yet, so it runs no watchers.
   let boardService: import("./board/service.ts").BoardService | null = null;
+  let boardAuth: BoardAuthenticate | null = null;
+  let boardTokens: SqliteBoardTokenStore | null = null;
   if (boardCfg && cfg.dataDir) {
     const { createBoardService, boardDir } = await import("./board/service.ts");
-    boardService = createBoardService({ config: boardCfg, storage: { dir: boardDir(cfg.dataDir) }, catalog: () => projects?.catalog() ?? [] });
+    const { SqliteBoardTokenStore } = await import("./board/tokens.ts");
+    // Same file scripts/board-token.ts writes, so issued and revoked tokens apply at the next request.
+    boardTokens = new SqliteBoardTokenStore(dbPath);
+    boardAuth = boardAccess({ admins: cfg.boardAdmins, tokens: boardTokens, projects: () => projectStore?.listProjects() ?? [] });
+    boardService = createBoardService({
+      config: boardCfg,
+      storage: { dir: boardDir(cfg.dataDir) },
+      authenticate: boardAuth,
+      catalog: () => projects?.catalog() ?? [],
+    });
     await boardService.start();
   }
 
@@ -175,21 +218,33 @@ async function main() {
     board: boardService,
   });
 
+  const served = withBoardPeer(handler, boardAuth);
   const stop = hub.start();
-  const server = mount(handler, cfg.listenHost, cfg.listenPort);
-  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"}, board: ${boardService ? "on" : "off"})`);
+  const servers = [mount(served, cfg.listenHost, cfg.listenPort)];
+  // The admin's Tailscale login is trusted only from loopback, where tailscale serve connects from. The main
+  // listener is on the Tailscale IP, which tailscale serve would reach from that IP too, so the admin path
+  // needs this listener and `tailscale serve` must point at http://127.0.0.1:<HUB_LISTEN_PORT>.
+  const LOOPBACK = "127.0.0.1";
+  if (boardAuth && cfg.boardAdmins.length > 0 && cfg.listenHost !== LOOPBACK) servers.push(mount(served, LOOPBACK, cfg.listenPort));
+  console.log(
+    `b-net listening on ${cfg.listenHost}:${cfg.listenPort}${servers.length > 1 ? ` and ${LOOPBACK}:${cfg.listenPort}` : ""} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"}, board: ${boardService ? `on, admins: ${cfg.boardAdmins.length}` : "off"})`,
+  );
   const shutdown = () => {
     stop();
-    server.close(() => {
+    let open = servers.length;
+    const closed = () => {
+      if (--open > 0) return;
       void (boardService?.stop() ?? Promise.resolve())
         .catch(() => undefined)
         .finally(() => {
           store.close?.();
           projectStore?.close();
+          boardTokens?.close();
           metrics.close();
           process.exit(0);
         });
-    });
+    };
+    for (const s of servers) s.close(closed);
   };
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);

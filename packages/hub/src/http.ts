@@ -104,6 +104,12 @@ async function serveStatic(reader: StaticReader, pathname: string, head: boolean
   return new Response(head ? null : (body as Uint8Array<ArrayBuffer>), { status: 200, headers });
 }
 
+/** Everything Board answers itself (and the only requests whose trust headers serve.ts rewrites from the TCP peer). */
+export function isBoardPath(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  return path === BOARD_BASE_PATH || path.startsWith(`${BOARD_BASE_PATH}/`);
+}
+
 const machineRe = /^\/api\/v1\/machines\/([a-z0-9-]+)$/;
 const ACCOUNT_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -117,7 +123,7 @@ export function createHandler(deps: HandlerDeps): Handler {
     // Ingest uses its own per-machine token and is not under /api/.
     if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
     // Board answers its whole protocol itself, every method, with the authenticate injected into the engine.
-    if (path === BOARD_BASE_PATH || path.startsWith(`${BOARD_BASE_PATH}/`)) {
+    if (isBoardPath(path)) {
       if (deps.board) return deps.board.fetch(req);
       await req.body?.cancel().catch(() => undefined);
       return error(404, "board not configured (HUB_BOARD_URL)");
