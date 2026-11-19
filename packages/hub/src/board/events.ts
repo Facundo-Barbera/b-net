@@ -198,12 +198,15 @@ export class MemorySentLog implements SentLog {
 export class FileSentLog implements SentLog {
   private keys: string[] | null = null;
   private set = new Set<string>();
+  private readonly path: string;
+  private readonly max: number;
+  private readonly warn: (msg: string) => void;
 
-  constructor(
-    private readonly path: string,
-    private readonly max = 5000,
-    private readonly warn: (msg: string) => void = (m) => console.warn(m),
-  ) {}
+  constructor(path: string, max = 5000, warn: (msg: string) => void = (m) => console.warn(m)) {
+    this.path = path;
+    this.max = max;
+    this.warn = warn;
+  }
 
   private load(): string[] {
     if (this.keys) return this.keys;
