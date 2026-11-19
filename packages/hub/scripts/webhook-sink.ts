@@ -12,7 +12,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { BnetWebhookBody } from "@b-net/core";
+import { BnetWebhookBodySchema, type BnetWebhookBody } from "@b-net/core";
 
 const port = Number(process.env.WEBHOOK_SINK_PORT || 8799);
 let failFirst = Number(process.env.WEBHOOK_SINK_FAIL || 0);
@@ -46,7 +46,7 @@ createServer((req, res) => {
     }
     let parsed: BnetWebhookBody | null = null;
     try {
-      const r = BnetWebhookBody.safeParse(JSON.parse(body));
+      const r = BnetWebhookBodySchema.safeParse(JSON.parse(body));
       parsed = r.success ? r.data : null;
     } catch {
       parsed = null;
@@ -55,7 +55,7 @@ createServer((req, res) => {
     const dup = seen.has(id);
     seen.add(id);
     console.log(
-      `${parsed ? "200" : "400"} ${id} attempt ${attempt}${parsed ? ` ${parsed.event.kind} ${parsed.event.project}` : " invalid body"}` +
+      `${parsed ? "200" : "400"} ${id} attempt ${attempt}${parsed ? ` ${parsed.event.kind} ${parsed.event.project} -> ${parsed.event.bot}` : " invalid body"}` +
         `${sig === null ? "" : sig ? " signature ok" : " SIGNATURE BAD"}${dup ? " (repeat: receiver dedupes on the id)" : ""}`,
     );
     res.writeHead(parsed ? 200 : 400).end();

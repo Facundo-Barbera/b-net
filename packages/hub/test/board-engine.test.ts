@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { BoardWork } from "@b-net/core";
+import { BOARD_PACKAGE_VERSION, BoardProjectsResponseSchema } from "@b-net/core";
 import { block } from "@vercel/board";
 import { ConfigError } from "../src/config.ts";
 import { loadBoardConfig } from "../src/board/config.ts";
 import { desiredCan } from "../src/board/grants.ts";
 import { BoardOutbox } from "../src/board/outbox.ts";
-import { actorLabel, plainText } from "../src/board/read.ts";
+import { actorLabel, plainText, prStateOf, workStateOf } from "../src/board/read.ts";
+import hubPackage from "../package.json" with { type: "json" };
 import type { BoardService } from "../src/board/service.ts";
 import { startService } from "./board-helpers.ts";
 
@@ -73,6 +74,22 @@ describe("outbox and cursor", () => {
 });
 
 describe("read helpers", () => {
+  it("pins @vercel/board to the contract's version", () => {
+    expect(hubPackage.dependencies["@vercel/board"]).toBe(BOARD_PACKAGE_VERSION);
+  });
+
+  it("maps Board task states and PR labels to b-net's words", () => {
+    const now = Date.parse("2026-11-15T20:30:00Z");
+    expect(workStateOf({ state: "claimed", claim: { actor: "bnet:bot:x", until: "2026-11-15T20:40:00Z" } }, now)).toBe("en_curso");
+    // A lease that ran out reads as waiting even before Board's timer fires.
+    expect(workStateOf({ state: "claimed", claim: { actor: "bnet:bot:x", until: "2026-11-15T20:00:00Z" } }, now)).toBe("en_espera");
+    expect(workStateOf({ state: "ready", claim: null }, now)).toBe("en_espera");
+    expect(workStateOf({ state: "failed", claim: null }, now)).toBe("bloqueado");
+    expect(workStateOf({ state: "completed", claim: null }, now)).toBe("listo");
+    expect(workStateOf({ state: "canceled", claim: null }, now)).toBeNull();
+    expect([prStateOf("listo"), prStateOf("fusionado"), prStateOf("cerrado"), prStateOf("en_curso"), prStateOf(undefined)]).toEqual(["fusionado", "fusionado", "cerrado", "abierto", "abierto"]);
+  });
+
   it("names actors for people and strips data fences from excerpts", () => {
     expect(actorLabel("bnet:bot:fstack-vps")).toBe("fstack-vps");
     expect(actorLabel("tailscale:user:facundo@example.invalid")).toBe("facundo");
@@ -102,22 +119,25 @@ describe("board service on a real local() board", () => {
 
   it("refuses a bnet.event block that does not match the schema", async () => {
     ({ svc } = await startService());
-    await expect(svc.team.post("b-net/events", block("bnet.event@1", { v: 1, kind: "nope" }))).rejects.toMatchObject({ code: "invalid_block" });
+    await expect(svc.team.post("b-net/eventos", block("bnet.event@1", { schema: "bnet.event", version: 1, kind: "nope" }))).rejects.toMatchObject({ code: "invalid_block" });
   });
 
-  it("serves the UI model: tasks by state, PRs by label, events", async () => {
+  it("serves the UI model: tasks by WorkState, updates, PRs by label, events", async () => {
     ({ svc } = await startService());
     const t = svc.team;
-    await t.tasks.create("b-net/work", { text: "Montar Board", labels: { pr: "Facundo-Barbera/b-net#5", state: "doing" } });
-    await t.post("b-net/prs", { text: "web: centro de trabajo", labels: { project: "b-net", pr: "Facundo-Barbera/b-net#5", state: "open" } });
-    await t.post("b-net/events", `¿Fusiono?\n\n${block("bnet.event@1", { v: 1, kind: "question", project: "b-net", thread: "th_01", summary: "¿Fusiono?", link: null })}`);
-    const work = BoardWork.parse(await svc.work());
-    expect(work.state).toBe("ok");
-    const p = work.projects.find((x) => x.project === "b-net")!;
-    expect(p.tasks.map((x) => [x.title, x.state, x.pr])).toEqual([["Montar Board", "ready", "Facundo-Barbera/b-net#5"]]);
-    expect(p.prs[0]).toMatchObject({ ref: "Facundo-Barbera/b-net#5", url: "https://github.com/Facundo-Barbera/b-net/pull/5", state: "open" });
-    expect(p.events[0]!.event.kind).toBe("question");
+    await t.tasks.create("b-net/tareas", { text: "Montar Board", labels: { project: "b-net", pr: "Facundo-Barbera/b-net#5", thread: "th_01" } });
+    await t.post("b-net/avances", "Tests en verde en la mini: https://github.com/Facundo-Barbera/b-net/pull/5");
+    await t.post("b-net/prs", { text: "web: centro de trabajo", labels: { project: "b-net", pr: "Facundo-Barbera/b-net#5", state: "en_curso" } });
+    const ev = { schema: "bnet.event", version: 1, kind: "question", project: "b-net", bot: "fstack-vps", summary: "¿Fusiono?", at: "2026-11-15T20:30:00.000Z" };
+    await t.post("b-net/eventos", `¿Fusiono?\n\n${block("bnet.event@1", ev)}`);
+    const res = BoardProjectsResponseSchema.parse(await svc.projects());
+    const p = res.projects.find((x) => x.slug === "b-net")!;
+    expect(p.bot).toBe("fstack-vps");
+    expect(p.tasks.map((x) => [x.title, x.state, x.pr, x.thread])).toEqual([["Montar Board", "en_espera", "Facundo-Barbera/b-net#5", "th_01"]]);
+    expect(p.updates[0]).toMatchObject({ author: "hub", link: "https://github.com/Facundo-Barbera/b-net/pull/5" });
+    expect(p.prs[0]).toMatchObject({ ref: "Facundo-Barbera/b-net#5", url: "https://github.com/Facundo-Barbera/b-net/pull/5", state: "abierto" });
+    expect(p.events).toEqual([ev]);
     // Projects configured for bots show even before anyone wrote there.
-    expect(work.projects.map((x) => x.project)).toContain("bixku-bot");
+    expect(res.projects.map((x) => x.slug)).toContain("bixku-bot");
   });
 });

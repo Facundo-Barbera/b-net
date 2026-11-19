@@ -12,7 +12,7 @@
  *   }
  */
 import { z } from "zod";
-import { BOARD_BASE_PATH, ProjectId } from "@b-net/core";
+import { BOARD_BASE_PATH, BoardBotNameSchema, ProjectId } from "@b-net/core";
 import { ConfigError, type ReadTextFile } from "../config.ts";
 
 /** Where events go when a bot has no webhook of its own: the local test sink (scripts/webhook-sink.ts). */
@@ -22,7 +22,7 @@ export const DEFAULT_WEBHOOK_URL = "http://127.0.0.1:8799/bnet-webhook";
  * Bot names become Board principal ids `bnet:bot:<name>`, and Board matches a person's grants by the
  * id's third segment. Logins always contain "@", so a bot name (no "@") can never collide with an admin.
  */
-export const BoardBotName = z.string().regex(/^[a-z][a-z0-9-]{0,31}$/, "a-z, 0-9, '-' (max 32, starts with a letter)");
+export const BoardBotName = BoardBotNameSchema;
 
 /** A Tailscale login as `tailscale serve` sends it (`user@github`, `ada@example.com`). */
 export const TailnetLogin = z.string().regex(/^[A-Za-z0-9._-]{1,64}@[A-Za-z0-9.-]{1,190}$/, "a Tailscale login (user@domain)");

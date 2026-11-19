@@ -1,28 +1,33 @@
 /**
- * The UI's view of Board (GET /api/v1/board), read with the SDK through the hub's own handle. Per
- * project: its tasks by state, its latest updates, the PRs labelled `pr=` and its recent bnet events.
- * Kept small on purpose (a few reads per project, capped lists) because the UI polls it.
+ * What the UI reads of Board (GET /api/v1/board/projects, BoardProjectsResponse in the shared contract),
+ * read with the SDK through the hub's own handle. Per project: tasks with their WorkState, updates from
+ * `<slug>/avances`, PRs from `<slug>/prs`, bnet events from `<slug>/eventos` and the HTML summaries the
+ * hub already stores as deliverables. A few reads per project and capped lists, because the UI polls it.
  */
 import {
   BNET_EVENT_SCHEMA,
-  BnetEvent,
-  OPEN_TASK_STATES,
-  PrRef,
-  prUrl,
+  BNET_EVENT_VERSION,
+  BOARD_LABELS,
+  BnetEventV1Schema,
+  PrRefSchema,
+  boardChannel,
+  prUrlOf,
   projectOfChannel,
-  type BoardEventItem,
-  type BoardPr,
-  type BoardProject,
-  type BoardTask,
-  type BoardTaskState,
-  type BoardUpdate,
-  type BoardWork,
+  type BnetEventV1,
+  type BoardProjectView,
+  type BoardProjectsResponse,
+  type BoardPrView,
+  type BoardTaskView,
+  type BoardUpdateView,
+  type ProjectCatalogEntry,
+  type WorkState,
 } from "@b-net/core";
-import type { Board, MessageView } from "@vercel/board";
+import type { Board, MessageView, TaskView } from "@vercel/board";
+import type { BoardBot } from "./config.ts";
 import { BNET_EVENT_TEXT } from "./events.ts";
 
 export const MAX_PROJECTS = 30;
-const FINISHED_KEEP = 10;
+const DONE_KEEP = 10;
 
 /** Who an actor id is to a person: `bnet:bot:x` → x, `tailscale:user:ada@x` → ada, `board:client…` → hub. */
 export function actorLabel(id: string | null | undefined): string {
@@ -36,93 +41,138 @@ export function actorLabel(id: string | null | undefined): string {
   return profile ? `${profile} vía ${who}` : who;
 }
 
-/** First line of a message without data fences, for titles and excerpts. */
+/** Text without data fences, collapsed, for titles and excerpts. */
 export function plainText(text: string, max: number): string {
   const noFences = text.replace(/```[\s\S]*?```/g, " ").replace(/\s+/g, " ").trim();
   return noFences.length > max ? `${noFences.slice(0, max - 1)}…` : noFences;
 }
 
 const firstLine = (text: string, max: number) => plainText(text.split("\n").find((l) => l.trim() && !l.startsWith("```")) ?? "", max) || "(sin texto)";
+const firstUrl = (text: string) => /https?:\/\/[^\s)>\]]+/.exec(text)?.[0];
 
-const ORDER: Record<BoardTaskState, number> = { blocked: 0, claimed: 1, ready: 2, waiting: 3, failed: 4, completed: 5, canceled: 6 };
+/**
+ * Board's task state in b-net's words. A lease that ran out is over even before Board's timer says so
+ * (Board's "Build a UI" guide), so it reads as waiting. Canceled tasks are dropped (null).
+ */
+export function workStateOf(task: Pick<TaskView, "state" | "claim">, now: number): WorkState | null {
+  switch (task.state) {
+    case "claimed":
+      return task.claim && Date.parse(task.claim.until) <= now ? "en_espera" : "en_curso";
+    case "ready":
+    case "waiting":
+      return "en_espera";
+    case "blocked":
+    case "failed":
+      return "bloqueado";
+    case "completed":
+      return "listo";
+    default:
+      return null;
+  }
+}
 
-function toTask(summary: { message: MessageView; replies: number; last: MessageView | null }, now: number): BoardTask | null {
-  const { message, replies, last } = summary;
+/**
+ * A PR's state from its `state=` label. The contract keeps WorkState in that label, so `listo` reads as
+ * merged; the PR words themselves (`fusionado`, `cerrado`, `abierto`) are taken as is.
+ */
+export function prStateOf(label: string | undefined): BoardPrView["state"] {
+  if (label === "fusionado" || label === "listo") return "fusionado";
+  if (label === "cerrado") return "cerrado";
+  return "abierto";
+}
+
+const ORDER: Record<WorkState, number> = { bloqueado: 0, en_curso: 1, en_espera: 2, listo: 3 };
+const opt = <K extends string, V>(key: K, value: V | null | undefined) => (value === null || value === undefined ? {} : ({ [key]: value } as Record<K, V>));
+
+function toTask(message: MessageView, last: MessageView | null, now: number): BoardTaskView | null {
   const t = message.task;
   if (!t) return null;
-  // A lease that ran out is over even before the board's timer says so (see Board's "Build a UI" guide).
-  const expired = t.state === "claimed" && t.claim !== null && Date.parse(t.claim.until) <= now;
-  const state: BoardTaskState = expired ? "ready" : t.state;
-  const pr = PrRef.safeParse(message.labels?.pr);
+  const state = workStateOf(t, now);
+  if (!state) return null;
+  const pr = PrRefSchema.safeParse(message.labels[BOARD_LABELS.pr]);
   return {
     id: message.id,
-    channel: message.channel,
     title: firstLine(message.text, 300),
     state,
-    claimedBy: state === "claimed" && t.claim ? actorLabel(t.claim.actor) : null,
-    until: state === "claimed" && t.claim ? t.claim.until : null,
-    note: (t.blocked?.reason ?? t.reason ?? t.result ?? null)?.slice(0, 1000) ?? null,
-    pr: pr.success ? pr.data : null,
-    stateLabel: message.labels?.state?.slice(0, 64) ?? null,
-    replies,
+    ...opt("claimedBy", state === "en_curso" && t.claim ? actorLabel(t.claim.actor) : null),
+    ...opt("leaseUntil", state === "en_curso" ? t.claim?.until : null),
+    ...opt("pr", pr.success ? pr.data : null),
+    ...opt("thread", message.labels[BOARD_LABELS.thread]?.slice(0, 200)),
     updatedAt: last?.createdAt ?? message.createdAt,
   };
 }
 
-export async function readProject(team: Board, project: string, now: number): Promise<BoardProject> {
-  const tree = `${project}/`;
-  const [tasksPage, threadsPage, prPage, feed] = await Promise.all([
-    team.tasks.list({ channel: tree, state: "all", limit: 100 }),
-    team.threads({ channel: tree, limit: 20 }),
-    team.threads({ channel: tree, label: ["pr"], limit: 50 }),
-    team.poll({ channel: tree, text: BNET_EVENT_TEXT, last: 20 }),
+export interface ReadDeps {
+  /** Projects and deliverables the hub already stores (names and HTML summaries); empty without HUB_DATA_DIR. */
+  catalog: () => readonly ProjectCatalogEntry[];
+  bots: readonly BoardBot[];
+}
+
+/** The project's bot: the first configured bot that lists it explicitly. */
+const ownerOf = (slug: string, bots: readonly BoardBot[]) => bots.find((b) => b.projects.includes(slug))?.name;
+
+export async function readProject(team: Board, slug: string, deps: ReadDeps, now: number): Promise<BoardProjectView> {
+  const [tasksPage, updatesPage, prPage, feed] = await Promise.all([
+    team.tasks.list({ channel: `${slug}/`, state: "all", limit: 100 }),
+    team.threads({ channel: boardChannel(slug, "avances"), limit: 20 }),
+    team.threads({ channel: boardChannel(slug, "prs"), label: [BOARD_LABELS.pr], limit: 50 }),
+    team.poll({ channel: boardChannel(slug, "eventos"), text: BNET_EVENT_TEXT, last: 20 }),
   ]);
 
-  const tasks = tasksPage.tasks.map((s) => toTask(s, now)).filter((t): t is BoardTask => t !== null);
-  const open = tasks.filter((t) => OPEN_TASK_STATES.includes(t.state));
-  const finished = tasks.filter((t) => !OPEN_TASK_STATES.includes(t.state)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, FINISHED_KEEP);
-  open.sort((a, b) => ORDER[a.state] - ORDER[b.state] || b.updatedAt.localeCompare(a.updatedAt));
+  const tasks = tasksPage.tasks.map((s) => toTask(s.message, s.last, now)).filter((t): t is BoardTaskView => t !== null);
+  const open = tasks.filter((t) => t.state !== "listo").sort((a, b) => ORDER[a.state] - ORDER[b.state] || b.updatedAt.localeCompare(a.updatedAt));
+  const done = tasks.filter((t) => t.state === "listo").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, DONE_KEEP);
 
-  const updates: BoardUpdate[] = threadsPage.threads
+  const updates: BoardUpdateView[] = updatesPage.threads
     .map(({ message, last }) => last ?? message)
     .filter((m) => !m.deleted && plainText(m.text, 400) !== "")
-    .map((m) => ({ id: m.id, channel: m.channel, author: actorLabel(m.by?.actor), text: plainText(m.text, 400), at: m.createdAt }))
+    .map((m) => ({ id: m.id, text: plainText(m.text, 400), author: actorLabel(m.by?.actor), at: m.createdAt, ...opt("link", firstUrl(m.text)) }))
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, 10);
 
-  const prs = new Map<string, BoardPr>();
+  const prs = new Map<string, BoardPrView>();
   for (const { message, last } of prPage.threads) {
-    const ref = PrRef.safeParse(message.labels?.pr);
+    const ref = PrRefSchema.safeParse(message.labels[BOARD_LABELS.pr]);
     if (!ref.success) continue;
-    const at = last?.createdAt ?? message.createdAt;
+    const updatedAt = last?.createdAt ?? message.createdAt;
     const seen = prs.get(ref.data);
-    if (seen && seen.at >= at) continue;
-    prs.set(ref.data, { ref: ref.data, url: prUrl(ref.data), title: firstLine(message.text, 300), state: message.labels?.state?.slice(0, 64) ?? null, at });
+    if (seen && seen.updatedAt >= updatedAt) continue;
+    prs.set(ref.data, { ref: ref.data, title: firstLine(message.text, 300), url: prUrlOf(ref.data), state: prStateOf(message.labels[BOARD_LABELS.state]), updatedAt });
   }
 
-  const events: BoardEventItem[] = [];
+  const events: BnetEventV1[] = [];
   for (const e of feed.events) {
     if (e.type !== "message.posted" || !e.message || e.message.deleted) continue;
-    e.message.blocks.forEach((b, i) => {
-      if (b.schema !== BNET_EVENT_SCHEMA.name || b.version !== BNET_EVENT_SCHEMA.version) return;
-      const parsed = BnetEvent.safeParse(b.data);
-      if (parsed.success && parsed.data.project === project) events.push({ id: `${e.message!.id}:${i}`, at: e.message!.createdAt, event: parsed.data });
-    });
+    for (const b of e.message.blocks) {
+      if (b.schema !== BNET_EVENT_SCHEMA || b.version !== BNET_EVENT_VERSION) continue;
+      const parsed = BnetEventV1Schema.safeParse(b.data);
+      if (parsed.success && parsed.data.project === slug) events.push(parsed.data);
+    }
   }
   events.sort((a, b) => b.at.localeCompare(a.at));
 
+  const entry = deps.catalog().find((c) => c.project.id === slug);
+  const summaries = (entry?.deliverables ?? [])
+    .filter((d) => d.kind === "html")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 10)
+    .map((d) => ({ id: d.id, title: d.title, at: d.createdAt }));
+
   return {
-    project,
-    tasks: [...open, ...finished],
+    slug,
+    name: entry?.project.name ?? slug,
+    ...opt("bot", ownerOf(slug, deps.bots)),
+    tasks: [...open, ...done],
     updates,
-    prs: [...prs.values()].sort((a, b) => b.at.localeCompare(a.at)),
+    prs: [...prs.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     events: events.slice(0, 20),
+    summaries,
   };
 }
 
-/** Projects that have channels on the board, plus the ones bots are configured for, capped. */
-export async function boardProjects(team: Board, configured: readonly string[]): Promise<string[]> {
-  const found = new Set(configured.filter((p) => p !== "*"));
+/** Projects with channels on the board, plus those bots are configured for, capped. */
+export async function boardProjects(team: Board, bots: readonly BoardBot[]): Promise<string[]> {
+  const found = new Set(bots.flatMap((b) => b.projects).filter((p) => p !== "*"));
   const { channels } = await team.channels({ limit: 500 });
   for (const c of channels) {
     const p = projectOfChannel(c.path);
@@ -131,8 +181,8 @@ export async function boardProjects(team: Board, configured: readonly string[]):
   return [...found].sort().slice(0, MAX_PROJECTS);
 }
 
-export async function readBoardWork(team: Board, configured: readonly string[], now: Date): Promise<BoardWork> {
-  const projects = await boardProjects(team, configured);
-  const read = await Promise.all(projects.map((p) => readProject(team, p, now.getTime())));
-  return { generatedAt: now.toISOString(), state: "ok", error: null, projects: read };
+export async function readBoardProjects(team: Board, deps: ReadDeps, now: Date): Promise<BoardProjectsResponse> {
+  const slugs = await boardProjects(team, deps.bots);
+  const projects = await Promise.all(slugs.map((s) => readProject(team, s, deps, now.getTime())));
+  return { projects, generatedAt: now.toISOString() };
 }

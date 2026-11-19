@@ -14,7 +14,7 @@
  *   3. the deliverer POSTs pending rows with bounded retries and backoff.
  */
 import { join } from "node:path";
-import { BNET_EVENT_JSON_SCHEMA, BNET_EVENT_SCHEMA, BOARD_BASE_PATH, type BoardWork } from "@b-net/core";
+import { BNET_EVENT_JSON_SCHEMA, BNET_EVENT_SCHEMA, BNET_EVENT_VERSION, BOARD_BASE_PATH, type BoardProjectsResponse, type ProjectCatalogEntry } from "@b-net/core";
 import { board, type Board } from "@vercel/board";
 import { local, type LocalBackend } from "@vercel/board/backend-local";
 import { createAuthenticate } from "./auth.ts";
@@ -23,7 +23,7 @@ import { createDeliverer, type Deliverer } from "./deliver.ts";
 import { BNET_EVENT_TEXT, deliveriesFor, type EventLike, type Routing } from "./events.ts";
 import { syncBotGrants } from "./grants.ts";
 import { BoardOutbox } from "./outbox.ts";
-import { readBoardWork } from "./read.ts";
+import { readBoardProjects } from "./read.ts";
 import { BoardTokenStore } from "./tokens.ts";
 
 export const CURSOR_NAME = "bnet-events";
@@ -40,6 +40,8 @@ export interface BoardServiceDeps {
   fetch?: typeof fetch;
   log?: (line: string) => void;
   now?: () => number;
+  /** Projects and deliverables the hub stores, for names and HTML summaries; none without HUB_DATA_DIR. */
+  catalog?: () => readonly ProjectCatalogEntry[];
 }
 
 export interface BoardService {
@@ -50,8 +52,8 @@ export interface BoardService {
   /** Registers the schema, syncs bot grants, catches up from the cursor, starts the timers. */
   start(): Promise<void>;
   stop(): Promise<void>;
-  /** GET /api/v1/board, cached briefly so a polling UI costs a few reads every 10 s at most. */
-  work(): Promise<BoardWork>;
+  /** GET /api/v1/board/projects, cached briefly so a polling UI costs a few reads every 10 s at most. */
+  projects(): Promise<BoardProjectsResponse>;
   /** One sequential pass from the cursor to the head (exported for tests). */
   reconcile(): Promise<number>;
   tokens: BoardTokenStore;
@@ -86,6 +88,7 @@ export function createBoardService(deps: BoardServiceDeps): BoardService {
       admins: config.admins,
       botForToken: (t) => tokens.botForToken(t),
       isBotReady: (b) => configured.has(b) && ready.has(b),
+      channelsOf: (b) => (config.bots.find((x) => x.name === b)?.projects ?? []).map((p) => (p === "*" ? "*" : `${p}/`)),
     }),
     watch: {
       "bnet-events": {
@@ -118,7 +121,7 @@ export function createBoardService(deps: BoardServiceDeps): BoardService {
   const reconcile = () => (reconciling ??= reconcileOnce().finally(() => (reconciling = null)));
 
   let timer: ReturnType<typeof setInterval> | null = null;
-  let cache: { at: number; value: BoardWork } | null = null;
+  let cache: { at: number; value: BoardProjectsResponse } | null = null;
 
   return {
     fetch: (request) => team.fetch(request),
@@ -131,7 +134,7 @@ export function createBoardService(deps: BoardServiceDeps): BoardService {
       const why = (e: unknown) => (e instanceof Error ? e.message.slice(0, 160) : "error");
       // Each step on its own: a failure is logged and the rest still runs, so the hub keeps serving.
       try {
-        await team.createSchema({ ...BNET_EVENT_SCHEMA, description: "Lo que un bot de b-net debe saber: un hilo terminó, hay una pregunta o algo está bloqueado.", schema: { ...BNET_EVENT_JSON_SCHEMA } });
+        await team.createSchema({ name: BNET_EVENT_SCHEMA, version: BNET_EVENT_VERSION, description: "Lo que un bot de b-net debe saber: un hilo terminó, hay una pregunta o algo está bloqueado.", schema: { ...BNET_EVENT_JSON_SCHEMA } });
       } catch (e) {
         log(`board: could not register ${BNET_EVENT_TEXT} (${why(e)}); posts carrying it will fail until it is`);
       }
@@ -164,16 +167,13 @@ export function createBoardService(deps: BoardServiceDeps): BoardService {
       tokens.close();
       outbox.close();
     },
-    async work() {
+    async projects() {
       const t = now();
       if (cache && t - cache.at < READ_CACHE_MS) return cache.value;
-      try {
-        const value = await readBoardWork(team, config.bots.flatMap((b) => b.projects), new Date(t));
-        cache = { at: t, value };
-        return value;
-      } catch (e) {
-        return { generatedAt: new Date(t).toISOString(), state: "failing", error: e instanceof Error ? e.message.slice(0, 200) : "error", projects: cache?.value.projects ?? [] };
-      }
+      // A failed read throws: the HTTP layer answers 502 and the UI keeps its last good copy.
+      const value = await readBoardProjects(team, { catalog: deps.catalog ?? (() => []), bots: config.bots }, new Date(t));
+      cache = { at: t, value };
+      return value;
     },
   };
 }

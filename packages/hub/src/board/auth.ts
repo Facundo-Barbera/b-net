@@ -12,6 +12,7 @@
  *   through the 127.0.0.1 listener, from a loopback address, for the board's public host. A request to
  *   the tailnet IP listener can carry any header it likes and still names no one.
  */
+import type { BoardPrincipal } from "@b-net/core";
 import { HttpError } from "@vercel/board";
 import type { CallerRequest } from "@vercel/board/access";
 import { TRUSTED_LOGIN_HEADER } from "./identity.ts";
@@ -23,24 +24,40 @@ export interface AuthDeps {
   botForToken: (token: string) => string | null;
   /** True once the bot is in the config AND its narrowing grant is in place. */
   isBotReady: (bot: string) => boolean;
+  /** The bot's channel prefixes (`<slug>/`, or `*`), as its grant opens them. */
+  channelsOf: (bot: string) => string[];
+}
+
+/** Who the request is in b-net's terms (the shared contract's BoardPrincipal). Null = no credential. */
+export function resolvePrincipal(request: Pick<CallerRequest, "credential" | "headers">, deps: AuthDeps): BoardPrincipal | null {
+  if (request.credential) {
+    const bot = deps.botForToken(request.credential);
+    // Same answer for unknown, revoked and not-yet-granted, so a token's state is not observable.
+    if (!bot || !deps.isBotReady(bot)) throw new HttpError(401, "unauthorized", "unknown or revoked token");
+    return { kind: "bot", bot, channels: deps.channelsOf(bot) };
+  }
+  const login = request.headers.get(TRUSTED_LOGIN_HEADER);
+  if (login) {
+    if (!deps.admins.has(login.toLowerCase())) throw new HttpError(403, "forbidden", "this tailnet login is not a b-net admin");
+    return { kind: "admin", login };
+  }
+  return null;
 }
 
 export type HostPrincipal = { id: string; kind: "person"; handle: string };
 
+/**
+ * The principal as Board takes it. Both are "person": the admin gets g1 (everything), the bot is held to
+ * its own grant (board/grants.ts), which is what `channels` describes.
+ */
+export function toHostPrincipal(p: BoardPrincipal): HostPrincipal {
+  return p.kind === "bot" ? { id: botPrincipalId(p.bot), kind: "person", handle: p.bot } : { id: `tailscale:user:${p.login}`, kind: "person", handle: p.login.split("@")[0] || p.login };
+}
+
 /** Board's `authenticate`. Null = no credential (Board answers 401); a bad one throws 401/403. */
 export function createAuthenticate(deps: AuthDeps): (request: CallerRequest) => HostPrincipal | null {
   return (request) => {
-    if (request.credential) {
-      const bot = deps.botForToken(request.credential);
-      // Same answer for unknown, revoked and not-yet-granted, so a token's state is not observable.
-      if (!bot || !deps.isBotReady(bot)) throw new HttpError(401, "unauthorized", "unknown or revoked token");
-      return { id: botPrincipalId(bot), kind: "person", handle: bot };
-    }
-    const login = request.headers.get(TRUSTED_LOGIN_HEADER);
-    if (login) {
-      if (!deps.admins.has(login.toLowerCase())) throw new HttpError(403, "forbidden", "this tailnet login is not a b-net admin");
-      return { id: `tailscale:user:${login}`, kind: "person", handle: login.split("@")[0] || login };
-    }
-    return null;
+    const p = resolvePrincipal(request, deps);
+    return p ? toHostPrincipal(p) : null;
   };
 }

@@ -155,7 +155,7 @@ async function main() {
   let boardService: import("./board/service.ts").BoardService | null = null;
   if (boardCfg && cfg.dataDir) {
     const { createBoardService, boardDir } = await import("./board/service.ts");
-    boardService = createBoardService({ config: boardCfg, storage: { dir: boardDir(cfg.dataDir) }, dbPath });
+    boardService = createBoardService({ config: boardCfg, storage: { dir: boardDir(cfg.dataDir) }, dbPath, catalog: () => projects?.catalog() ?? [] });
     // A board that fails to start (schema, grants) must not take the rest of the hub down: bots stay locked out.
     await boardService.start().catch((e) => console.error(`board: start failed, bots stay locked out (${e instanceof Error ? e.message.slice(0, 160) : "error"})`));
   }

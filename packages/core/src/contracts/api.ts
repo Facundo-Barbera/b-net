@@ -49,7 +49,7 @@ export const HubRoutes = {
   secrets: "/api/v1/secrets", // { secrets: SecretMeta[] } (metadata only)
   health: "/api/v1/health", // { ok: true, sources: SourceHealth[] }
   work: "/api/v1/work", // WorkSnapshot (contracts/work.ts)
-  board: "/api/v1/board", // BoardWork (contracts/board.ts): Board read through the hub
+  board: "/api/v1/board/projects", // BoardProjectsResponse (contracts/board.ts): Board read through the hub
   boardMount: "/api/board", // @vercel/board protocol (its own auth: bot bearer tokens or Tailscale admin)
   projects: "/api/v1/projects", // GET -> { projects: ProjectSummary[] }; POST ProjectInput -> 201 Project
   project: "/api/v1/projects/:id", // ProjectSummary

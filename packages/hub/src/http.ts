@@ -7,7 +7,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { BOARD_BASE_PATH, HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type BoardWork, type HubSnapshot } from "@b-net/core";
+import { BOARD_BASE_PATH, HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type BoardProjectsResponse, type HubSnapshot } from "@b-net/core";
 import { trustedLogin } from "./board/identity.ts";
 import { botFromAuth, type BotToken } from "./bot-auth.ts";
 import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
@@ -32,7 +32,7 @@ export interface HandlerDeps {
   /** POST IngestRoutes.metrics; absent = route answers 404. */
   ingest?: Handler | null;
   /** Board mounted at /api/board (its own auth) and its read model; null when HUB_BOARD_URL is not set. */
-  board?: { fetch: Handler; work: () => Promise<BoardWork> } | null;
+  board?: { fetch: Handler; projects: () => Promise<BoardProjectsResponse> } | null;
   /**
    * Admin Tailscale logins. A request `tailscale serve` forwarded for one of them (serve.ts marks it) may
    * read /api/* without the hub token, so the UI works for Facundo through the tailnet name.
@@ -110,9 +110,6 @@ async function serveStatic(reader: StaticReader, pathname: string, head: boolean
 
 const machineRe = /^\/api\/v1\/machines\/([a-z0-9-]+)$/;
 const NO_ADMINS: ReadonlySet<string> = new Set();
-
-/** What /api/v1/board says on a hub without a board, so the UI can say what to connect instead of showing nothing. */
-const boardMissing = (now: Date): BoardWork => ({ generatedAt: now.toISOString(), state: "missing", error: null, projects: [] });
 const ACCOUNT_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export function createHandler(deps: HandlerDeps): Handler {
@@ -138,8 +135,14 @@ export function createHandler(deps: HandlerDeps): Handler {
       const auth = req.headers.get("authorization");
       if (deps.apiToken && !tokenOk(auth, deps.apiToken) && !botFromAuth(auth, bots) && !trustedLogin(req.headers, deps.admins ?? NO_ADMINS)) return error(401, "unauthorized");
       if (path === HubRoutes.board) {
-        const body = deps.board ? await deps.board.work() : boardMissing(clock());
-        return head ? new Response(null, { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }) : json(body);
+        // 503 = no board on this hub (the UI says what to connect); 502 = the board did not answer.
+        if (!deps.board) return error(503, "board not configured (HUB_BOARD_URL)");
+        try {
+          const body = await deps.board.projects();
+          return head ? new Response(null, { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }) : json(body);
+        } catch {
+          return error(502, "board read failed");
+        }
       }
       if (isProjectsPath(path)) {
         if (!deps.projects) return error(503, "projects storage not configured (HUB_DATA_DIR)");
