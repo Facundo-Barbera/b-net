@@ -1,8 +1,6 @@
 /**
  * Production entrypoint: `node packages/hub/src/serve.ts` on bixku-homelab ONLY.
  * Never run on bixku-vps (dev machine). Binds to HUB_LISTEN_HOST (Tailscale IP), never 0.0.0.0.
- * With the board on (HUB_BOARD_URL), it also listens on 127.0.0.1:HUB_SERVE_PORT for `tailscale serve`:
- * the only listener whose requests may carry a trusted Tailscale login (see board/identity.ts).
  * Loads its own env file (HUB_ENV_FILE, default: .env at the repo root) so it starts the same way
  * from systemd, a shell or a process manager, without `--env-file` or `set -a; source .env`.
  */
@@ -15,8 +13,6 @@ import { INGEST_MAX_BYTES, IngestRoutes } from "@b-net/core";
 import { createBeszelClient } from "@b-net/core/clients/beszel";
 import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
 import { ConfigError, loadHubConfig, withEnvFile } from "./config.ts";
-import { loadBoardConfig } from "./board/config.ts";
-import { scrubIdentityHeaders, type ArrivedVia } from "./board/identity.ts";
 import { createHandler, fsStaticReader, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
 import { DeliverableFiles } from "./deliverables.ts";
@@ -52,39 +48,25 @@ function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
   });
 }
 
-/** Which listener a request came in on; decides whether its Tailscale login may be trusted. */
-export interface Listener {
-  loopback: boolean;
-  /** The board URL's host, or null when the board is off. */
-  publicHost: string | null;
-}
-
-const TAILNET_LISTENER: Listener = { loopback: false, publicHost: null };
-
-function headersOf(req: IncomingMessage, listener: Listener): Headers {
+export function toRequest(req: IncomingMessage, host: string): Request {
+  const url = new URL(req.url ?? "/", `http://${host}`);
   const headers = new Headers();
   for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
-  const via: ArrivedVia = { loopbackListener: listener.loopback, remoteAddress: req.socket?.remoteAddress, host: headers.get("host"), publicHost: listener.publicHost };
-  scrubIdentityHeaders(headers, via);
-  return headers;
-}
-
-export function toRequest(req: IncomingMessage, host: string, listener: Listener = TAILNET_LISTENER): Request {
-  const url = new URL(req.url ?? "/", `http://${host}`);
-  const headers = headersOf(req, listener);
-  if (req.method === "GET" || req.method === "HEAD" || !req.method) return new Request(url, { method: req.method, headers });
+  if (req.method !== "POST") return new Request(url, { method: req.method, headers });
   // Deliverable uploads stay a stream (duplex: "half") so they go to disk chunk by chunk, never buffered whole.
   const body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
   return new Request(url, { method: req.method, headers, body, duplex: "half" } as RequestInit);
 }
 
 /** Ingest bodies are small and capped; everything else uses the streaming adapter. */
-async function adaptRequest(req: IncomingMessage, host: string, listener: Listener): Promise<Request> {
+async function adaptRequest(req: IncomingMessage, host: string): Promise<Request> {
   const url = new URL(req.url ?? "/", `http://${host}`);
   if (req.method === "POST" && url.pathname === IngestRoutes.metrics) {
-    return new Request(url, { method: "POST", headers: headersOf(req, listener), body: new Uint8Array(await readBody(req, INGEST_MAX_BYTES)) });
+    const headers = new Headers();
+    for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
+    return new Request(url, { method: "POST", headers, body: new Uint8Array(await readBody(req, INGEST_MAX_BYTES)) });
   }
-  return toRequest(req, host, listener);
+  return toRequest(req, host);
 }
 
 async function writeResponse(res: ServerResponse, r: Response) {
@@ -95,9 +77,9 @@ async function writeResponse(res: ServerResponse, r: Response) {
   Readable.fromWeb(r.body as import("node:stream/web").ReadableStream).pipe(res);
 }
 
-export function mount(handler: Handler, host: string, port: number, listener: Listener = TAILNET_LISTENER) {
+export function mount(handler: Handler, host: string, port: number) {
   const server = createServer((req, res) => {
-    adaptRequest(req, `${host}:${port}`, listener)
+    adaptRequest(req, `${host}:${port}`)
       .then(handler)
       .then((r) => writeResponse(res, r))
       .catch((e) => {
@@ -127,11 +109,7 @@ function hubEnv(): Record<string, string | undefined> {
 }
 
 async function main() {
-  const env = hubEnv();
-  const read = (p: string) => readFileSync(p, "utf8");
-  const cfg = loadHubConfig(env, read);
-  const boardCfg = loadBoardConfig(env, read);
-  if (boardCfg && !cfg.dataDir) throw new ConfigError("HUB_BOARD_URL needs HUB_DATA_DIR (the board keeps its SQLite file there)");
+  const cfg = loadHubConfig(hubEnv(), (p) => readFileSync(p, "utf8"));
 
   let store: UsageStore = new MemoryUsageStore();
   let projectStore: ProjectStore | null = null;
@@ -150,15 +128,6 @@ async function main() {
     projects = createProjectsApi({ store: projectStore, files, quotaBytes: cfg.deliverablesQuotaBytes });
   }
   const metrics = new SqliteMetricsStore(dbPath);
-
-  // Board lives in this process (no `vb serve`): its file under $HUB_DATA_DIR/board, tokens and outbox in hub.sqlite.
-  let boardService: import("./board/service.ts").BoardService | null = null;
-  if (boardCfg && cfg.dataDir) {
-    const { createBoardService, boardDir } = await import("./board/service.ts");
-    boardService = createBoardService({ config: boardCfg, storage: { dir: boardDir(cfg.dataDir) }, dbPath, catalog: () => projects?.catalog() ?? [] });
-    // A board that fails to start (schema, grants) must not take the rest of the hub down: bots stay locked out.
-    await boardService.start().catch((e) => console.error(`board: start failed, bots stay locked out (${e instanceof Error ? e.message.slice(0, 160) : "error"})`));
-  }
 
   const tailscale =
     cfg.tailscale.source === "cli"
@@ -189,29 +158,18 @@ async function main() {
     projects,
     botTokens: cfg.botTokens,
     ingest: createIngestHandler({ store: metrics, knownMachines: new Set(cfg.machines.map((m) => m.id)) }),
-    board: boardService,
-    admins: boardCfg?.admins,
   });
 
   const stop = hub.start();
-  const server = mount(handler, cfg.listenHost, cfg.listenPort, { loopback: false, publicHost: boardCfg?.publicHost ?? null });
-  // tailscale serve forwards https://<host>.tail0fake.ts.net to this port; nothing else should.
-  const local = boardCfg && boardCfg.servePort > 0 ? mount(handler, "127.0.0.1", boardCfg.servePort, { loopback: true, publicHost: boardCfg.publicHost }) : null;
-  console.log(
-    `b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"}, board: ${boardCfg ? `on, ${boardCfg.bots.length} bots, ${boardCfg.admins.size} admins${local ? `, tailscale serve -> 127.0.0.1:${boardCfg.servePort}` : ""}` : "off"})`,
-  );
+  const server = mount(handler, cfg.listenHost, cfg.listenPort);
+  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"})`);
   const shutdown = () => {
     stop();
-    local?.close();
     server.close(() => {
-      void (boardService?.stop() ?? Promise.resolve())
-        .catch(() => undefined)
-        .finally(() => {
-          store.close?.();
-          projectStore?.close();
-          metrics.close();
-          process.exit(0);
-        });
+      store.close?.();
+      projectStore?.close();
+      metrics.close();
+      process.exit(0);
     });
   };
   process.on("SIGTERM", shutdown);

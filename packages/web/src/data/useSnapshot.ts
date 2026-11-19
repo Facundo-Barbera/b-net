@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BoardProjectsResponseSchema, HubRoutes, WorkSnapshot, boardFixture, snapshotFixture, workFixture, type BoardProjectsResponse, type HubSnapshot } from "@b-net/core";
+import { HubRoutes, WorkSnapshot, snapshotFixture, workFixture, type HubSnapshot } from "@b-net/core";
 
 /**
  * Data access for every view. Mode "live" (default) polls the hub API; mode "fixture" returns the
@@ -71,22 +71,4 @@ export interface WorkState {
 export function useWork(mode: DataMode = getDataMode(), intervalMs = 15_000): WorkState {
   const { data, error } = usePolled<WorkSnapshot>(HubRoutes.work, workFixture, mode, intervalMs, parseWork);
   return { data, error, mode };
-}
-
-function parseBoard(body: unknown): BoardProjectsResponse {
-  const r = BoardProjectsResponseSchema.safeParse(body);
-  if (!r.success) throw new Error("respuesta con forma inesperada");
-  return r.data;
-}
-
-/** Board read through the hub (GET /api/v1/board/projects). `missing` = this hub runs no board (503). */
-export interface BoardState {
-  data: BoardProjectsResponse | null;
-  error: string | null;
-  missing: boolean;
-}
-
-export function useBoard(mode: DataMode = getDataMode(), intervalMs = 15_000): BoardState {
-  const { data, error } = usePolled<BoardProjectsResponse>(HubRoutes.board, boardFixture, mode, intervalMs, parseBoard);
-  return { data, error, missing: error === "HTTP 503" };
 }

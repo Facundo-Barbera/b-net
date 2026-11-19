@@ -2,7 +2,7 @@ import { HubRoutes } from "@b-net/core";
 import { Callout } from "../components/Callout.tsx";
 import { EmptyState } from "../components/EmptyState.tsx";
 import { NowProvider, useClock } from "../components/now.tsx";
-import { getDataMode, useBoard, useSnapshot, useWork, type DataMode } from "../data/useSnapshot.ts";
+import { getDataMode, useSnapshot, useWork, type DataMode } from "../data/useSnapshot.ts";
 import { routes } from "../routes.tsx";
 import { Shell } from "./Shell.tsx";
 import { useGoShortcuts } from "./useGoShortcuts.ts";
@@ -16,7 +16,6 @@ export function App({ mode }: { mode?: DataMode } = {}) {
   const dataMode = mode ?? getDataMode();
   const { snapshot, error } = useSnapshot(dataMode);
   const work = useWork(dataMode);
-  const board = useBoard(dataMode);
   const route = useHashRoute();
   useGoShortcuts(routes);
   const clock = useClock();
@@ -33,7 +32,7 @@ export function App({ mode }: { mode?: DataMode } = {}) {
                 Mostrando el último snapshot: falló la actualización ({error})
               </Callout>
             )}
-            <View snapshot={snapshot} work={work} board={board} />
+            <View snapshot={snapshot} work={work} />
           </>
         ) : error ? (
           <EmptyState role="alert" title="No se puede contactar al hub" description={`${HubRoutes.snapshot}: ${error}`}>

@@ -9,13 +9,9 @@
   },
   "dependencies": {
     "@b-net/core": "workspace:*",
-    "@vercel/board": "0.52.0",
     "zod": "^4.1.0"
   },
   "scripts": {
-    "agent-token": "node scripts/agent-token.ts",
-    "board-token": "node scripts/board-token.ts",
-    "board-publish": "node scripts/board-publish.ts",
-    "webhook-sink": "node scripts/webhook-sink.ts"
+    "agent-token": "node scripts/agent-token.ts"
   }
 }

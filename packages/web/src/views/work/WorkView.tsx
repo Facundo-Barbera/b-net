@@ -1,11 +1,5 @@
 import type { ReactNode } from "react";
 import { WORK_RECENT_HOURS, HubRoutes, type WorkItem, type WorkSnapshot } from "@b-net/core";
-import type { BoardState } from "../../data/useSnapshot.ts";
-import { BoardEvents } from "../board/BoardEvents.tsx";
-import { BoardGap } from "../board/BoardGap.tsx";
-import { BoardTaskList } from "../board/BoardTasks.tsx";
-import { OPEN_ORDER } from "../board/meta.ts";
-import "../board/board.css";
 import { Callout, EmptyState, PageHeader, useNow } from "../../components/index.ts";
 import type { ViewProps } from "../../routes.tsx";
 import { WorkSourceGap } from "../shared/WorkSourceGap.tsx";
@@ -49,58 +43,7 @@ export function greeting(nowMs: number): string {
   return "Buenas noches";
 }
 
-const BOARD_TASKS_MAX = 12;
-const BOARD_EVENTS_MAX = 8;
-
-/** Open Board tasks across projects (blocked, running, queued) and the latest bot notices. */
-function boardLists(board: BoardState) {
-  const projects = board.data?.projects ?? [];
-  const tasks = projects
-    .flatMap((p) => p.tasks.filter((t) => t.state !== "listo").map((task) => ({ task, project: { slug: p.slug, name: p.name } })))
-    .sort((a, b) => OPEN_ORDER.indexOf(a.task.state) - OPEN_ORDER.indexOf(b.task.state) || b.task.updatedAt.localeCompare(a.task.updatedAt));
-  const events = projects.flatMap((p) => p.events.map((event) => ({ event, name: p.name }))).sort((a, b) => b.event.at.localeCompare(a.event.at));
-  return { tasks, events };
-}
-
-function BoardTasksSection({ board }: { board: BoardState }) {
-  const { tasks } = boardLists(board);
-  return (
-    <section className="wk-section" aria-labelledby="wk-board" data-testid="board-tasks">
-      <header className="wk-section__head">
-        <h2 id="wk-board" className="wk-section__title">
-          Tablero
-          <span className="wk-count num">{tasks.length}</span>
-        </h2>
-        <p className="wk-section__hint">Tareas abiertas de los proyectos: bloqueadas primero, luego en curso y en espera.</p>
-      </header>
-      <BoardGap board={board} />
-      {board.data && (tasks.length > 0 ? (
-        <BoardTaskList tasks={tasks.slice(0, BOARD_TASKS_MAX)} />
-      ) : (
-        <EmptyState compact data-testid="board-tasks-empty" title="Sin tareas abiertas en el tablero." />
-      ))}
-    </section>
-  );
-}
-
-function BoardEventsSection({ board }: { board: BoardState }) {
-  const { events } = boardLists(board);
-  if (!board.data) return null;
-  return (
-    <section className="wk-section" aria-labelledby="wk-board-events" data-testid="board-events">
-      <header className="wk-section__head">
-        <h2 id="wk-board-events" className="wk-section__title">
-          Avisos de bots
-          <span className="wk-count num">{events.length}</span>
-        </h2>
-        <p className="wk-section__hint">Preguntas, bloqueos e hilos terminados que despiertan al bot de cada proyecto.</p>
-      </header>
-      {events.length > 0 ? <BoardEvents events={events.slice(0, BOARD_EVENTS_MAX)} /> : <EmptyState compact title="Sin avisos." />}
-    </section>
-  );
-}
-
-function Body({ work, snapshot, board }: { work: WorkSnapshot; snapshot: ViewProps["snapshot"]; board?: BoardState }) {
+function Body({ work, snapshot }: { work: WorkSnapshot; snapshot: ViewProps["snapshot"] }) {
   const src = work.sources;
   const name = (id: string | null) => machineName(snapshot.machines, id);
   const threadsDown = src.threads !== "ok";
@@ -152,7 +95,6 @@ function Body({ work, snapshot, board }: { work: WorkSnapshot; snapshot: ViewPro
             <EmptyState compact data-testid="running-empty" title="Nada corriendo ahora." description="Los runs que arranques en T3 se ven aquí con su tiempo." />
           )}
         </Section>
-        {board && <BoardTasksSection board={board} />}
       </div>
 
       <div className="wk-layout__rail">
@@ -167,7 +109,6 @@ function Body({ work, snapshot, board }: { work: WorkSnapshot; snapshot: ViewPro
           {threadsDown && work.done.length > 0 && <WorkSourceGap kind="threads" state={src.threads} testId="gap-done-threads" />}
           {src.projects !== "ok" && <WorkSourceGap kind="projects" state={src.projects} testId="gap-done-projects" />}
         </Section>
-        {board && <BoardEventsSection board={board} />}
         <FleetStrip snapshot={snapshot} />
       </div>
     </div>
@@ -179,7 +120,7 @@ function Body({ work, snapshot, board }: { work: WorkSnapshot; snapshot: ViewPro
  * listo, flota), then the queue that needs Facundo and the running lanes on the left, and on the right rail
  * what landed recently and the fleet at a glance. Order in the DOM follows urgency for keyboard and readers.
  */
-export function WorkView({ snapshot, work, board }: ViewProps) {
+export function WorkView({ snapshot, work }: ViewProps) {
   const now = useNow();
   const data = work.data;
   const subtitle = data ? (
@@ -197,7 +138,7 @@ export function WorkView({ snapshot, work, board }: ViewProps) {
       {data ? (
         <>
           <WorkPulse work={data} snapshot={snapshot} />
-          <Body work={data} snapshot={snapshot} board={board} />
+          <Body work={data} snapshot={snapshot} />
         </>
       ) : (
         <>

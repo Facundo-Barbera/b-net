@@ -105,7 +105,7 @@ function ProjectList({ work, query, filter }: { work: WorkSnapshot; query: strin
 }
 
 /** "#/projects" lists projects with counters; "#/projects/<key>[/d/<deliverable>]" shows one project. */
-export function ProjectsView({ snapshot, work, board }: ViewProps) {
+export function ProjectsView({ snapshot, work }: ViewProps) {
   const [key, sub, deliverableId] = useHashSegments();
   // Filters live in the view, not the URL: the hash already carries the route and project key.
   const [query, setQuery] = useState("");
@@ -115,7 +115,7 @@ export function ProjectsView({ snapshot, work, board }: ViewProps) {
 
   if (key && data) {
     return project ? (
-      <ProjectDetail project={project} work={data} mode={work.mode} machines={snapshot.machines} selectedDeliverableId={sub === "d" ? (deliverableId ?? null) : null} board={board} />
+      <ProjectDetail project={project} work={data} mode={work.mode} machines={snapshot.machines} selectedDeliverableId={sub === "d" ? (deliverableId ?? null) : null} />
     ) : (
       <section className="ui-view pj" data-testid="view-projects" aria-labelledby="pj-title">
         <PageHeader title="Proyecto no encontrado" titleId="pj-title" />

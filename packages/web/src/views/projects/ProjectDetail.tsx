@@ -12,13 +12,11 @@ import {
   Tag,
   toneForThreadState,
 } from "../../components/index.ts";
-import type { BoardState, DataMode } from "../../data/useSnapshot.ts";
+import type { DataMode } from "../../data/useSnapshot.ts";
 import { spanEs } from "../../lib/spanish.ts";
 import { WorkSourceGap } from "../shared/WorkSourceGap.tsx";
 import { machineName } from "../work/kinds.ts";
 import { EventRow, RunningRow } from "../work/WorkItemView.tsx";
-import { BoardGap } from "../board/BoardGap.tsx";
-import { BoardEventsCard, BoardPrList, BoardTasksCard, BoardUpdatesCard } from "../board/BoardProjectPanel.tsx";
 import { DeliverablesPanel } from "./DeliverablesPanel.tsx";
 import { Counters } from "./Counters.tsx";
 
@@ -36,17 +34,14 @@ export interface ProjectDetailProps {
   mode: DataMode;
   machines: readonly MachineView[];
   selectedDeliverableId: string | null;
-  /** Board read through the hub; its project is matched by slug (the registered project id). */
-  board?: BoardState;
 }
 
 /**
  * One project: what needs Facundo and what runs now, its deliverables with the embedded viewer, then its T3
  * threads, PRs, branches and tasks. Sources that are not connected say so in place.
  */
-export function ProjectDetail({ project: p, work, mode, machines, selectedDeliverableId, board }: ProjectDetailProps) {
+export function ProjectDetail({ project: p, work, mode, machines, selectedDeliverableId }: ProjectDetailProps) {
   const key = p.ref.key;
-  const onBoard = board?.data?.projects.find((b) => b.slug === key) ?? null;
   const name = (id: string | null) => machineName(machines, id);
   const waiting = work.waiting.filter((i) => i.project.key === key);
   const running = work.running.filter((i) => i.project.key === key);
@@ -82,8 +77,6 @@ export function ProjectDetail({ project: p, work, mode, machines, selectedDelive
 
       <div className="pj-grid">
         <div className="pj-grid__main">
-          {onBoard && <BoardUpdatesCard project={onBoard} />}
-          {onBoard && <BoardEventsCard project={onBoard} />}
           {p.registered && p.ref.projectId ? (
             <DeliverablesPanel
               projectId={p.ref.projectId}
@@ -137,8 +130,7 @@ export function ProjectDetail({ project: p, work, mode, machines, selectedDelive
             )}
           </Card>
 
-          <Card title="PRs" subtitle={prs.length + (onBoard?.prs.length ?? 0)} flush data-testid="project-prs">
-            {onBoard && <BoardPrList project={onBoard} />}
+          <Card title="PRs" subtitle={prs.length} flush data-testid="project-prs">
             {prs.length > 0 && (
               <ul className="pj-threads">
                 {prs.map((pr) => (
@@ -184,13 +176,9 @@ export function ProjectDetail({ project: p, work, mode, machines, selectedDelive
             </div>
           </Card>
 
-          {onBoard ? (
-            <BoardTasksCard project={onBoard} />
-          ) : (
-            <Card title="Tareas" data-testid="project-tasks">
-              {board && (board.missing || board.error) ? <BoardGap board={board} /> : <WorkSourceGap kind="tasks" state={work.sources.tasks} testId="gap-project-tasks" />}
-            </Card>
-          )}
+          <Card title="Tareas" data-testid="project-tasks">
+            <WorkSourceGap kind="tasks" state={work.sources.tasks} testId="gap-project-tasks" />
+          </Card>
         </div>
       </div>
     </section>
