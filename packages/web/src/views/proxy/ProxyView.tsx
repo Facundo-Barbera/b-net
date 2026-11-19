@@ -294,7 +294,7 @@ export function ProxyView({ snapshot }: SnapshotViewProps) {
     const legacyNote = <p className="u-faint">CLIProxyAPI sigue siendo el proxy en uso mientras no haya aprobación para cambiarlo.</p>;
     return (
       <section className="ui-view px" data-testid="view-proxy">
-        <PageHeader title="Proxy" />
+        <PageHeader eyebrow="Flota" title="Proxy" />
         {status.state === "ok" ? (
           // Connected and healthy, but the first status has not arrived yet.
           <Card>
@@ -311,7 +311,7 @@ export function ProxyView({ snapshot }: SnapshotViewProps) {
 
   return (
     <section className="ui-view px" data-testid="view-proxy">
-      <PageHeader title="Proxy" subtitle="Pool de cuentas, rutas y medición a precio de lista" />
+      <PageHeader eyebrow="Flota" title="Proxy" subtitle="Pool de cuentas, rutas y medición a precio de lista" />
       <StatusHeader proxy={proxy} sourceOk={src ? src.ok : true} />
       <LastHour proxy={proxy} />
       <div className="px-two">

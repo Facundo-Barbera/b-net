@@ -14,6 +14,8 @@ export { Stat, type StatProps } from "./Stat.tsx";
 export { StatStrip } from "./StatStrip.tsx";
 export { RelativeTime, type RelativeTimeProps } from "./RelativeTime.tsx";
 export { EmptyState, type EmptyStateProps } from "./EmptyState.tsx";
+export { Segmented, type SegmentedOption, type SegmentedProps } from "./Segmented.tsx";
+export { SearchField, type SearchFieldProps } from "./SearchField.tsx";
 export { NowProvider, useNow, useClock } from "./now.tsx";
 export {
   meterTone,
