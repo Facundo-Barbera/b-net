@@ -7,6 +7,7 @@ import { parseEnv } from "node:util";
 import { z } from "zod";
 import { BotName, MachineConfig } from "@b-net/core";
 import type { BotToken } from "./bot-auth.ts";
+import { TAILSCALE_LOGIN } from "./board/auth.ts";
 
 export type ReadTextFile = (path: string) => string;
 
@@ -32,6 +33,8 @@ export interface HubConfig {
   botTokens: BotToken[];
   /** Cap on the sum of all stored deliverables. */
   deliverablesQuotaBytes: number;
+  /** Tailscale logins that enter the Board as admin (HUB_BOARD_ADMINS), lowercase. Empty = no admin. */
+  boardAdmins: string[];
 }
 
 export class ConfigError extends Error {
@@ -124,6 +127,13 @@ function loadBotTokens(file: string | undefined, read: ReadTextFile): BotToken[]
   return parseBotTokens(raw);
 }
 
+/** HUB_BOARD_ADMINS: comma-separated Tailscale logins. A typo fails startup instead of silently locking the admin out. */
+export function parseBoardAdmins(raw: string | undefined): string[] {
+  const logins = (raw ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  for (const l of logins) if (!TAILSCALE_LOGIN.test(l)) throw new ConfigError(`HUB_BOARD_ADMINS: invalid Tailscale login ${l.slice(0, 80)}`);
+  return [...new Set(logins)];
+}
+
 const GIB = 1024 ** 3;
 
 export function loadHubConfig(env: Record<string, string | undefined>, read: ReadTextFile): HubConfig {
@@ -179,5 +189,6 @@ export function loadHubConfig(env: Record<string, string | undefined>, read: Rea
     pollAgentSec: intIn(env.HUB_POLL_AGENT_SEC, 30, 5, 3600, "HUB_POLL_AGENT_SEC"),
     botTokens: loadBotTokens(env.HUB_BOT_TOKENS_FILE?.trim(), read),
     deliverablesQuotaBytes: intIn(env.HUB_DELIVERABLES_QUOTA_GB, 100, 1, 100_000, "HUB_DELIVERABLES_QUOTA_GB") * GIB,
+    boardAdmins: parseBoardAdmins(env.HUB_BOARD_ADMINS),
   };
 }

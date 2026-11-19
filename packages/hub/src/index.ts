@@ -10,3 +10,5 @@ export { fetchAgentMetrics, fetchAgentThreads, fetchProxy, ingestUsage, pollTail
 export { deriveStatus, DEFAULT_THRESHOLDS, type StatusThresholds } from "./status.ts";
 export { MemoryUsageStore, type UsageStore } from "./store.ts";
 // SqliteUsageStore (./store-sqlite.ts) and ProjectStore (./projects-store.ts) import node:sqlite and are loaded on demand.
+// Board (./board/service.ts, ./board/read.ts) imports @vercel/board and is loaded on demand by serve.ts.
+export { loadBoardConfig, type BoardConfig } from "./board/config.ts";

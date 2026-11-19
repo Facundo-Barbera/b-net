@@ -7,7 +7,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
+import { BOARD_BASE_PATH, HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type BoardProjectsResponse, type HubSnapshot } from "@b-net/core";
+import { BOARD_PROJECTS_ROUTE } from "./board/config.ts";
 import { botFromAuth, type BotToken } from "./bot-auth.ts";
 import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
 import { SECURITY_HEADERS, error, json } from "./respond.ts";
@@ -30,7 +31,10 @@ export interface HandlerDeps {
   clock?: () => Date;
   /** POST IngestRoutes.metrics; absent = route answers 404. */
   ingest?: Handler | null;
+  /** Board mounted at /api/board (its own authenticate) and its read model; null when HUB_BOARD_URL is not set. */
+  board?: { fetch: Handler; projects: () => Promise<BoardProjectsResponse> } | null;
 }
+
 
 const BOT_CHALLENGE = { "www-authenticate": 'Bearer realm="b-net", error="invalid_token"' };
 
@@ -112,6 +116,12 @@ export function createHandler(deps: HandlerDeps): Handler {
     const head = req.method === "HEAD";
     // Ingest uses its own per-machine token and is not under /api/.
     if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
+    // Board answers its whole protocol itself, every method, with the authenticate injected into the engine.
+    if (path === BOARD_BASE_PATH || path.startsWith(`${BOARD_BASE_PATH}/`)) {
+      if (deps.board) return deps.board.fetch(req);
+      await req.body?.cancel().catch(() => undefined);
+      return error(404, "board not configured (HUB_BOARD_URL)");
+    }
     const isApi = path === "/api" || path.startsWith("/api/");
     if (req.method === "POST" && isApi && isProjectsPath(path)) return write(req, path, url.searchParams);
     if (req.method !== "GET" && !head) return error(405, "method not allowed");
@@ -119,6 +129,16 @@ export function createHandler(deps: HandlerDeps): Handler {
     if (isApi) {
       const auth = req.headers.get("authorization");
       if (deps.apiToken && !tokenOk(auth, deps.apiToken) && !botFromAuth(auth, bots)) return error(401, "unauthorized");
+      if (path === BOARD_PROJECTS_ROUTE) {
+        // 503 = no board on this hub (the UI says what to connect); 502 = the board did not answer.
+        if (!deps.board) return error(503, "board not configured (HUB_BOARD_URL)");
+        try {
+          const body = await deps.board.projects();
+          return head ? new Response(null, { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }) : json(body);
+        } catch {
+          return error(502, "board read failed");
+        }
+      }
       if (isProjectsPath(path)) {
         if (!deps.projects) return error(503, "projects storage not configured (HUB_DATA_DIR)");
         // Content responses carry their own HEAD handling (Range, Content-Length).

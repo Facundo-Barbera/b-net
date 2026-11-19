@@ -129,6 +129,9 @@
 @media (prefers-reduced-motion: reduce) {
   .pj-card:hover, .pj-card:hover .pj-card__go { transform: none; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .pj-card:hover, .pj-card:hover .pj-card__go { transform: none; }
+}
 @media (max-width: 760px) {
   .pj-search { width: 100%; }
   .pj-deliv { grid-template-columns: minmax(0, 1fr); }
