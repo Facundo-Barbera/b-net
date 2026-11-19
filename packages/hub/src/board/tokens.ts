@@ -21,6 +21,7 @@ export interface BoardTokenInfo {
 
 export class SqliteBoardTokenStore {
   private readonly db: DatabaseSync;
+  private closed = false;
 
   /** path ":memory:" for tests. May be the same file as the other hub stores (separate connection, WAL). */
   constructor(path: string) {
@@ -66,7 +67,10 @@ export class SqliteBoardTokenStore {
     );
   }
 
+  /** Idempotent: node:sqlite throws on a second close, and callers' cleanup paths may overlap. */
   close(): void {
+    if (this.closed) return;
+    this.closed = true;
     this.db.close();
   }
 }

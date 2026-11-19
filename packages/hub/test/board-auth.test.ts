@@ -8,10 +8,15 @@ const TAILSCALE = "127.0.0.1";
 const DIRECT = "100.64.0.20";
 
 let store: SqliteBoardTokenStore;
-afterEach(() => store?.close());
+/** The store a test opened, if any: tests that open none must not close the previous test's again. */
+let opened: SqliteBoardTokenStore | undefined;
+afterEach(() => {
+  opened?.close();
+  opened = undefined;
+});
 
 function setup(projects: Record<string, string[]> = { "bot-a": ["alpha", "beta"] }) {
-  store = new SqliteBoardTokenStore(":memory:");
+  store = opened = new SqliteBoardTokenStore(":memory:");
   const auth = createBoardAuthenticate({
     admins: ["Admin@Example.invalid"],
     botForToken: (t) => store.botForToken(t),
@@ -150,7 +155,7 @@ describe("Board authenticate: nobody else", () => {
 
 describe("Board token store", () => {
   it("keeps only the hash and lists bots without tokens", () => {
-    store = new SqliteBoardTokenStore(":memory:");
+    store = opened = new SqliteBoardTokenStore(":memory:");
     const token = store.issue("bot-a", new Date("2026-11-19T00:00:00Z"));
     expect(token).toMatch(/^bnet_board_[A-Za-z0-9_-]{43}$/);
     expect(store.botForToken(token)).toBe("bot-a");
