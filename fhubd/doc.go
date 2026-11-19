@@ -10,6 +10,5 @@
 // packages/core/src/contracts/fhubd.ts; that file is the source of truth for
 // routes, bodies and status codes. Additions here, which the contract lets
 // readers ignore: services carry detailState, desired, pid, restarts, health
-// and lastExit; metrics carry errors. One deviation: manager is "fhubd",
-// which the contract's enum does not list yet.
+// and lastExit; metrics carry errors. Every service reports manager "fhubd".
 package main

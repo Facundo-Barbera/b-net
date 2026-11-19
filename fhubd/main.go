@@ -48,8 +48,17 @@ func run(configPath string, checkOnly bool) error {
 		return nil
 	}
 
-	// SIGHUP would otherwise kill fhubd without stopping its children.
-	signal.Ignore(syscall.SIGHUP)
+	// SIGHUP would otherwise kill fhubd without stopping its children. It is
+	// caught and discarded rather than ignored: an ignored disposition is
+	// inherited across exec, so children would start deaf to SIGHUP, while a
+	// caught one resets to the default in the child.
+	hup := make(chan os.Signal, 1)
+	signal.Notify(hup, syscall.SIGHUP)
+	go func() {
+		for range hup {
+			log.Printf("SIGHUP received, ignored")
+		}
+	}()
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -71,7 +80,7 @@ func run(configPath string, checkOnly bool) error {
 		ReadTimeout:       15 * time.Second,
 		// Action POSTs wait for the service to settle (see maxActionTimeout).
 		WriteTimeout: maxActionTimeout + 30*time.Second,
-		IdleTimeout:       60 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 	apiDone := make(chan struct{})
 	go func() {

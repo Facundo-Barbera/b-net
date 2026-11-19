@@ -26,7 +26,10 @@ die() { echo "macos-install: $*" >&2; exit 1; }
 [[ -n "${FHUBD_SIGN_IDENTITY:-}" ]] || die "set FHUBD_SIGN_IDENTITY to your \"Developer ID Application: ...\" identity"
 [[ "$FHUBD_SIGN_IDENTITY" == "Developer ID Application:"* ]] \
   || die "FHUBD_SIGN_IDENTITY must be a \"Developer ID Application: ...\" identity; an ad-hoc or Apple Development signature changes the TCC identity"
-security find-identity -v -p codesigning | grep -qF "$FHUBD_SIGN_IDENTITY" \
+# Captured first: piping into `grep -q` lets grep exit on the first match, and
+# the resulting SIGPIPE in `security` fails the pipeline under pipefail.
+identities="$(security find-identity -v -p codesigning)" || die "security find-identity failed"
+grep -qF "$FHUBD_SIGN_IDENTITY" <<<"$identities" \
   || die "identity not found in the keychain: $FHUBD_SIGN_IDENTITY"
 command -v go >/dev/null || die "go not found in PATH"
 

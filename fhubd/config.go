@@ -73,16 +73,16 @@ type ServiceConfig struct {
 	// Actions the API may run; defaults to start, stop and restart.
 	Actions []string `json:"actions"`
 	// ActionTimeout bounds how long a POST waits for the state to land.
-	ActionTimeout Duration `json:"actionTimeout"`
-	Command     string            `json:"command"`
-	Args        []string          `json:"args"`
-	Cwd         string            `json:"cwd"`
-	Env         map[string]string `json:"env"`
-	Autostart   *bool             `json:"autostart"`
-	Healthcheck *HealthConfig     `json:"healthcheck"`
-	Restart     RestartConfig     `json:"restart"`
-	StopTimeout Duration          `json:"stopTimeout"`
-	Log         string            `json:"log"`
+	ActionTimeout Duration          `json:"actionTimeout"`
+	Command       string            `json:"command"`
+	Args          []string          `json:"args"`
+	Cwd           string            `json:"cwd"`
+	Env           map[string]string `json:"env"`
+	Autostart     *bool             `json:"autostart"`
+	Healthcheck   *HealthConfig     `json:"healthcheck"`
+	Restart       RestartConfig     `json:"restart"`
+	StopTimeout   Duration          `json:"stopTimeout"`
+	Log           string            `json:"log"`
 	// LogMaxBytes rotates the log to <log>.1 when a start finds it larger.
 	LogMaxBytes int64 `json:"logMaxBytes"`
 }

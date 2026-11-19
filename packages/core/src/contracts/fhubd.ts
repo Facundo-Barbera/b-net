@@ -11,9 +11,10 @@
  * - JSON in and out (`content-type: application/json`), times as ISO 8601 with offset, sizes in bytes.
  * - Errors: non-2xx with a `FhubdError` body.
  *
- * Services are declared in fhubd's own config file on the machine (name, manager, unit, log source, allowed
- * actions). The API can list them and act on them but never adds, removes or edits one: a service the config
- * does not name is a 404, so the hub cannot reach arbitrary units on the machine.
+ * Services are declared in fhubd's own config file on the machine (name, command and arguments, log file,
+ * allowed actions, restart and health-check policy) and fhubd runs each one as its own child process. The API
+ * can list them and act on them but never adds, removes or edits one: a service the config does not name is a
+ * 404, so the hub cannot start or stop arbitrary processes on the machine.
  *
  * Versioning: every path starts with /v0. A breaking change gets a new prefix; fields may be added within v0,
  * so readers must ignore fields they do not know.
@@ -119,8 +120,12 @@ export interface FhubdExternalDisk {
  * ------------------------------------------------------------------ */
 export type FhubdServiceAction = "start" | "stop" | "restart";
 export type FhubdServiceState = "running" | "stopped" | "starting" | "stopping" | "failed" | "unknown";
-/** How fhubd drives the service; it comes from the config. A new manager is a contract change. */
-export type FhubdServiceManager = "systemd" | "systemd-user" | "launchd" | "docker";
+/**
+ * How the service is driven. "fhubd" means fhubd itself supervises it as a child process, which is what the
+ * current daemon reports for every service; the others are reserved for services delegated to the OS or
+ * container manager. A new manager is a contract change.
+ */
+export type FhubdServiceManager = "fhubd" | "systemd" | "systemd-user" | "launchd" | "docker";
 
 export interface FhubdService {
   /** Name from the config: the `{name}` in the service paths. [a-z0-9][a-z0-9._-]* */

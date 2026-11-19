@@ -98,8 +98,8 @@ type serviceBody struct {
 func toServiceBody(s *service, st ServiceStatus) serviceBody {
 	b := serviceBody{
 		Name: st.Name,
-		// fhubd runs services as its own children, which the contract's
-		// manager enum (systemd, systemd-user, launchd, docker) has no value for.
+		// fhubd runs services as its own children; "fhubd" is the contract's
+		// manager value for that.
 		Manager:             "fhubd",
 		State:               contractState(st.State),
 		Since:               st.Since,
