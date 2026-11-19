@@ -3,8 +3,8 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/proxy" },
-    { "path": "packages/hub" },
+    { "path": "apps/hub" },
     { "path": "packages/agent" },
-    { "path": "packages/web" }
+    { "path": "apps/web" }
   ]
 }

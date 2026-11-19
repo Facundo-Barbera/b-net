@@ -43,7 +43,10 @@ export const ClientKeyView = z.object({
   lastUsedAt: IsoTime.nullable(),
   /** Glob patterns; empty = all models. */
   allowedModels: z.array(z.string()),
-  /** Whether this client is migrated to b-net-proxy or still on CLIProxyAPI. */
+  /**
+   * Whether this client is migrated to fhub-proxy or still on CLIProxyAPI. The value keeps the pre-rename
+   * "b-net-proxy" spelling because it is written in the proxy config on the homelab; the UI shows "fhub-proxy".
+   */
   migration: z.enum(["cliproxyapi", "b-net-proxy", "both"]),
 });
 export type ClientKeyView = z.infer<typeof ClientKeyView>;

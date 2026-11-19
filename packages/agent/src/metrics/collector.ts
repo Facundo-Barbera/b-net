@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statfsSync } from "node:fs";
 import os from "node:os";
 import { promisify } from "node:util";
-import type { MachineMetrics } from "@b-net/core";
+import type { MachineMetrics } from "@fhub/core";
 import {
   BYTES_PER_GB,
   clampPct,

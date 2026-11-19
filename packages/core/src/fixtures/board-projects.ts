@@ -2,7 +2,7 @@
  * Example GET /api/v1/board/projects (BoardProjectsResponse) for the UI's fixture mode, its dev fallback and
  * tests. All data is FAKE: bots, thread ids and PR numbers are made up; the repo is the public one.
  * Slugs and summary ids match projectsFixture, so "abrir resumen" lands on a deliverable that exists.
- * The three projects cover the states the UI must show: with data (b-net), blocked (bixku-bot), empty (homelab-ops).
+ * The three projects cover the states the UI must show: with data (fhub), blocked (bixku-bot), empty (homelab-ops).
  */
 import type { BoardProjectsResponse } from "../contracts/board.ts";
 import { FIXTURE_NOW } from "./snapshot.ts";
@@ -15,15 +15,15 @@ export const boardProjectsFixture: BoardProjectsResponse = {
   generatedAt: FIXTURE_NOW,
   projects: [
     {
-      slug: "b-net",
-      name: "b-net",
+      slug: "fhub",
+      name: "fhub",
       bot: "fstack-vps",
       tasks: [
         {
           id: "41",
           title: "¿Fusionar el PR de la UI antes del deploy del viernes?",
           state: "bloqueado",
-          pr: "Facundo-Barbera/b-net#5",
+          pr: "Facundo-Barbera/fhub#5",
           thread: "th_01",
           updatedAt: ago(18),
         },
@@ -38,7 +38,7 @@ export const boardProjectsFixture: BoardProjectsResponse = {
         },
         { id: "44", title: "Capturas de la vista Proyectos en la mini", state: "en_espera", updatedAt: ago(30) },
         { id: "45", title: "Probar el webhook con reintentos", state: "en_espera", updatedAt: ago(32) },
-        { id: "29", title: "Métricas propias en el agente", state: "listo", pr: "Facundo-Barbera/b-net#4", updatedAt: ago(60 * 20) },
+        { id: "29", title: "Métricas propias en el agente", state: "listo", pr: "Facundo-Barbera/fhub#4", updatedAt: ago(60 * 20) },
       ],
       updates: [
         { id: "52", author: "orquestador", text: "Tests del hub en verde en la mini; faltan las capturas.", at: ago(4) },
@@ -47,28 +47,28 @@ export const boardProjectsFixture: BoardProjectsResponse = {
           author: "fstack-vps",
           text: "PR #5 actualizado con el rediseño de Trabajo y Proyectos.",
           at: ago(25),
-          link: "https://github.com/Facundo-Barbera/b-net/pull/5",
+          link: "https://github.com/Facundo-Barbera/fhub/pull/5",
         },
       ],
       prs: [
         {
-          ref: "Facundo-Barbera/b-net#5",
+          ref: "Facundo-Barbera/fhub#5",
           title: "web: rehacer la UI como centro de trabajo",
-          url: "https://github.com/Facundo-Barbera/b-net/pull/5",
+          url: "https://github.com/Facundo-Barbera/fhub/pull/5",
           state: "abierto",
           updatedAt: ago(25),
         },
         {
-          ref: "Facundo-Barbera/b-net#4",
+          ref: "Facundo-Barbera/fhub#4",
           title: "Métricas propias",
-          url: "https://github.com/Facundo-Barbera/b-net/pull/4",
+          url: "https://github.com/Facundo-Barbera/fhub/pull/4",
           state: "fusionado",
           updatedAt: ago(60 * 20),
         },
         {
-          ref: "Facundo-Barbera/b-net#3",
+          ref: "Facundo-Barbera/fhub#3",
           title: "Prueba descartada del proxy",
-          url: "https://github.com/Facundo-Barbera/b-net/pull/3",
+          url: "https://github.com/Facundo-Barbera/fhub/pull/3",
           state: "cerrado",
           updatedAt: ago(60 * 30),
         },
@@ -78,18 +78,18 @@ export const boardProjectsFixture: BoardProjectsResponse = {
           schema: "bnet.event",
           version: 1,
           kind: "question",
-          project: "b-net",
+          project: "fhub",
           bot: "fstack-vps",
           thread: "th_01",
           summary: "¿Fusiono el PR #5 o espero a las capturas?",
-          link: "https://github.com/Facundo-Barbera/b-net/pull/5",
+          link: "https://github.com/Facundo-Barbera/fhub/pull/5",
           at: ago(18),
         },
         {
           schema: "bnet.event",
           version: 1,
           kind: "thread_done",
-          project: "b-net",
+          project: "fhub",
           bot: "fstack-vps",
           thread: "th_03",
           summary: "Contrato de entregables listo.",

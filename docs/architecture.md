@@ -1,4 +1,4 @@
-# b-net · Arquitectura (fase 1)
+# fhub · Arquitectura (fase 1)
 
 > Estado: propuesta para revisión de Facundo. Las decisiones marcadas **[propuesta]** tienen su pregunta en `docs/open-questions.md`.
 
@@ -10,20 +10,22 @@ Un hub propio del homelab que reemplaza tres cosas:
 |---|---|
 | UI de Beszel | Vista **Machines** del hub (fase 1 lee Beszel; fase 2 usa el agente propio) |
 | `fleet status` | Mapa de máquinas + hilos de T3 por máquina |
-| CLIProxyAPI | **b-net-proxy** (OpenAI + Anthropic compatible, pool de cuentas, medición) |
+| CLIProxyAPI | **fhub-proxy** (OpenAI + Anthropic compatible, pool de cuentas, medición) |
 
 Inspiración visual: dashboard strawhat (oscuro, mapa de máquinas con latencia, CPU/RAM, sandboxes despiertas/dormidas, suscripciones con ventanas 5 h/semanales, costo a precio de lista, créditos).
 
 ## 2. Componentes y monorepo
 
 ```
-b-net/
+fhub/
+├─ apps/
+│  ├─ hub/     @fhub/hub    API /api/v1 + agregación de fuentes + sirve la UI compilada
+│  └─ web/     @fhub/web    UI React (Vite): Trabajo (inicio) y Proyectos; flota: Máquinas / Suscripciones / Proxy / Secretos
 ├─ packages/
-│  ├─ core/    @b-net/core   contratos compartidos (zod + tipos), fixtures canónicos, clientes tipados
-│  ├─ hub/     @b-net/hub    API /api/v1 + agregación de fuentes + sirve la UI compilada
-│  ├─ proxy/   @b-net/proxy  proxy de modelos (OpenAI/Anthropic), pool de cuentas, medición
-│  ├─ agent/   @b-net/agent  agente ligero opcional por máquina (métricas + exportador T3)
-│  └─ web/     @b-net/web    UI React (Vite): Trabajo (inicio) y Proyectos; flota: Máquinas / Suscripciones / Proxy / Secretos
+│  ├─ core/    @fhub/core   contratos compartidos (zod + tipos, incluido hub ↔ fhubd v0), fixtures canónicos, clientes tipados
+│  ├─ proxy/   @fhub/proxy  proxy de modelos (OpenAI/Anthropic), pool de cuentas, medición
+│  └─ agent/   @fhub/agent  agente ligero opcional por máquina (métricas + exportador T3)
+├─ fhubd/      daemon por máquina (módulo Go, fuera del workspace de pnpm)
 ├─ docs/
 └─ config/     ejemplos de configuración (sin secretos)
 ```
@@ -110,7 +112,7 @@ CLIProxyAPI **no se apaga sin aprobación explícita de Facundo**.
 | Paso | Qué | Criterio para avanzar |
 |---|---|---|
 | 0 | Inventario: clientes que usan CLIProxyAPI, modelos que piden y cuentas que usa (lo llena Facundo; ver open-questions) | Lista completa |
-| 1 | Desplegar b-net-proxy en `:8318` junto a CLIProxyAPI `:8317`, con las cuentas re-logueadas en el proxy nuevo (sin copiar tokens a mano) | `/internal/v1/status` sano |
+| 1 | Desplegar fhub-proxy en `:8318` junto a CLIProxyAPI `:8317`, con las cuentas re-logueadas en el proxy nuevo (sin copiar tokens a mano) | `/internal/v1/status` sano |
 | 2 | Mover **un** cliente de bajo riesgo (p. ej. el bot) cambiando su base URL | 48 h sin errores atribuibles; los costos medidos cuadran con los headers |
 | 3 | Mover un cliente a la vez (opencode, T3 en cada máquina, …). El campo `migration` del cliente se ve en la vista Proxy | Igual que el paso 2 |
 | 4 | Con 0 tráfico en CLIProxyAPI por 7 días: **pedir aprobación a Facundo** para apagarlo | Aprobación explícita |

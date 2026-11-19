@@ -1,5 +1,5 @@
 {
-  "$comment": "b-net-proxy example config. PLACEHOLDERS ONLY. Copy to /etc/b-net-proxy/proxy.json on bixku-homelab. No secret values here: accounts reference secret ids stored in the encrypted secrets.enc (see packages/proxy/scripts/secrets.ts). Keys starting with '$' are comments.",
+  "$comment": "fhub-proxy example config. PLACEHOLDERS ONLY. Copy to /etc/b-net-proxy/proxy.json on bixku-homelab. No secret values here: accounts reference secret ids stored in the encrypted secrets.enc (see packages/proxy/scripts/secrets.ts). Keys starting with '$' are comments.",
   "listen": { "host": "100.64.0.10", "port": 8318 },
   "legacyProxy": { "listen": "100.64.0.10:8317", "retired": false },
   "machineId": "bixku-homelab",

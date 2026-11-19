@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MachineMetrics } from "@b-net/core";
+import { MachineMetrics } from "@fhub/core";
 import { GPU_BACKOFF_SAMPLES, GPU_TIMEOUT_MS, createCollector, type CollectorDeps } from "../src/metrics/collector.ts";
 import { MetricHistoryBuffer } from "../src/metrics/history.ts";
 import { Sampler } from "../src/sampler.ts";
@@ -208,7 +208,7 @@ describe("Sampler + MetricHistoryBuffer", () => {
     const hist = h.toHistory()!;
     expect(hist.cpuPct).toHaveLength(30);
     expect(hist.stepSec).toBe(60);
-    const { MetricHistory } = await import("@b-net/core");
+    const { MetricHistory } = await import("@fhub/core");
     expect(MetricHistory.safeParse(hist).success).toBe(true);
   });
 

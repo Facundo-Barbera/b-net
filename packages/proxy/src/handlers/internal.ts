@@ -3,7 +3,7 @@
  * constant-time compare. Read-only. Never returns secret values: secrets go
  * through the strict SecretMeta schema, clients through ClientKeyView (no hash).
  */
-import { AccountView, ClientKeyView, ProxyInternalRoutes, ProxyStatus, SecretMeta, type UsageWindow } from "@b-net/core";
+import { AccountView, ClientKeyView, ProxyInternalRoutes, ProxyStatus, SecretMeta, type UsageWindow } from "@fhub/core";
 import type { Handler, ProxyDeps } from "../deps.ts";
 import { addToTotals, emptyTotals } from "../store/records.ts";
 import { iso, jsonResponse, percentile, safeEqual } from "../util.ts";

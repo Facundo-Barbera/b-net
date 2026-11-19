@@ -13,3 +13,7 @@ dist/
 *.sqlite
 *.sqlite-*
 preview/*.html
+# fhubd (Go daemon): build output and Go caches stay out of the repo
+/fhubd/bin/
+/fhubd/dist/
+/fhubd/vendor/

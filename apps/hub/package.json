@@ -1,0 +1,20 @@
+{
+  "name": "@fhub/hub",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@fhub/core": "workspace:*",
+    "@vercel/board": "0.52.0",
+    "zod": "^4.1.0"
+  },
+  "scripts": {
+    "agent-token": "node scripts/agent-token.ts",
+    "board-publish": "node scripts/board-publish.ts",
+    "board-token": "node scripts/board-token.ts"
+  }
+}

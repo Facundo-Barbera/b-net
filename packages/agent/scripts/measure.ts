@@ -2,7 +2,7 @@
  * Measures the real cost of the push agent (Linux, reads /proc). Bounded: it always ends.
  *
  *   node packages/agent/scripts/measure.ts --duration 240 --interval 30 -- <agent command...>
- *   e.g. -- node packages/agent/dist/b-net-agent.mjs     or     -- packages/agent/dist/b-net-agent
+ *   e.g. -- node packages/agent/dist/fhub-agent.mjs     or     -- packages/agent/dist/fhub-agent
  *
  * Starts a throwaway ingest sink on 127.0.0.1 (random port) that checks the bearer token and
  * validates every body with the core AgentMetricsPush contract, runs the agent against it, samples
@@ -13,7 +13,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { AgentMetricsPush } from "@b-net/core";
+import { AgentMetricsPush } from "@fhub/core";
 
 const argv = process.argv.slice(2);
 const sep = argv.indexOf("--");

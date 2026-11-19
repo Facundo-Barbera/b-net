@@ -11,7 +11,7 @@
  *  - `verified: false`: placeholder entry. Prices are null -> cost is null.
  *    Do not invent numbers; fill these from the provider's pricing page.
  */
-import type { ProviderId } from "@b-net/core";
+import type { ProviderId } from "@fhub/core";
 
 export interface PriceTier {
   /** Applies while promptTokens (input + cache read + cache write) <= this. null = no upper bound. */

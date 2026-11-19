@@ -1,6 +1,6 @@
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
-import type { AgentMetricsPush } from "@b-net/core";
+import type { AgentMetricsPush } from "@fhub/core";
 import type { Collector } from "./metrics/collector.ts";
 
 /** Sends one POST and resolves with the HTTP status. Rejects on network errors and timeouts. */

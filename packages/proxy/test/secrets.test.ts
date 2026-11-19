@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { fingerprint, parseMasterKey, SecretStore, type StoredMeta } from "../src/secrets.ts";
 import { FakeClock, T0 } from "./helpers.ts";
 
-const dir = mkdtempSync(join(tmpdir(), "b-net-proxy-secrets-"));
+const dir = mkdtempSync(join(tmpdir(), "fhub-proxy-secrets-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 const KEY = Buffer.alloc(32, 0x42); // dummy master key

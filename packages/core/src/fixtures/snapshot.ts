@@ -45,10 +45,10 @@ const machines: MachineView[] = [
     services: [
       { name: "beszel-hub", port: 8090, status: "up" },
       { name: "cliproxyapi", port: 8317, status: "up" },
-      { name: "b-net-proxy", port: 8318, status: "up" },
-      { name: "b-net", port: 8780, status: "up" },
+      { name: "fhub-proxy", port: 8318, status: "up" },
+      { name: "fhub", port: 8780, status: "up" },
     ],
-    notes: "Mac mini con Ubuntu. Hub de Beszel, CLIProxyAPI y b-net.",
+    notes: "Mac mini con Ubuntu. Hub de Beszel, CLIProxyAPI y fhub.",
   }),
   machine({
     id: "bixku-vps", name: "bixku-vps", role: "vps", os: "linux",
@@ -92,13 +92,13 @@ const machines: MachineView[] = [
 ];
 
 const thread = (t: Partial<T3ThreadView> & Pick<T3ThreadView, "id" | "machineId" | "title" | "state">): T3ThreadView => ({
-  projectTitle: "b-net", provider: "claudeAgent", model: "claude-opus-5-5", branch: null,
+  projectTitle: "fhub", provider: "claudeAgent", model: "claude-opus-5-5", branch: null,
   createdAt: ago(600), updatedAt: ago(30), lastRunStatus: "completed", runningSince: null, parentThreadId: null,
   ...t,
 });
 
 const threads: T3ThreadView[] = [
-  thread({ id: "th_01", machineId: "bixku-vps", title: "b-net fase 1 (coordinador)", state: "active", lastRunStatus: "running", runningSince: ago(14), updatedAt: ago(0) }),
+  thread({ id: "th_01", machineId: "bixku-vps", title: "fhub fase 1 (coordinador)", state: "active", lastRunStatus: "running", runningSince: ago(14), updatedAt: ago(0) }),
   thread({ id: "th_02", machineId: "bixku-vps", title: "Proxy: pool de cuentas y failover", state: "active", lastRunStatus: "running", runningSince: ago(6), updatedAt: ago(1), parentThreadId: "th_01", branch: "feat/proxy" }),
   thread({ id: "th_03", machineId: "bixku-vps", title: "Revisar PR de dotfiles", state: "waiting", projectTitle: "dotfiles", updatedAt: ago(42), lastRunStatus: "completed" }),
   thread({ id: "th_04", machineId: "bixku-vps", title: "Migrar cron de backups", state: "idle", projectTitle: "homelab-ops", model: "claude-sonnet-5-5", updatedAt: ago(95) }),

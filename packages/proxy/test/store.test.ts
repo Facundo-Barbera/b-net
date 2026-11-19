@@ -1,14 +1,14 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { UsageRecord } from "@b-net/core";
+import type { UsageRecord } from "@fhub/core";
 import { afterAll, describe, expect, it } from "vitest";
 import { MemoryRecordStore, type RecordStore } from "../src/store/records.ts";
 import { SqliteRecordStore } from "../src/store/sqlite.ts";
 import { createUlidFactory, iso } from "../src/util.ts";
 import { FakeClock, T0 } from "./helpers.ts";
 
-const dir = mkdtempSync(join(tmpdir(), "b-net-proxy-store-"));
+const dir = mkdtempSync(join(tmpdir(), "fhub-proxy-store-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 function rec(id: string, tsMs: number, over: Partial<UsageRecord> = {}): UsageRecord {

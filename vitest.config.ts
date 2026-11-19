@@ -8,7 +8,7 @@ export default defineConfig({
       {
         test: {
           name: "node",
-          include: ["packages/{core,proxy,hub,agent}/test/**/*.test.ts"],
+          include: ["packages/{core,proxy,agent}/test/**/*.test.ts", "apps/hub/test/**/*.test.ts"],
           environment: "node",
           testTimeout: 10_000,
         },
@@ -17,9 +17,9 @@ export default defineConfig({
         plugins: [react()],
         test: {
           name: "web",
-          include: ["packages/web/test/**/*.test.{ts,tsx}", "packages/web/src/**/*.test.{ts,tsx}"],
+          include: ["apps/web/test/**/*.test.{ts,tsx}", "apps/web/src/**/*.test.{ts,tsx}"],
           environment: "jsdom",
-          setupFiles: ["packages/web/test/setup.ts"],
+          setupFiles: ["apps/web/test/setup.ts"],
           // jsdom + React renders get slow when all projects run in parallel on the VPS.
           testTimeout: 20_000,
         },

@@ -1,6 +1,6 @@
 # UI: Subscriptions, Proxy y Secrets (notas de implementación)
 
-Vistas en `packages/web/src/views/{subscriptions,proxy,secrets}`. Todas reciben solo `{ snapshot }`; el "ahora" sale de `useNow()` (ver abajo). Tests en `packages/web/test/{subscriptions,proxy,secrets}.test.tsx`.
+Vistas en `apps/web/src/views/{subscriptions,proxy,secrets}`. Todas reciben solo `{ snapshot }`; el "ahora" sale de `useNow()` (ver abajo). Tests en `apps/web/test/{subscriptions,proxy,secrets}.test.tsx`.
 
 ## Decisiones tomadas
 
@@ -18,7 +18,7 @@ Vistas en `packages/web/src/views/{subscriptions,proxy,secrets}`. Todas reciben 
 1. **Frescura.** Con la regla única del shell, en live los conteos siguen bajando aunque el hub deje de responder. Falta un indicador "datos de hace X" cuando `generatedAt` sea viejo.
 2. **Aviso "fuera del hub".** `SecretsView` marca `oauth-token` y `api-key` cuyo `machineId` ≠ `hubMachineId` (arquitectura §6.2). Es una heurística de UI; si hay secretos legítimos fuera del hub, se quita.
 3. **Cuentas en `error`.** Hoy solo se muestra el `lastError` como alerta. Cuando haya acciones (fase 2) iría ahí el botón "re-login".
-4. **Migración.** El progreso cuenta clientes en `b-net-proxy`; `both` cuenta como "en paralelo", no como migrado. El contrato no tiene "días sin tráfico en CLIProxyAPI" (criterio del paso 4), así que la nota es texto fijo. Propongo agregar `legacyProxy.lastRequestAt` al contrato si se quiere automatizar ese criterio.
+4. **Migración.** El progreso cuenta clientes en `fhub-proxy`; `both` cuenta como "en paralelo", no como migrado. El contrato no tiene "días sin tráfico en CLIProxyAPI" (criterio del paso 4), así que la nota es texto fijo. Propongo agregar `legacyProxy.lastRequestAt` al contrato si se quiere automatizar ese criterio.
 5. **Prioridad del pool.** La cuenta se ordena por `priority` dentro de su proveedor. Si el pool pasa a `fill-first`/`round-robin`, conviene mostrar la estrategia en la vista Proxy (hoy no está en `ProxyStatus`).
 6. **Zona horaria.** Todo es relativo ("hace 2m", "en 4d 3h"); la fecha exacta ISO está en el `title` de cada `<time>`. Falta decidir si se quiere hora local absoluta en las tablas.
 

@@ -1,5 +1,5 @@
 /**
- * Pre-push guard for the PUBLIC b-net repo.
+ * Pre-push guard for the PUBLIC fhub repo.
  *
  *   node scripts/check-public.ts            # scan tracked files (working tree)
  *   node scripts/check-public.ts --history  # also scan every commit's diff

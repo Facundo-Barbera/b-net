@@ -1,13 +1,13 @@
 # UI shell: notas y propuestas
 
-Área: `packages/web/src/{shell,components,lib,styles}`. Para los hijos que escriben las vistas.
+Área: `apps/web/src/{shell,components,lib,styles}`. Para los hijos que escriben las vistas.
 
 ## Qué hay
 
 - **Shell** (`shell/`): `App` (datos + ruta hash + tema) → `Shell` (skip link, `Sidebar`, `Topbar`, `<main id="main-content">`). `App` acepta `mode` para tests (`<App mode="fixture" />`).
 - **Rutas**: `#/work` (Trabajo, por defecto), `#/projects[/<clave>[/d/<entregable>]]`, y la flota: `#/machines`, `#/subscriptions`, `#/proxy`, `#/secrets`. Atajos: `g w`, `g p`, `g m` (se ignoran en campos de texto y con modificadores).
 - **Datos**: live por defecto (`GET /api/v1/snapshot` y `GET /api/v1/work` cada 15 s; la respuesta de work se valida con zod). Fixture solo con `?data=fixture` o `VITE_DATA_MODE=fixture`; `?data=live` gana sobre la variable.
-- **Dev** (nunca en bixku-vps): `pnpm --filter @b-net/web dev`. `vite.config.ts` lee de env o del `.env` de la raíz `WEB_HOST`, `WEB_PORT`, `WEB_ALLOWED_HOSTS` (lista separada por comas) y `WEB_HUB_URL` (destino del proxy de `/api`, por defecto `http://127.0.0.1:8780`).
+- **Dev** (nunca en bixku-vps): `pnpm --filter @fhub/web dev`. `vite.config.ts` lee de env o del `.env` de la raíz `WEB_HOST`, `WEB_PORT`, `WEB_ALLOWED_HOSTS` (lista separada por comas) y `WEB_HUB_URL` (destino del proxy de `/api`, por defecto `http://127.0.0.1:8780`).
 - **Fuentes** (`data/sources.ts`): el hub solo reporta salud de las fuentes que tiene configuradas, así que "no está en `snapshot.sources`" = sin conectar. `sourceStatus()` da `ok | failing | missing`; `SOURCE_SETUP` dice qué alimenta cada fuente y cómo conectarla. La barra lateral lista también tailscale/beszel/proxy cuando faltan ("sin conectar"); las vistas usan `views/shared/SourceNotice` en vez de quedar vacías.
 - **Responsive**: ≥900 px sidebar completa (232 px) · 600–899 px riel de iconos (56 px, etiquetas solo para lectores de pantalla) · <600 px cajón con botón de menú (Escape, backdrop y navegar lo cierran).
 - **Tema**: `system | dark | light` en `localStorage["b-net.theme"]` (todo en try/catch), escribe `data-theme` en `<html>`. **Oscuro por defecto**; `system` es opcional. `index.html` aplica el tema guardado antes del primer paint.

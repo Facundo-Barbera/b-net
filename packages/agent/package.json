@@ -1,5 +1,5 @@
 {
-  "name": "@b-net/agent",
+  "name": "@fhub/agent",
   "version": "0.3.0",
   "license": "MIT",
   "private": true,
@@ -8,12 +8,12 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@b-net/core": "workspace:*"
+    "@fhub/core": "workspace:*"
   },
   "scripts": {
     "push": "node --disable-warning=ExperimentalWarning src/push.ts",
     "start": "node --disable-warning=ExperimentalWarning src/serve.ts",
-    "build:bin": "bun build src/push.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig --outfile dist/b-net-agent",
+    "build:bin": "bun build src/push.ts --compile --minify --no-compile-autoload-dotenv --no-compile-autoload-bunfig --outfile dist/fhub-agent",
     "measure": "node scripts/measure.ts"
   }
 }

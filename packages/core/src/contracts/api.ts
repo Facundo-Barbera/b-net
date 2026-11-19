@@ -33,7 +33,7 @@ export const HubSnapshot = z.object({
 export type HubSnapshot = z.infer<typeof HubSnapshot>;
 
 /* ------------------------------------------------------------------ *
- * Hub HTTP API (served by @b-net/hub, consumed by @b-net/web).
+ * Hub HTTP API (served by @fhub/hub, consumed by @fhub/web).
  * All under /api/v1, JSON. Auth: Tailscale-only bind. Reads: optional
  * `Authorization: Bearer <hub token>` (a bot token also works). Writes (POST):
  * always `Authorization: Bearer <bot token>`; the bot is the author.
@@ -64,7 +64,7 @@ export const UsageRecordsPage = z.object({
 export type UsageRecordsPage = z.infer<typeof UsageRecordsPage>;
 
 /* ------------------------------------------------------------------ *
- * Proxy internal API (served by @b-net/proxy on its Tailscale IP,
+ * Proxy internal API (served by @fhub/proxy on its Tailscale IP,
  * pulled by the hub). Auth: `Authorization: Bearer <proxy admin token>`.
  * Never returns secret values.
  * ------------------------------------------------------------------ */
@@ -86,7 +86,7 @@ export const ProxyPublicRoutes = {
 } as const;
 
 /* ------------------------------------------------------------------ *
- * Agent API (served by @b-net/agent on each machine's Tailscale IP,
+ * Agent API (served by @fhub/agent on each machine's Tailscale IP,
  * pulled by the hub). Auth: `Authorization: Bearer <agent token>`.
  * ------------------------------------------------------------------ */
 export const AgentRoutes = {

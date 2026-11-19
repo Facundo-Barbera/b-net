@@ -7,7 +7,7 @@
  * timingSafeEqual (no early exit), so timing does not reveal which/whether a client matched.
  */
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import type { ClientKeyView } from "@b-net/core";
+import type { ClientKeyView } from "@fhub/core";
 import type { ClientConfig } from "./config.ts";
 import { anyGlob, iso } from "./util.ts";
 

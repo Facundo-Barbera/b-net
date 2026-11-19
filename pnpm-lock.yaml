@@ -21,23 +21,11 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.5)(jsdom@26.1.0)
 
-  packages/agent:
+  apps/hub:
     dependencies:
-      '@b-net/core':
+      '@fhub/core':
         specifier: workspace:*
-        version: link:../core
-
-  packages/core:
-    dependencies:
-      zod:
-        specifier: ^4.1.0
-        version: 4.6.7
-
-  packages/hub:
-    dependencies:
-      '@b-net/core':
-        specifier: workspace:*
-        version: link:../core
+        version: link:../../packages/core
       '@vercel/board':
         specifier: 0.52.0
         version: 0.52.0
@@ -45,20 +33,11 @@ importers:
         specifier: ^4.1.0
         version: 4.6.7
 
-  packages/proxy:
+  apps/web:
     dependencies:
-      '@b-net/core':
+      '@fhub/core':
         specifier: workspace:*
-        version: link:../core
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
-
-  packages/web:
-    dependencies:
-      '@b-net/core':
-        specifier: workspace:*
-        version: link:../core
+        version: link:../../packages/core
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -87,6 +66,27 @@ importers:
       vite:
         specifier: ^7.3.8
         version: 7.3.8(@types/node@22.20.5)
+
+  packages/agent:
+    dependencies:
+      '@fhub/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/core:
+    dependencies:
+      zod:
+        specifier: ^4.1.0
+        version: 4.6.7
+
+  packages/proxy:
+    dependencies:
+      '@fhub/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
 packages:
 

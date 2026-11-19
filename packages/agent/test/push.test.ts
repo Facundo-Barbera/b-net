@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AgentMetricsPush, IngestRoutes, type MachineMetrics } from "@b-net/core";
+import { AgentMetricsPush, IngestRoutes, type MachineMetrics } from "@fhub/core";
 import { ConfigError, INGEST_PATH, loadPushConfig } from "../src/config.ts";
 import { createPusher, type PostJson } from "../src/pusher.ts";
 

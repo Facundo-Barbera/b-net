@@ -4,7 +4,7 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 
 ## 1. Producto y stack
 
-1. ~~**Nombre final.**~~ Decidido: **b-net** (repo público `Facundo-Barbera/b-net`). Paquetes `@b-net/*`, servicios `b-net` (hub), `b-net-proxy` y `b-net-agent`. Los hostnames reales (`bixku-*`) no cambian.
+1. ~~**Nombre final.**~~ Decidido: **fhub** (repo público `Facundo-Barbera/fhub`). Paquetes `@fhub/*`, UI y logs dicen fhub. Las rutas y unidades ya desplegadas en el homelab siguen con el nombre viejo (`b-net.service`, `b-net-proxy.service`, `b-net-agent`, `/etc/b-net*`, `/var/lib/b-net*`) hasta una migración aparte. Los hostnames reales (`bixku-*`) no cambian.
 2. ⭐ **Stack del proxy.** Propuesta: TypeScript, ya implementado (ver `architecture.md §5`). ¿Prefieres Go para tener un único binario y menos RAM en el homelab (7.5 GB)? El contrato `/internal/v1/*` permite reescribirlo sin tocar el hub.
 3. **Puertos.** Propuesta: hub `:8780`, proxy `:8318` (junto a CLIProxyAPI `:8317`) y agentes `:8781`. ¿Chocan con algo en el homelab?
 
@@ -15,7 +15,7 @@ Las decisiones de producto quedan como **propuesta**; nada de esto está fijado.
 6. ⭐ ¿Qué clientes apuntan hoy a CLIProxyAPI (T3 en qué máquinas, opencode, el bot, otros) y qué formato usa cada uno (chat, Responses, Messages)? Hay que saberlo porque la traducción entre formatos queda para la fase 2: el proxy responde 501 si el formato no coincide.
 7. ¿Usas aliases, prefijos, sufijos de razonamiento `modelo(high)`, weighted round-robin, reglas de payload o `request-scoped-errors`?
 8. ¿Usas la Management Center UI o `/usage-queue` para algo?
-9. ⭐ **Términos de servicio.** CLIProxyAPI hace "cloaking" para hacerse pasar por Claude Code. Propuesta: **b-net-proxy no suplanta clientes.** Las suscripciones se usan solo desde los clientes oficiales (Claude Code, Codex) y el resto va con API keys. ¿Confirmas?
+9. ⭐ **Términos de servicio.** CLIProxyAPI hace "cloaking" para hacerse pasar por Claude Code. Propuesta: **fhub-proxy no suplanta clientes.** Las suscripciones se usan solo desde los clientes oficiales (Claude Code, Codex) y el resto va con API keys. ¿Confirmas?
 10. ⭐ **OAuth.** El refresh de tokens no está implementado (hay un hook para la fase 2). Sin él, las cuentas de suscripción pasan a `error` al expirar el token, en pocas horas. ¿El login y el refresh van dentro del proxy o en una herramienta aparte?
 11. **Criterio para apagar CLIProxyAPI**: 7 días sin tráfico. Propuesta: agregar `legacyProxy.lastRequestAt` al contrato para calcularlo en la UI.
 

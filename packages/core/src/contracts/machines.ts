@@ -13,7 +13,7 @@ export const MachineConfig = z.object({
   tailscaleHost: z.string(),
   /** Name of the system in Beszel, if monitored there. */
   beszelName: z.string().optional(),
-  /** Base URL of the b-net agent on this machine (Tailscale address), if installed. */
+  /** Base URL of the fhub agent on this machine (Tailscale address), if installed. */
   agentUrl: z.string().url().optional(),
   /** Short description of what runs there (shown in the UI). */
   notes: z.string().optional(),
@@ -65,7 +65,7 @@ export const MachineMetrics = z.object({
   netTxBps: z.number().nonnegative().nullable(),
   uptimeSec: z.number().nonnegative().nullable(),
   tempC: z.number().nullable(),
-  /** Only from the b-net agent, and only when nvidia-smi exists. Absent = no GPU data. */
+  /** Only from the fhub agent, and only when nvidia-smi exists. Absent = no GPU data. */
   gpu: GpuMetrics.strict().nullable().optional(),
   /** true when cpu/mem/disk/net are those of the WSL VM, not the Windows host (agent only). */
   wslVm: z.boolean().optional(),

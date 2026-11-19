@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Readable } from "node:stream";
-import { readT3Threads } from "@b-net/core/clients/t3";
+import { readT3Threads } from "@fhub/core/clients/t3";
 import { loadConfig } from "./config.ts";
 import { createAgentHandler } from "./handler.ts";
 import { createCollector, defaultCollectorDeps } from "./metrics/collector.ts";
@@ -65,7 +65,7 @@ export function main(): void {
       });
   });
   server.listen(config.port, config.listenHost, () => {
-    console.log(`b-net-agent ${AGENT_VERSION} listening on ${config.listenHost}:${config.port} (machine ${config.machineId})`);
+    console.log(`fhub-agent ${AGENT_VERSION} listening on ${config.listenHost}:${config.port} (machine ${config.machineId})`);
   });
   const stop = () => server.close(() => process.exit(0));
   process.on("SIGTERM", stop);

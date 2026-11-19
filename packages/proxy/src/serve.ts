@@ -89,7 +89,7 @@ export function main(configPath: string) {
         res.end();
       });
   });
-  server.listen(config.listen.port, config.listen.host, () => logger.log("info", "b-net-proxy listening", { listen: hostHeader, version: VERSION }));
+  server.listen(config.listen.port, config.listen.host, () => logger.log("info", "fhub-proxy listening", { listen: hostHeader, version: VERSION }));
   const stop = () => server.close(() => (deps.store.close?.(), process.exit(0)));
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);

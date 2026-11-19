@@ -11,7 +11,7 @@
  */
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import { ProviderId, AuthKind, ModelRoute, ClientKeyView } from "@b-net/core";
+import { ProviderId, AuthKind, ModelRoute, ClientKeyView } from "@fhub/core";
 
 export const UpstreamFormat = z.enum(["openai", "anthropic"]);
 export type UpstreamFormat = z.infer<typeof UpstreamFormat>;

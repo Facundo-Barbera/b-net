@@ -1,4 +1,4 @@
-# b-net
+# fhub
 
 Hub propio del homelab: mapa de máquinas (Tailscale + Beszel/agente), hilos de T3 por máquina, suscripciones y consumo de IA, y un proxy de modelos propio que reemplaza a CLIProxyAPI.
 
@@ -12,10 +12,10 @@ Hub propio del homelab: mapa de máquinas (Tailscale + Beszel/agente), hilos de 
 |---|---|---|
 | Contratos y fixture | Hecho | `packages/core/src/contracts/`, `packages/core/src/fixtures/snapshot.ts` |
 | Clientes Beszel / Tailscale / T3 | Hecho, probados con fixtures falsas | `packages/core/src/clients/{beszel,tailscale,t3}/` |
-| Hub (API + agregación) | Hecho, nunca ejecutado como servicio | `packages/hub/src/` (`serve.ts` sin correr) |
+| Hub (API + agregación) | Hecho, nunca ejecutado como servicio | `apps/hub/src/` (`serve.ts` sin correr) |
 | Proxy (pool, cooldown, failover, medición) | Hecho, sin traducción entre formatos ni refresh OAuth | `packages/proxy/src/`, `config/proxy.example.json` |
 | Agente (métricas push sin puerto + exportador T3 opcional) | Hecho, sin instalar en ninguna máquina | `packages/agent/src/`, `packages/agent/deploy/` |
-| UI (Machines, Subscriptions, Proxy, Secrets; temas claro/oscuro) | Hecho con fixtures, verificada con build y tests de componentes | `packages/web/src/` |
+| UI (Machines, Subscriptions, Proxy, Secrets; temas claro/oscuro) | Hecho con fixtures, verificada con build y tests de componentes | `apps/web/src/` |
 
 Las notas por área están en `docs/notes/`. Las decisiones pendientes, en `docs/open-questions.md`.
 
@@ -29,10 +29,10 @@ Las notas por área están en `docs/notes/`. Las decisiones pendientes, en `docs
 pnpm install
 pnpm test          # vitest: proyectos "node" (core, proxy, hub, agent) y "web" (jsdom)
 pnpm typecheck     # tsc -b sobre todo el monorepo
-pnpm --filter @b-net/web build   # compila la UI a packages/web/dist/app (no levanta servidor)
+pnpm --filter @fhub/web build   # compila la UI a apps/web/dist/app (no levanta servidor)
 ```
 
-Para servir la UI en desarrollo (nunca en bixku-vps): `pnpm --filter @b-net/web dev`. Host, puerto, `allowedHosts` y el hub al que se reenvía `/api` salen de `WEB_*` (ver `.env.example`). La UI usa datos live; `?data=fixture` muestra el fixture.
+Para servir la UI en desarrollo (nunca en bixku-vps): `pnpm --filter @fhub/web dev`. Host, puerto, `allowedHosts` y el hub al que se reenvía `/api` salen de `WEB_*` (ver `.env.example`). La UI usa datos live; `?data=fixture` muestra el fixture.
 
 Todas las pruebas corren contra fixtures. No abren puertos ni tocan la red.
 
@@ -40,11 +40,14 @@ Todas las pruebas corren contra fixtures. No abren puertos ni tocan la red.
 
 | Paquete | Qué es |
 |---|---|
-| `packages/core` | Contratos compartidos (zod), fixture canónico `snapshotFixture`, clientes tipados |
-| `packages/hub` | API `/api/v1` + agregación de fuentes |
+| `apps/hub` | API `/api/v1` + agregación de fuentes |
+| `apps/web` | UI (React + Vite), temas claro y oscuro |
+| `packages/core` | Contratos compartidos (zod), fixture canónico `snapshotFixture`, clientes tipados. El contrato HTTP hub ↔ fhubd v0 está en `packages/core/src/contracts/fhubd.ts` |
 | `packages/proxy` | Proxy OpenAI/Anthropic con pool de cuentas y medición |
 | `packages/agent` | Agente ligero: empuja métricas al hub cada 30 s sin abrir puertos (+ exportador T3 opcional en modo pull) |
-| `packages/web` | UI (React + Vite), temas claro y oscuro |
+| `fhubd/` | Daemon por máquina (módulo Go). No es parte del workspace de pnpm |
+
+Las rutas y unidades ya desplegadas en el homelab conservan el nombre anterior al renombre (`/etc/b-net*`, `/var/lib/b-net*`, `b-net.service`, `b-net-proxy.service`, `b-net-agent`); se migran aparte.
 
 ## Agente de métricas (push)
 
@@ -56,7 +59,7 @@ En el hub, cada máquina tiene su propio token y solo se guarda `sha256(token)`.
 
 ```bash
 # 1. En el hub: generar el token (se muestra una sola vez; rotar = volver a ejecutar)
-HUB_DATA_DIR=/var/lib/b-net node packages/hub/scripts/agent-token.ts issue bixku-mbp
+HUB_DATA_DIR=/var/lib/b-net node apps/hub/scripts/agent-token.ts issue bixku-mbp
 #    revoke <id> lo invalida · list muestra las máquinas con token
 
 # 2. En la máquina, desde un checkout del repo: pegar el token por stdin

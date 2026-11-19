@@ -8,6 +8,7 @@ export * from "./contracts/projects.ts";
 export * from "./contracts/events.ts";
 export * from "./contracts/board.ts";
 export * from "./contracts/work.ts";
+export * from "./contracts/fhubd.ts";
 export * from "./work.ts";
 export { snapshotFixture, FIXTURE_NOW } from "./fixtures/snapshot.ts";
 export { projectsFixture, workFixture } from "./fixtures/work.ts";

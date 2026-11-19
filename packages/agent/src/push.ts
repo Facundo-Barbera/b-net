@@ -14,7 +14,7 @@ export function main(): void {
   try {
     config = loadPushConfig(process.env, (p) => readFileSync(p, "utf8"));
   } catch (e) {
-    console.error(`b-net-agent: ${e instanceof ConfigError ? e.message : "invalid configuration"}`);
+    console.error(`fhub-agent: ${e instanceof ConfigError ? e.message : "invalid configuration"}`);
     process.exit(78); // EX_CONFIG: systemd/launchd should not hot-loop on a broken config
   }
   const pusher = createPusher({
@@ -23,7 +23,7 @@ export function main(): void {
     machineId: config.machineId,
     token: config.token,
     version: AGENT_VERSION,
-    log: (line) => console.log(`b-net-agent: ${line}`),
+    log: (line) => console.log(`fhub-agent: ${line}`),
   });
 
   const intervalMs = config.intervalSec * 1000;
@@ -36,7 +36,7 @@ export function main(): void {
   void pusher.prime().then(() => {
     timer = setTimeout(tick, intervalMs);
   });
-  console.log(`b-net-agent ${AGENT_VERSION} pushing every ${config.intervalSec}s (machine ${config.machineId})`);
+  console.log(`fhub-agent ${AGENT_VERSION} pushing every ${config.intervalSec}s (machine ${config.machineId})`);
 
   const stop = () => {
     clearTimeout(timer);

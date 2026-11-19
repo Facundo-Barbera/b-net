@@ -15,7 +15,7 @@ export function boardChannel(projectSlug: string, kind: BoardChannelKind): strin
   return `${projectSlug}/${kind}`;
 }
 
-/** Labels que b-net escribe y lee. */
+/** Labels que fhub escribe y lee. */
 export const BOARD_LABELS = {
   project: "project", // project=<slug>
   pr: "pr", // pr=<owner>/<repo>#<n>
@@ -27,16 +27,21 @@ export const BOARD_LABELS = {
 export const WORK_STATES = ["en_espera", "en_curso", "listo", "bloqueado"] as const;
 export type WorkState = (typeof WORK_STATES)[number];
 
-/** Schema del evento clave que despierta a un bot. Se publica en `<slug>/eventos`. */
-export const BNET_EVENT_SCHEMA = "bnet.event";
-export const BNET_EVENT_VERSION = 1;
-export const BNET_EVENT_KINDS = ["thread_done", "question", "blocked"] as const;
-export type BnetEventKind = (typeof BNET_EVENT_KINDS)[number];
+/**
+ * Schema del evento clave que despierta a un bot. Se publica en `<slug>/eventos`. El nombre conserva el
+ * prefijo de antes del renombre a fhub: ya está registrado en Board y los bots filtran por él. Lo mismo vale
+ * para los demás valores `bnet*` que viajan o se guardan (actor `bnet:bot:`, prefijos de token e ids de post,
+ * headers `x-bnet-*`).
+ */
+export const FHUB_EVENT_SCHEMA = "bnet.event";
+export const FHUB_EVENT_VERSION = 1;
+export const FHUB_EVENT_KINDS = ["thread_done", "question", "blocked"] as const;
+export type FhubEventKind = (typeof FHUB_EVENT_KINDS)[number];
 
-export interface BnetEventV1 {
-  schema: typeof BNET_EVENT_SCHEMA;
-  version: typeof BNET_EVENT_VERSION;
-  kind: BnetEventKind;
+export interface FhubEventV1 {
+  schema: typeof FHUB_EVENT_SCHEMA;
+  version: typeof FHUB_EVENT_VERSION;
+  kind: FhubEventKind;
   /** Slug del proyecto. */
   project: string;
   /** Bot dueño del proyecto, a quien se despierta. */
@@ -91,7 +96,7 @@ export interface BoardProjectView {
   tasks: BoardTaskView[];
   updates: BoardUpdateView[];
   prs: BoardPrView[];
-  events: BnetEventV1[];
+  events: FhubEventV1[];
   /** Resúmenes HTML: ids de entregables ya existentes en el hub. */
   summaries: { id: string; title: string; at: string }[];
 }

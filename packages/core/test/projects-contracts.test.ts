@@ -3,7 +3,7 @@ import { Deliverable, DeliverableUploadQuery, HubEvent, HubRoutes, Project, Proj
 
 const deliverable = {
   id: "0b6f3c1e-8a5d-4c2b-9f1e-2d3c4b5a6978",
-  projectId: "b-net",
+  projectId: "fhub",
   title: "Phase 2 report",
   filename: "report.html",
   kind: "html",
@@ -18,14 +18,14 @@ const deliverable = {
 
 describe("project contracts", () => {
   it("ProjectInput fills defaults and Project validates the stored shape", () => {
-    const input = ProjectInput.parse({ id: "b-net", name: "b-net" });
-    expect(input).toEqual({ id: "b-net", name: "b-net", description: "", grouping: { t3ProjectTitles: [], paths: [], gitRemotes: [] }, ownerBot: null });
+    const input = ProjectInput.parse({ id: "fhub", name: "fhub" });
+    expect(input).toEqual({ id: "fhub", name: "fhub", description: "", grouping: { t3ProjectTitles: [], paths: [], gitRemotes: [] }, ownerBot: null });
     expect(Project.safeParse({ ...input, createdAt: "2026-11-17T10:00:00.000Z" }).success).toBe(true);
     expect(ProjectSummary.safeParse({ ...input, createdAt: "2026-11-17T10:00:00.000Z", deliverableCount: 0, totalBytes: 0, lastDeliverableAt: null }).success).toBe(true);
   });
 
   it("project ids are closed slugs (no traversal, no uppercase, no dots)", () => {
-    for (const id of ["../etc", "a/b", "B-net", ".hidden", "-x", "", "a".repeat(64), "a\0b"]) {
+    for (const id of ["../etc", "a/b", "Fhub", ".hidden", "-x", "", "a".repeat(64), "a\0b"]) {
       expect(ProjectInput.safeParse({ id, name: "x" }).success, id).toBe(false);
     }
     expect(ProjectInput.safeParse({ id: "a".repeat(63), name: "x" }).success).toBe(true);
@@ -50,7 +50,7 @@ describe("project contracts", () => {
   });
 
   it("HubEvent discriminates the four event types", () => {
-    const base = { id: "0b6f3c1e-8a5d-4c2b-9f1e-2d3c4b5a6978", at: "2026-11-17T10:00:00.000Z", projectId: "b-net", title: "t" };
+    const base = { id: "0b6f3c1e-8a5d-4c2b-9f1e-2d3c4b5a6978", at: "2026-11-17T10:00:00.000Z", projectId: "fhub", title: "t" };
     expect(HubEvent.parse({ ...base, type: "thread_completed", machineId: "m", threadId: "th" }).type).toBe("thread_completed");
     expect(HubEvent.safeParse({ ...base, type: "pending_input", machineId: "m", threadId: "th" }).success).toBe(true);
     expect(HubEvent.safeParse({ ...base, type: "blocked", machineId: "m", threadId: "th" }).success).toBe(false);

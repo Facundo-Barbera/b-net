@@ -4,7 +4,7 @@
 # The token is delivered as a systemd credential, never in the unit or the environment.
 #   systemd-creds encrypt --name=agent-token - /etc/b-net/agent-token.cred   (paste the token on stdin)
 [Unit]
-Description=b-net agent (metrics + T3 thread exporter)
+Description=fhub agent (metrics + T3 thread exporter)
 After=network-online.target tailscaled.service
 Wants=network-online.target
 

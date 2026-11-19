@@ -90,17 +90,17 @@ describe("deriveWork", () => {
       sources: t3ok,
       catalog: [bnet!, ops!],
       threads: [
-        thread({ id: "g", state: "idle", projectTitle: "bixku-hub" }), // grouping alias of b-net
+        thread({ id: "g", state: "idle", projectTitle: "bixku-hub" }), // grouping alias of fhub
         thread({ id: "n", state: "idle", projectTitle: "HOMELAB OPS" }), // name, case-insensitive
-        thread({ id: "th_01", state: "idle", projectTitle: "otro" }), // named by a b-net deliverable
+        thread({ id: "th_01", state: "idle", projectTitle: "otro" }), // named by a fhub deliverable
         thread({ id: "t", state: "idle", projectTitle: "godot-rpg" }),
         thread({ id: "x", state: "idle" }),
       ],
     });
     const key = Object.fromEntries(w.threads.map((t) => [t.id, t.projectKey]));
-    expect(key).toEqual({ g: "b-net", n: "homelab-ops", th_01: "b-net", t: "t3:godot-rpg", x: NO_PROJECT_KEY });
+    expect(key).toEqual({ g: "fhub", n: "homelab-ops", th_01: "fhub", t: "t3:godot-rpg", x: NO_PROJECT_KEY });
     expect(w.projects.map((p) => [p.ref.key, p.registered])).toEqual([
-      ["b-net", true],
+      ["fhub", true],
       ["homelab-ops", true],
       ["t3:godot-rpg", false],
       [NO_PROJECT_KEY, false],
@@ -109,14 +109,14 @@ describe("deriveWork", () => {
 
   it("recent deliverables and PR links land in done with in-app and GitHub links; counts per project", () => {
     const w = deriveWork({ now, sources: t3ok, catalog: projectsFixture, threads: [] });
-    const deliv = w.done.find((i) => i.kind === "deliverable" && i.project.key === "b-net")!;
-    expect(deliv.link).toEqual({ kind: "deliverable", href: projectHref("b-net", "0b7c1d2e-3f40-4a51-9b62-7c83d94ea5f1") });
+    const deliv = w.done.find((i) => i.kind === "deliverable" && i.project.key === "fhub")!;
+    expect(deliv.link).toEqual({ kind: "deliverable", href: projectHref("fhub", "0b7c1d2e-3f40-4a51-9b62-7c83d94ea5f1") });
     const prs = w.done.filter((i) => i.kind === "pr_linked");
-    expect(prs.map((p) => p.title)).toEqual(["Facundo-Barbera/b-net#1", "Facundo-Barbera/b-net#2"]);
-    expect(prs[0]!.link?.href).toBe("https://github.com/Facundo-Barbera/b-net/pull/1");
+    expect(prs.map((p) => p.title)).toEqual(["Facundo-Barbera/fhub#1", "Facundo-Barbera/fhub#2"]);
+    expect(prs[0]!.link?.href).toBe("https://github.com/Facundo-Barbera/fhub/pull/1");
     // The 10-day-old bot deliverable is outside the window but still counted on its project.
     expect(w.done.some((i) => i.project.key === "bixku-bot")).toBe(false);
-    const bnet = w.projects.find((p) => p.ref.key === "b-net")!;
+    const bnet = w.projects.find((p) => p.ref.key === "fhub")!;
     expect(bnet.counts).toMatchObject({ deliverables: 2, prs: 2 });
     expect(w.prs).toHaveLength(2);
   });

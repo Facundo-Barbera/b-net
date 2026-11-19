@@ -1,14 +1,15 @@
-# systemd USER unit for the push agent. Template: install.sh fills @EXEC_START@ and copies it to
-# ~/.config/systemd/user/b-net-agent.service. No root needed. The agent opens no port.
+# systemd USER unit for the push agent. Template: install.sh fills @EXEC_START@ and @CONFIG_DIR@ and copies
+# it to ~/.config/systemd/user/b-net-agent.service (pre-rename unit name, kept so installed agents update in
+# place). No root needed. The agent opens no port.
 [Unit]
-Description=b-net agent (pushes metrics to the hub every 30 s; opens no port)
+Description=fhub agent (pushes metrics to the hub every 30 s; opens no port)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-EnvironmentFile=%h/.config/b-net-agent/env
-Environment=AGENT_TOKEN_FILE=%h/.config/b-net-agent/token
+EnvironmentFile=@CONFIG_DIR@/env
+Environment=AGENT_TOKEN_FILE=@CONFIG_DIR@/token
 ExecStart=@EXEC_START@
 Restart=on-failure
 RestartSec=30

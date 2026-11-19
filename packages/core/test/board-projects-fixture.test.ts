@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BNET_EVENT_KINDS, BNET_EVENT_SCHEMA, BNET_EVENT_VERSION, WORK_STATES, boardChannel, boardProjectsFixture, projectsFixture } from "../src/index.ts";
+import { FHUB_EVENT_KINDS, FHUB_EVENT_SCHEMA, FHUB_EVENT_VERSION, WORK_STATES, boardChannel, boardProjectsFixture, projectsFixture } from "../src/index.ts";
 
 describe("boardProjectsFixture", () => {
   const deliverables = new Map(projectsFixture.flatMap((e) => e.deliverables.map((d) => [d.id, d] as const)));
@@ -22,9 +22,9 @@ describe("boardProjectsFixture", () => {
   it("events follow bnet.event@1 and belong to their project", () => {
     for (const p of boardProjectsFixture.projects) {
       for (const e of p.events) {
-        expect(e.schema).toBe(BNET_EVENT_SCHEMA);
-        expect(e.version).toBe(BNET_EVENT_VERSION);
-        expect(BNET_EVENT_KINDS).toContain(e.kind);
+        expect(e.schema).toBe(FHUB_EVENT_SCHEMA);
+        expect(e.version).toBe(FHUB_EVENT_VERSION);
+        expect(FHUB_EVENT_KINDS).toContain(e.kind);
         expect(e.project).toBe(p.slug);
       }
     }
@@ -39,6 +39,6 @@ describe("boardProjectsFixture", () => {
   });
 
   it("builds channels as <slug>/<kind>", () => {
-    expect(boardChannel("b-net", "tareas")).toBe("b-net/tareas");
+    expect(boardChannel("fhub", "tareas")).toBe("fhub/tareas");
   });
 });

@@ -1,6 +1,6 @@
-# Paridad CLIProxyAPI ↔ b-net-proxy
+# Paridad CLIProxyAPI ↔ fhub-proxy
 
-> Fuente de CLIProxyAPI: `docs/research/cliproxyapi-inventory.md` (repo público `router-for-me/CLIProxyAPI`, v8.0.73, commit `43806c8`). No se tocó la instancia real. Estado de b-net-proxy: rama del paquete `packages/proxy`, solo probado con fixtures.
+> Fuente de CLIProxyAPI: `docs/research/cliproxyapi-inventory.md` (repo público `router-for-me/CLIProxyAPI`, v8.0.73, commit `43806c8`). No se tocó la instancia real. Estado de fhub-proxy: rama del paquete `packages/proxy`, solo probado con fixtures.
 >
 > Leyenda: ✅ hecho y con tests · 🟡 parcial · ⏳ fase 2 · ❌ no se hará · — no aplica.
 
@@ -10,7 +10,7 @@ Proxy en Go (gin), puerto 8317. Expone APIs compatibles con OpenAI, Anthropic, G
 
 ## Matriz
 
-| Funcionalidad | CLIProxyAPI | b-net-proxy fase 1 | Fase 2 | No se hará (por qué) |
+| Funcionalidad | CLIProxyAPI | fhub-proxy fase 1 | Fase 2 | No se hará (por qué) |
 |---|---|---|---|---|
 | **Endpoints OpenAI** `/v1/chat/completions`, `/v1/responses`, `/v1/models` | Sí | ✅ passthrough al mismo formato, SSE incluido | | |
 | `/v1/completions` (legacy) | Sí | — | ⏳ si algún cliente lo usa | |
@@ -55,7 +55,7 @@ Proxy en Go (gin), puerto 8317. Expone APIs compatibles con OpenAI, Anthropic, G
 | Ventanas 5 h/semanales desde headers | No | 🟡 parser tolerante; formato **no verificado** | ⏳ validar con headers reales | |
 | **Management API** (144 rutas, escritura) | Sí | ✅ `/internal/v1/*` solo lectura (status, accounts, records, secrets-meta, clients) | ⏳ acciones con confirmación desde el hub | ❌ subir y bajar auth-files por HTTP |
 | Banear la IP tras 5 fallos | Sí | — (solo Tailscale + ACLs) | ⏳ rate-limit de 401 | |
-| Management Center UI, EasyCLI, TUI | Sí | — la UI es el hub (`packages/web`) | | ❌ duplicaría el hub |
+| Management Center UI, EasyCLI, TUI | Sí | — la UI es el hub (`apps/web`) | | ❌ duplicaría el hub |
 | SDK Go embebible, plugins C-ABI | Sí | — | | ❌ no hace falta en un homelab |
 | **Secretos** | JSON en claro en `auth-dir` | ✅ `secrets.enc` AES-256-GCM por entrada, llave maestra desde archivo (systemd-creds), la API solo da `SecretMeta` | | |
 | Redacción de logs | Parcial | ✅ redactor central (headers, `*token*`, `*secret*`, `sk-…`, JWT, `?key=`) | | |
@@ -65,7 +65,7 @@ Proxy en Go (gin), puerto 8317. Expone APIs compatibles con OpenAI, Anthropic, G
 
 CLIProxyAPI reescribe las peticiones para que el proveedor crea que vienen de Claude Code aunque el cliente sea otro. Eso es suplantar a un cliente y probablemente va contra los términos de Anthropic (y, de forma análoga, contra los de OpenAI para las suscripciones ChatGPT/Codex).
 
-**Propuesta para b-net-proxy:**
+**Propuesta para fhub-proxy:**
 - **No** implementar cloaking, ni reescribir `user-agent`/`system`/headers para hacerse pasar por otro cliente, ni falsificar huellas.
 - Reenviar con honestidad: se pasan los headers que manda el propio cliente (`anthropic-beta`, `user-agent`, `anthropic-version`) y nada inventado.
 - Suscripciones (OAuth) solo detrás de sus clientes oficiales (Claude Code, Codex CLI). El resto de clientes (bot, opencode, scripts) usa **API keys** de pago por uso.

@@ -6,18 +6,18 @@ Rama: `t3/hub-api-aggregation-clients`. Todo se validó con fixtures FALSOS (IPs
 
 | Pieza | Archivo |
 |---|---|
-| Cliente Beszel (PocketBase) | `packages/core/src/clients/beszel/index.ts` → `@b-net/core/clients/beszel` |
-| Cliente Tailscale (CLI / LocalAPI + parser de `tailscale ping`) | `packages/core/src/clients/tailscale/index.ts` → `@b-net/core/clients/tailscale` |
+| Cliente Beszel (PocketBase) | `packages/core/src/clients/beszel/index.ts` → `@fhub/core/clients/beszel` |
+| Cliente Tailscale (CLI / LocalAPI + parser de `tailscale ping`) | `packages/core/src/clients/tailscale/index.ts` → `@fhub/core/clients/tailscale` |
 | Fixtures falsos | `packages/core/test/fixtures/{beszel,tailscale}/` |
-| Config (env + machines.json) | `packages/hub/src/config.ts`, `config/hub.example.env` |
-| SourceTracker (SourceHealth + último valor) | `packages/hub/src/health.ts` |
-| Fetchers (agentes, proxy, ingesta, ciclo Tailscale) | `packages/hub/src/sources.ts` |
-| Reglas de estado | `packages/hub/src/status.ts` |
-| Agregador puro → HubSnapshot | `packages/hub/src/aggregate.ts` |
-| Runtime (pollers, staleness, snapshot) | `packages/hub/src/hub.ts` |
-| UsageStore (memoria + `node:sqlite`) | `packages/hub/src/store.ts`, `store-sqlite.ts` |
-| Handler Fetch-API + estáticos | `packages/hub/src/http.ts` |
-| Entrypoint `node:http` (NO se ejecutó aquí); carga su env de `HUB_ENV_FILE` (por defecto `.env` en la raíz del repo), sin pisar variables ya definidas | `packages/hub/src/serve.ts` |
+| Config (env + machines.json) | `apps/hub/src/config.ts`, `config/hub.example.env` |
+| SourceTracker (SourceHealth + último valor) | `apps/hub/src/health.ts` |
+| Fetchers (agentes, proxy, ingesta, ciclo Tailscale) | `apps/hub/src/sources.ts` |
+| Reglas de estado | `apps/hub/src/status.ts` |
+| Agregador puro → HubSnapshot | `apps/hub/src/aggregate.ts` |
+| Runtime (pollers, staleness, snapshot) | `apps/hub/src/hub.ts` |
+| UsageStore (memoria + `node:sqlite`) | `apps/hub/src/store.ts`, `store-sqlite.ts` |
+| Handler Fetch-API + estáticos | `apps/hub/src/http.ts` |
+| Entrypoint `node:http` (NO se ejecutó aquí); carga su env de `HUB_ENV_FILE` (por defecto `.env` en la raíz del repo), sin pisar variables ya definidas | `apps/hub/src/serve.ts` |
 
 ## Decisiones
 
@@ -36,7 +36,7 @@ Rama: `t3/hub-api-aggregation-clients`. Todo se validó con fixtures FALSOS (IPs
 6. **Hilos T3**: el hub los consume solo por HTTP (`AgentRoutes.t3Threads`). En los agentes declarados en `machines[].agentUrl`, el `machineId` sale de la **config del hub**, no de lo que diga el agente. Las URLs de `T3_EXPORTERS` que no están en machines.json se consultan aparte y conservan el `machineId` que reportan. Los hilos de máquinas que no están en config se descartan. `threadCounts` no cuenta los `archived`.
 7. **Secrets**: `/internal/v1/secrets` se proyecta a las claves de `SecretMeta` **antes** de validar (`projectSecrets`) y las entradas inválidas se descartan. `/api/v1/secrets` vuelve a validar con el esquema `.strict()`. Hay tests que comprueban que un campo `value` inyectado nunca llega a la respuesta.
 8. **Usage records**: la ingesta va dentro del ciclo del proxy (`?since=<cursor>&limit=500`, hasta 20 páginas por ciclo) y es idempotente por id. El cursor solo avanza después de guardar la página. Con `HUB_DATA_DIR` se usa `node:sqlite` (`<dataDir>/hub.sqlite`, WAL); sin él, memoria.
-9. **HTTP**: solo GET/HEAD (405 en el resto). Bearer opcional en `/api/*`, comparado en tiempo constante sobre sha256. Las respuestas `/api` llevan `no-store`, `nosniff` y `X-Frame-Options: DENY`. La UI se sirve desde `packages/web/dist/app` cuando existe `index.html`, con fallback SPA para rutas sin extensión, sin dotfiles ni `..`. `/api/v1/health` devuelve `ok: true` si el proceso vive; el detalle está en `sources`.
+9. **HTTP**: solo GET/HEAD (405 en el resto). Bearer opcional en `/api/*`, comparado en tiempo constante sobre sha256. Las respuestas `/api` llevan `no-store`, `nosniff` y `X-Frame-Options: DENY`. La UI se sirve desde `apps/web/dist/app` cuando existe `index.html`, con fallback SPA para rutas sin extensión, sin dotfiles ni `..`. `/api/v1/health` devuelve `ok: true` si el proceso vive; el detalle está en `sources`.
 10. **Config**: `HUB_LISTEN_HOST` es obligatorio y se rechazan `0.0.0.0`, `::` y vacío. Los secretos se leen de `*_FILE` (con fallback a env), y Beszel se desactiva si la contraseña es el placeholder `__CHANGE_ME__`. Las variables extra están en `config/hub.example.env`.
 11. **Beszel**: autentica con `users/auth-with-password` y manda el token tal cual en `Authorization` (estilo PocketBase). Ante un 401 re-autentica una vez. Para la historia lee 30 registros `system_stats` de `type='1m'`, ordenados por `-created`. Los errores nunca incluyen el token ni la contraseña.
 12. `services` (ServiceProbe) queda vacío: ninguna fuente lo provee todavía.

@@ -114,7 +114,7 @@ export function loadPushConfig(env: Record<string, string | undefined>, readFile
 }
 
 /**
- * Mirrors IngestRoutes.metrics in @b-net/core. Spelled out here so the push agent imports no
+ * Mirrors IngestRoutes.metrics in @fhub/core. Spelled out here so the push agent imports no
  * runtime code from core (that would pull zod into a process meant to stay tiny); a test
  * checks the two stay equal.
  */

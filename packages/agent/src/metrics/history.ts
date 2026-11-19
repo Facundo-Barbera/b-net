@@ -1,4 +1,4 @@
-import type { MetricHistory } from "@b-net/core";
+import type { MetricHistory } from "@fhub/core";
 
 /** Fixed-size ring buffer of (cpu, mem) samples, oldest first, evenly spaced by `stepSec`. */
 export class MetricHistoryBuffer {

@@ -37,19 +37,19 @@ const deliverable = (d: Partial<Deliverable> & Pick<Deliverable, "id" | "project
 const bnet: Deliverable[] = [
   deliverable({
     id: "0b7c1d2e-3f40-4a51-9b62-7c83d94ea5f1",
-    projectId: "b-net",
+    projectId: "fhub",
     title: "Resumen: pase de UI con fstack",
     createdAt: ago(40),
     threadId: "th_01",
-    prUrl: "https://github.com/Facundo-Barbera/b-net/pull/1",
+    prUrl: "https://github.com/Facundo-Barbera/fhub/pull/1",
   }),
   deliverable({
     id: "1c8d2e3f-4051-4b62-8c73-8d94ea5fb602",
-    projectId: "b-net",
+    projectId: "fhub",
     title: "Informe: API de proyectos y entregables",
     createdAt: ago(60 * 5),
     sizeBytes: 24_870,
-    prUrl: "https://github.com/Facundo-Barbera/b-net/pull/2",
+    prUrl: "https://github.com/Facundo-Barbera/fhub/pull/2",
   }),
 ];
 const ops: Deliverable[] = [
@@ -87,10 +87,10 @@ const sum = (ds: Deliverable[]) => ({
 export const projectsFixture: ProjectCatalogEntry[] = [
   {
     project: project({
-      id: "b-net",
-      name: "b-net",
+      id: "fhub",
+      name: "fhub",
       description: "Hub del homelab: trabajo, proyectos, máquinas y proxy de modelos.",
-      grouping: { t3ProjectTitles: ["b-net", "bixku-hub"], paths: [], gitRemotes: ["github.com/Facundo-Barbera/b-net"] },
+      grouping: { t3ProjectTitles: ["fhub", "bixku-hub"], paths: [], gitRemotes: ["github.com/Facundo-Barbera/fhub"] },
       ownerBot: "fstack-vps",
       ...sum(bnet),
     }),

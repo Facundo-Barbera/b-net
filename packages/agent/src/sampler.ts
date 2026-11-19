@@ -1,4 +1,4 @@
-import type { MachineMetrics, MetricHistory } from "@b-net/core";
+import type { MachineMetrics, MetricHistory } from "@fhub/core";
 import type { Collector } from "./metrics/collector.ts";
 import { MetricHistoryBuffer } from "./metrics/history.ts";
 

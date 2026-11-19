@@ -16,7 +16,7 @@
  */
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { readFileSync, writeFileSync, renameSync, existsSync, chmodSync } from "node:fs";
-import { SecretMeta } from "@b-net/core";
+import { SecretMeta } from "@fhub/core";
 import { iso } from "./util.ts";
 
 export type StoredMeta = Omit<SecretMeta, "fingerprint" | "status" | "lastUsedAt">;

@@ -1,2 +1,5 @@
 packages:
+  - "apps/*"
   - "packages/*"
+  # fhubd/ is the per-machine daemon, a Go module: not a pnpm package.
+  - "!fhubd/**"

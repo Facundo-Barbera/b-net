@@ -1,6 +1,6 @@
 # UI · vista Machines
 
-Código en `packages/web/src/views/machines/`. Reemplaza la UI de Beszel y `fleet status`.
+Código en `apps/web/src/views/machines/`. Reemplaza la UI de Beszel y `fleet status`.
 
 ## Estructura
 
@@ -14,7 +14,7 @@ Código en `packages/web/src/views/machines/`. Reemplaza la UI de Beszel y `flee
 
 ## Decisiones de implementación
 
-- **Tiempo**: la vista lee `useNow()` (regla única del shell, ver `ui-shell.md`); ya no hay prop `now`. Los tests envuelven con `renderAt()` (`test/helpers.tsx`), que usa `snapshotFixture.generatedAt` (= `FIXTURE_NOW`; `FIXTURE_NOW` no sale del índice de `@b-net/core` y importarlo por ruta relativa rompería el `rootDir` de `tsc -b`).
+- **Tiempo**: la vista lee `useNow()` (regla única del shell, ver `ui-shell.md`); ya no hay prop `now`. Los tests envuelven con `renderAt()` (`test/helpers.tsx`), que usa `snapshotFixture.generatedAt` (= `FIXTURE_NOW`; `FIXTURE_NOW` no sale del índice de `@fhub/core` y importarlo por ruta relativa rompería el `rootDir` de `tsc -b`).
 - **Umbrales**: los de `src/lib/thresholds.ts` (warn ≥ 70, danger ≥ 90; antes 75/90 con `>` estricto). Los meters llevan un texto `HIGH`/`CRIT` (por defecto en `Meter`) para no depender solo del color; la temperatura añade "alta"/"crítica" y los anillos del mapa dibujan ▲/■ al pasar el umbral. Temperatura: warn ≥ 75 °C, danger ≥ 85 °C. Latencia peor: warn > 250 ms.
 - **Métricas viejas**: más de 5 min desde `metricsAt` se marca `(stale)` y se atenúan los meters.
 - **Estados vacíos explícitos**: offline, pausada en Beszel, sin fuente de métricas (con el motivo: Beszel sin conectar / no está en Beszel / sin agente) y "aún sin reportar" tienen textos distintos. Una máquina sin fuente sale `online` con la etiqueta "sin métricas", y un aviso único arriba resume cuántas son y cómo conectarlas. El panel de hilos distingue "T3 no conectado en esta máquina" de "sin hilos", y avisa si la fuente `t3` falla.
