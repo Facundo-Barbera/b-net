@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@b-net/core": "workspace:*",
+    "@vercel/board": "0.52.0",
     "zod": "^4.1.0"
   },
   "scripts": {
