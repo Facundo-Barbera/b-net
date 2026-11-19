@@ -90,3 +90,9 @@ export const ArrowLeftIcon = (p: IconProps) => (
 export const DownloadIcon = (p: IconProps) => (
   <Svg {...p}><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></Svg>
 );
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></Svg>
+);
+export const ArrowRightIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Svg>
+);

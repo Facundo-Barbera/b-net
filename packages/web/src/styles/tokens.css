@@ -32,6 +32,10 @@
   --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.35);
   --accent-fg: #17130a;       /* text on accent fills */
   --overlay: rgba(0,0,0,0.6); /* drawer backdrop */
+  /* Work-center layering: the sidebar sits below the canvas, floating layers (palette) above it. */
+  --bg-sunken: #070809;
+  --surface-hover: #1b1f25;
+  --shadow-pop: 0 0 0 1px rgba(255,255,255,0.05), 0 24px 64px rgba(0,0,0,0.6);
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -57,6 +61,9 @@
   --shadow: 0 1px 2px rgba(0,0,0,0.06);
   --accent-fg: #ffffff;
   --overlay: rgba(20,20,20,0.35);
+  --bg-sunken: #eeeee9;
+  --surface-hover: #e8e8e2;
+  --shadow-pop: 0 0 0 1px rgba(0,0,0,0.06), 0 24px 64px rgba(20,20,20,0.18);
   color-scheme: light;
 }
 :root {
@@ -71,6 +78,8 @@
   --fs-lg: 16px;     /* card / panel titles */
   --fs-xl: 20px;     /* page title, KPI values */
   --fs-2xl: 26px;    /* hero numbers (credit balance) */
+  --fs-3xl: 34px;    /* work-home pulse counters: the first thing read on the page */
+  --radius-lg: 14px; /* large surfaces: pulse tiles, project cards, the command palette */
   --radius: 10px;
   --radius-sm: 6px;
   --gap: 16px;
@@ -90,5 +99,8 @@
   --enter: 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
   /* Comfortable reading width for list-first views (Trabajo, Proyectos). */
   --read-w: 1180px;
+  /* Work home is two columns (queue + rail), so it gets a wider frame than a single list. */
+  --work-w: 1440px;
+  --palette-w: 640px;
 }
 /* Element-level resets, typography and utilities live in base.css. */

@@ -56,7 +56,7 @@ export function SubscriptionsView({ snapshot }: SnapshotViewProps) {
     accounts: accounts.filter((a) => a.provider === provider).sort((a, b) => a.priority - b.priority),
   })).filter((g) => g.accounts.length > 0);
 
-  const header = <PageHeader title="Suscripciones" subtitle="Costos a precio de lista, no lo facturado · ventanas según el proveedor" />;
+  const header = <PageHeader eyebrow="Flota" title="Suscripciones" subtitle="Costos a precio de lista, no lo facturado · ventanas según el proveedor" />;
   if (accounts.length === 0) {
     return (
       <section className="ui-view sv" data-testid="view-subscriptions">
