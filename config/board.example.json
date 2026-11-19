@@ -1,0 +1,14 @@
+{
+  "admins": ["facundo@example.invalid"],
+  "bots": {
+    "orquestador": { "projects": ["*"] },
+    "fstack-vps": {
+      "projects": ["b-net"],
+      "webhook": { "url": "http://127.0.0.1:8799/bnet-webhook", "secretFile": "/etc/b-net/webhooks/fstack-vps" }
+    },
+    "telegram-bot": {
+      "projects": ["bixku-bot"],
+      "webhook": { "url": "http://127.0.0.1:8799/bnet-webhook", "secretEnv": "BNET_WEBHOOK_SECRET_TELEGRAM" }
+    }
+  }
+}

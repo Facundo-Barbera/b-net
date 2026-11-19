@@ -7,7 +7,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, normalize, sep, extname } from "node:path";
-import { HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type HubSnapshot } from "@b-net/core";
+import { BOARD_BASE_PATH, HubRoutes, IngestRoutes, SecretMeta, ThreadState, deriveWork, type BoardWork, type HubSnapshot } from "@b-net/core";
+import { trustedLogin } from "./board/identity.ts";
 import { botFromAuth, type BotToken } from "./bot-auth.ts";
 import { isProjectsPath, type ProjectsApi } from "./projects-http.ts";
 import { SECURITY_HEADERS, error, json } from "./respond.ts";
@@ -30,6 +31,13 @@ export interface HandlerDeps {
   clock?: () => Date;
   /** POST IngestRoutes.metrics; absent = route answers 404. */
   ingest?: Handler | null;
+  /** Board mounted at /api/board (its own auth) and its read model; null when HUB_BOARD_URL is not set. */
+  board?: { fetch: Handler; work: () => Promise<BoardWork> } | null;
+  /**
+   * Admin Tailscale logins. A request `tailscale serve` forwarded for one of them (serve.ts marks it) may
+   * read /api/* without the hub token, so the UI works for Facundo through the tailnet name.
+   */
+  admins?: ReadonlySet<string>;
 }
 
 const BOT_CHALLENGE = { "www-authenticate": 'Bearer realm="b-net", error="invalid_token"' };
@@ -101,6 +109,10 @@ async function serveStatic(reader: StaticReader, pathname: string, head: boolean
 }
 
 const machineRe = /^\/api\/v1\/machines\/([a-z0-9-]+)$/;
+const NO_ADMINS: ReadonlySet<string> = new Set();
+
+/** What /api/v1/board says on a hub without a board, so the UI can say what to connect instead of showing nothing. */
+const boardMissing = (now: Date): BoardWork => ({ generatedAt: now.toISOString(), state: "missing", error: null, projects: [] });
 const ACCOUNT_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export function createHandler(deps: HandlerDeps): Handler {
@@ -112,13 +124,23 @@ export function createHandler(deps: HandlerDeps): Handler {
     const head = req.method === "HEAD";
     // Ingest uses its own per-machine token and is not under /api/.
     if (path === IngestRoutes.metrics) return deps.ingest ? deps.ingest(req) : error(404, "not found");
+    // Board answers its whole protocol itself, every method, with its own authenticate (board/auth.ts).
+    if (path === BOARD_BASE_PATH || path.startsWith(`${BOARD_BASE_PATH}/`)) {
+      if (deps.board) return deps.board.fetch(req);
+      await req.body?.cancel().catch(() => undefined);
+      return error(404, "board not configured (HUB_BOARD_URL)");
+    }
     const isApi = path === "/api" || path.startsWith("/api/");
     if (req.method === "POST" && isApi && isProjectsPath(path)) return write(req, path, url.searchParams);
     if (req.method !== "GET" && !head) return error(405, "method not allowed");
 
     if (isApi) {
       const auth = req.headers.get("authorization");
-      if (deps.apiToken && !tokenOk(auth, deps.apiToken) && !botFromAuth(auth, bots)) return error(401, "unauthorized");
+      if (deps.apiToken && !tokenOk(auth, deps.apiToken) && !botFromAuth(auth, bots) && !trustedLogin(req.headers, deps.admins ?? NO_ADMINS)) return error(401, "unauthorized");
+      if (path === HubRoutes.board) {
+        const body = deps.board ? await deps.board.work() : boardMissing(clock());
+        return head ? new Response(null, { status: 200, headers: { "content-type": "application/json; charset=utf-8" } }) : json(body);
+      }
       if (isProjectsPath(path)) {
         if (!deps.projects) return error(503, "projects storage not configured (HUB_DATA_DIR)");
         // Content responses carry their own HEAD handling (Range, Content-Length).
