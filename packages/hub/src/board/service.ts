@@ -150,6 +150,7 @@ export function createBoardService(deps: BoardServiceDeps): BoardService {
         log(`board: catch-up failed (${why(e)}); retrying every minute`);
       }
       deliverer.start();
+      if (timer) return;
       timer = setInterval(() => {
         reconcile().catch((e) => log(`board: reconcile failed (${e instanceof Error ? e.message.slice(0, 120) : "error"})`));
         outbox.prune(now() - PRUNE_AFTER_MS);
