@@ -12,11 +12,13 @@ import {
   Tag,
   toneForThreadState,
 } from "../../components/index.ts";
+import type { BoardProjectsState } from "../../data/useBoardProjects.ts";
 import type { DataMode } from "../../data/useSnapshot.ts";
 import { spanEs } from "../../lib/spanish.ts";
 import { WorkSourceGap } from "../shared/WorkSourceGap.tsx";
 import { machineName } from "../work/kinds.ts";
 import { EventRow, RunningRow } from "../work/WorkItemView.tsx";
+import { BoardPanel } from "./BoardPanel.tsx";
 import { DeliverablesPanel } from "./DeliverablesPanel.tsx";
 import { Counters } from "./Counters.tsx";
 
@@ -31,16 +33,18 @@ const THREAD_STATE: Record<ThreadState, string> = {
 export interface ProjectDetailProps {
   project: ProjectWork;
   work: WorkSnapshot;
+  board: BoardProjectsState;
   mode: DataMode;
   machines: readonly MachineView[];
   selectedDeliverableId: string | null;
 }
 
 /**
- * One project: what needs Facundo and what runs now, its deliverables with the embedded viewer, then its T3
- * threads, PRs, branches and tasks. Sources that are not connected say so in place.
+ * One project: what needs Facundo and what runs now, its board (tasks by state, notices, updates, PRs, summaries),
+ * its deliverables with the embedded viewer, then its T3 threads, PRs and branches. Sources that are not
+ * connected say so in place.
  */
-export function ProjectDetail({ project: p, work, mode, machines, selectedDeliverableId }: ProjectDetailProps) {
+export function ProjectDetail({ project: p, work, board, mode, machines, selectedDeliverableId }: ProjectDetailProps) {
   const key = p.ref.key;
   const name = (id: string | null) => machineName(machines, id);
   const waiting = work.waiting.filter((i) => i.project.key === key);
@@ -74,6 +78,8 @@ export function ProjectDetail({ project: p, work, mode, machines, selectedDelive
           </ul>
         </section>
       )}
+
+      <BoardPanel board={board} slug={p.ref.projectId} live={mode === "live"} />
 
       <div className="pj-grid">
         <div className="pj-grid__main">
@@ -176,9 +182,6 @@ export function ProjectDetail({ project: p, work, mode, machines, selectedDelive
             </div>
           </Card>
 
-          <Card title="Tareas" data-testid="project-tasks">
-            <WorkSourceGap kind="tasks" state={work.sources.tasks} testId="gap-project-tasks" />
-          </Card>
         </div>
       </div>
     </section>

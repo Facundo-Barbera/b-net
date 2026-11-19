@@ -11,3 +11,4 @@ export * from "./contracts/work.ts";
 export * from "./work.ts";
 export { snapshotFixture, FIXTURE_NOW } from "./fixtures/snapshot.ts";
 export { projectsFixture, workFixture } from "./fixtures/work.ts";
+export { boardProjectsFixture } from "./fixtures/board-projects.ts";
