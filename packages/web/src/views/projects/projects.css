@@ -88,8 +88,43 @@
 .pj-viewer__media { max-width: 100%; max-height: 72vh; margin: var(--sp-4) auto; }
 .pj-viewer__empty { padding: var(--sp-6) var(--sp-4); }
 
+/* Board (BoardPanel): one lane per task state, then notices, updates, PRs and summaries. */
+.pj-card[data-attention="blocked"] { box-shadow: inset 3px 0 0 var(--danger); }
+.pj-board-counts .ui-label { color: var(--text-muted); }
+
+.pj-lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+.pj-lane {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+/* A non-empty blocked lane gets a top edge; its head already says "Bloqueadas" with the square glyph. */
+.pj-lane[data-state="bloqueado"][data-filled] { box-shadow: inset 0 3px 0 var(--danger); }
+.pj-lane__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.pj-lane__head .wk-count { margin-left: auto; }
+.pj-lane__tasks { display: grid; align-content: start; }
+.pj-lane__none { padding: 0 var(--sp-4) var(--sp-3); color: var(--text-muted); font-size: var(--fs-sm); }
+.pj-task { display: grid; gap: 2px; padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--border); }
+.pj-task__title { font-weight: 500; overflow-wrap: anywhere; }
+.pj-task code, .pj-thread code { font-size: var(--fs-xs); }
+
+.pj-board__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gap); align-items: start; }
+.pj-board .ui-badge { align-self: start; }
+.pj-update__text { overflow-wrap: anywhere; }
+
 @media (max-width: 1100px) {
   .pj-grid { grid-template-columns: minmax(0, 1fr); }
+  .pj-lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pj-card:hover, .pj-card:hover .pj-card__go { transform: none; }
@@ -98,4 +133,5 @@
   .pj-search { width: 100%; }
   .pj-deliv { grid-template-columns: minmax(0, 1fr); }
   .pj-deliv__list { border-right: 0; border-bottom: 1px solid var(--border); max-height: 40vh; }
+  .pj-lanes { grid-template-columns: minmax(0, 1fr); }
 }
