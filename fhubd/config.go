@@ -67,9 +67,9 @@ type ListenConfig struct {
 }
 
 type ServiceConfig struct {
-	Comment     string            `json:"_comment"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
+	Comment     string `json:"_comment"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 	// Actions the API may run; defaults to start, stop and restart.
 	Actions []string `json:"actions"`
 	// ActionTimeout bounds how long a POST waits for the state to land.

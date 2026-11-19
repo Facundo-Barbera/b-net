@@ -3,6 +3,9 @@
 #
 #   FHUBD_SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" fhubd/scripts/macos-install.sh
 #
+# Optional FHUBD_BINARY=/path/to/fhubd (a darwin build made elsewhere) installs
+# that binary instead of running go build, for Macs without Go.
+#
 # Idempotent: the bundle path, bundle id and signing identity never change, so
 # TCC keeps the Full Disk Access grant across reinstalls (it matches the
 # designated requirement, not the binary hash). If neither the binary nor the
@@ -31,15 +34,28 @@ die() { echo "macos-install: $*" >&2; exit 1; }
 identities="$(security find-identity -v -p codesigning)" || die "security find-identity failed"
 grep -qF "$FHUBD_SIGN_IDENTITY" <<<"$identities" \
   || die "identity not found in the keychain: $FHUBD_SIGN_IDENTITY"
-command -v go >/dev/null || die "go not found in PATH"
+if [[ -n "${FHUBD_BINARY:-}" ]]; then
+  [[ -f "$FHUBD_BINARY" ]] || die "FHUBD_BINARY not found: $FHUBD_BINARY"
+  [[ -x "$FHUBD_BINARY" ]] || die "FHUBD_BINARY is not executable: $FHUBD_BINARY"
+else
+  command -v go >/dev/null || die "go not found in PATH (or set FHUBD_BINARY to a prebuilt darwin binary)"
+fi
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(git -C "$SRC" describe --always --dirty 2>/dev/null || echo dev)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/fhubd-install.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-echo "==> go build ($VERSION)"
-(cd "$SRC" && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "$WORK/fhubd" .)
+# Both modes leave the unsigned binary at $WORK/fhubd, so the hash check,
+# config check and bundling below are identical for either source.
+if [[ -n "${FHUBD_BINARY:-}" ]]; then
+  echo "==> using prebuilt $FHUBD_BINARY"
+  cp "$FHUBD_BINARY" "$WORK/fhubd"
+  chmod 755 "$WORK/fhubd"
+else
+  echo "==> go build ($VERSION)"
+  (cd "$SRC" && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "$WORK/fhubd" .)
+fi
 NEW_SUM="$(shasum -a 256 "$WORK/fhubd" | cut -d' ' -f1)"
 
 # The unsigned build hash is stored in the bundle because signing rewrites
