@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { HubSnapshot } from "@b-net/core";
 import { MachinesIcon, ProjectsIcon, ProxyIcon, SecretsIcon, SubscriptionsIcon, WorkIcon } from "./components/icons.tsx";
-import type { WorkState } from "./data/useSnapshot.ts";
+import type { BoardState, WorkState } from "./data/useSnapshot.ts";
 import { MachinesView } from "./views/machines/MachinesView.tsx";
 import { ProjectsView } from "./views/projects/ProjectsView.tsx";
 import { SubscriptionsView } from "./views/subscriptions/SubscriptionsView.tsx";
@@ -13,6 +13,8 @@ import { WorkView } from "./views/work/WorkView.tsx";
 export interface ViewProps {
   snapshot: HubSnapshot;
   work: WorkState;
+  /** Board read through the hub. Optional: views without it (and tests) render as before. */
+  board?: BoardState;
 }
 
 /** Fleet views only read the snapshot. */
