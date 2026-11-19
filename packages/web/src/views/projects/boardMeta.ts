@@ -3,15 +3,15 @@ import type { Tone } from "../../components/index.ts";
 
 /**
  * How the board's enums read in b-net: a word plus a tone, and the tone also picks the glyph shape (ToneGlyph),
- * so no state rests on colour alone. Tasks are feminine ("tarea"): Bloqueada, Lista.
+ * so no state rests on colour alone. Tasks are feminine ("tarea"): Bloqueadas, Listas.
  * Queued work gets the pause glyph (idle), not the warn triangle, which in Trabajo already means "te espera";
  * on a project card the board counters sit under their own "Tareas" label so the two "en espera" never mix.
  */
-export const WORK_STATE_META: Record<WorkState, { label: string; plural: string; word: (n: number) => string; tone: Tone }> = {
-  bloqueado: { label: "Bloqueada", plural: "Bloqueadas", word: (n) => (n === 1 ? "bloqueada" : "bloqueadas"), tone: "danger" },
-  en_curso: { label: "En curso", plural: "En curso", word: () => "en curso", tone: "ok" },
-  en_espera: { label: "En espera", plural: "En espera", word: () => "en espera", tone: "idle" },
-  listo: { label: "Lista", plural: "Listas", word: (n) => (n === 1 ? "lista" : "listas"), tone: "info" },
+export const WORK_STATE_META: Record<WorkState, { plural: string; word: (n: number) => string; tone: Tone }> = {
+  bloqueado: { plural: "Bloqueadas", word: (n) => (n === 1 ? "bloqueada" : "bloqueadas"), tone: "danger" },
+  en_curso: { plural: "En curso", word: () => "en curso", tone: "ok" },
+  en_espera: { plural: "En espera", word: () => "en espera", tone: "idle" },
+  listo: { plural: "Listas", word: (n) => (n === 1 ? "lista" : "listas"), tone: "info" },
 };
 
 /** Lanes in the order a person scans them: what is stuck first, then running, queued, finished. */

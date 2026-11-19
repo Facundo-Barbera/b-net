@@ -23,8 +23,8 @@ describe("projects list", () => {
     expect(bnet.textContent).toContain("2 en curso");
     expect(bnet.textContent).toContain("2 PRs");
     expect(bnet.textContent).toContain("2 entregables");
-    // Glyph next to a non-zero status counter, none at zero.
-    expect(bnet.querySelectorAll(".ui-dot")).toHaveLength(1);
+    // Glyph next to a non-zero status counter, none at zero (board counters have their own row, see board.test).
+    expect(bnet.querySelector(".pj-counters:not(.pj-board-counts)")!.querySelectorAll(".ui-dot")).toHaveLength(1);
     expect(screen.getByTestId("project-bixku-bot").textContent).toContain("1 en espera");
 
     const inferred = within(screen.getByTestId("projects-inferred")).getAllByRole("link").map((l) => l.textContent);
@@ -68,7 +68,7 @@ describe("projects filters", () => {
 });
 
 describe("project detail", () => {
-  it("shows now, threads, PRs, git branches and tasks with honest gaps (fixture: no preview)", () => {
+  it("shows now, threads, PRs and git branches with honest gaps (fixture: no preview)", () => {
     at("#/projects/b-net");
     view();
     expect(screen.getByRole("heading", { level: 1, name: "b-net" })).toBeTruthy();
@@ -84,7 +84,6 @@ describe("project detail", () => {
     expect(within(prs).getByTestId("gap-project-prs").textContent).toContain("GitHub");
     expect(screen.getByTestId("project-git").textContent).toContain("feat/proxy");
     expect(screen.getByTestId("gap-project-git").getAttribute("data-source-state")).toBe("missing");
-    expect(screen.getByTestId("gap-project-tasks").textContent).toContain("Tareas sin conectar");
 
     // Fixture deliverables are listed; the preview says it needs the hub instead of a broken frame.
     expect(screen.getByTestId("deliverable-0b7c1d2e-3f40-4a51-9b62-7c83d94ea5f1").getAttribute("aria-current")).toBe("true");
@@ -99,7 +98,8 @@ describe("project detail", () => {
     at(`#/projects/b-net/d/${list[1]!.id}`);
     view(workFixture, "live");
     const frame = await screen.findByTestId("viewer-frame");
-    expect(fetchMock.mock.calls[0]![0]).toBe("/api/v1/projects/b-net/deliverables");
+    // The board is fetched too (board.test covers it), so look for the call instead of assuming it is first.
+    expect(fetchMock.mock.calls.map((c) => c[0])).toContain("/api/v1/projects/b-net/deliverables");
     expect(frame.getAttribute("sandbox")).toBe("");
     expect(frame.getAttribute("src")).toBe(`/api/v1/projects/b-net/deliverables/${list[1]!.id}/content`);
     expect(frame.getAttribute("title")).toBe(`Entregable: ${list[1]!.title}`);
