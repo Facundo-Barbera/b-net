@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { BOARD_PACKAGE_VERSION, snapshotFixture, type BoardProjectsResponse } from "@b-net/core";
 import { block } from "@vercel/board";
@@ -7,7 +8,6 @@ import { actorLabel, plainText, prStateOf, workStateOf } from "../src/board/read
 import type { BoardService } from "../src/board/service.ts";
 import { createHandler } from "../src/http.ts";
 import { MemoryUsageStore } from "../src/store.ts";
-import hubPackage from "../package.json" with { type: "json" };
 import { boardRequest, catalogFixture, eventually, startEngine, testAuthenticate } from "./board-helpers.ts";
 
 describe("board config", () => {
@@ -25,6 +25,8 @@ describe("board config", () => {
   });
 
   it("pins @vercel/board to the contract's version", () => {
+    // Read at runtime: a JSON import would put package.json in the tsconfig's file list (TS6307).
+    const hubPackage = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies: Record<string, string> };
     expect(hubPackage.dependencies["@vercel/board"]).toBe(BOARD_PACKAGE_VERSION);
   });
 });
