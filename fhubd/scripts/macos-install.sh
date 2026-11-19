@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Build, sign and (re)install fhubd as the LaunchAgent dev.fstack.fhubd.
 #
-#   FHUBD_SIGN_IDENTITY="Developer ID Application: Name (TEAMID)" fhubd/scripts/macos-install.sh
+#   fhubd/scripts/macos-install.sh
+#
+# Without FHUBD_SIGN_IDENTITY it signs with the SHA-1 hash of the only valid
+# "Developer ID Application" identity of team MM74W7WGAM. Set it to a SHA-1
+# hash or a full "Developer ID Application: Name (TEAMID)" name to override.
 #
 # Optional FHUBD_BINARY=/path/to/fhubd (a darwin build made elsewhere) installs
 # that binary instead of running go build, for Macs without Go.
@@ -15,6 +19,7 @@ set -euo pipefail
 
 LABEL="dev.fstack.fhubd"
 BUNDLE_ID="dev.fstack.fhubd"
+TEAM_ID="MM74W7WGAM"
 APP="$HOME/Applications/fhubd.app"
 BIN="$APP/Contents/MacOS/fhubd"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
@@ -26,14 +31,28 @@ DOMAIN="gui/$(id -u)"
 die() { echo "macos-install: $*" >&2; exit 1; }
 
 [[ "$(uname -s)" == "Darwin" ]] || die "macOS only"
-[[ -n "${FHUBD_SIGN_IDENTITY:-}" ]] || die "set FHUBD_SIGN_IDENTITY to your \"Developer ID Application: ...\" identity"
-[[ "$FHUBD_SIGN_IDENTITY" == "Developer ID Application:"* ]] \
-  || die "FHUBD_SIGN_IDENTITY must be a \"Developer ID Application: ...\" identity; an ad-hoc or Apple Development signature changes the TCC identity"
 # Captured first: piping into `grep -q` lets grep exit on the first match, and
 # the resulting SIGPIPE in `security` fails the pipeline under pipefail.
 identities="$(security find-identity -v -p codesigning)" || die "security find-identity failed"
-grep -qF "$FHUBD_SIGN_IDENTITY" <<<"$identities" \
-  || die "identity not found in the keychain: $FHUBD_SIGN_IDENTITY"
+if [[ -z "${FHUBD_SIGN_IDENTITY:-}" ]]; then
+  # Resolved to the SHA-1 hash because codesign cannot find the identity by its
+  # full name when it has non-ASCII characters (an accented surname), even under a UTF-8
+  # locale; the hash always resolves.
+  hashes="$(grep -E "^[[:space:]]*[0-9]+\) [0-9A-Fa-f]{40} \"Developer ID Application: .*\($TEAM_ID\)\"" <<<"$identities" \
+    | awk '{print $2}' | sort -u)" || true
+  count="$(grep -c . <<<"$hashes" || true)"
+  [[ "$count" == 1 ]] || die "expected exactly one valid \"Developer ID Application\" identity for team $TEAM_ID, found $count; set FHUBD_SIGN_IDENTITY to its SHA-1 hash or name"
+  FHUBD_SIGN_IDENTITY="$hashes"
+  echo "==> resolved signing identity for team $TEAM_ID: $FHUBD_SIGN_IDENTITY"
+elif [[ "$FHUBD_SIGN_IDENTITY" =~ ^[0-9A-Fa-f]{40}$ ]]; then
+  grep -qiE "^[[:space:]]*[0-9]+\) $FHUBD_SIGN_IDENTITY \"Developer ID Application: " <<<"$identities" \
+    || die "no valid \"Developer ID Application\" identity with hash $FHUBD_SIGN_IDENTITY in the keychain; an ad-hoc or Apple Development signature changes the TCC identity"
+else
+  [[ "$FHUBD_SIGN_IDENTITY" == "Developer ID Application:"* ]] \
+    || die "FHUBD_SIGN_IDENTITY must be a \"Developer ID Application: ...\" identity or its SHA-1 hash; an ad-hoc or Apple Development signature changes the TCC identity"
+  grep -qF "$FHUBD_SIGN_IDENTITY" <<<"$identities" \
+    || die "identity not found in the keychain: $FHUBD_SIGN_IDENTITY"
+fi
 if [[ -n "${FHUBD_BINARY:-}" ]]; then
   [[ -f "$FHUBD_BINARY" ]] || die "FHUBD_BINARY not found: $FHUBD_BINARY"
   [[ -x "$FHUBD_BINARY" ]] || die "FHUBD_BINARY is not executable: $FHUBD_BINARY"
