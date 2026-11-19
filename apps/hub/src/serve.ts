@@ -182,6 +182,8 @@ async function main() {
       storage: { dir: boardDir(cfg.dataDir) },
       authenticate: boardAuth,
       catalog: () => projects?.catalog() ?? [],
+      knownProjects: () => projectStore?.listProjects().map((p) => p.id) ?? [],
+      ownerOf: (slug) => projectStore?.getProject(slug)?.ownerBot ?? undefined,
     });
     await boardService.start();
   }
