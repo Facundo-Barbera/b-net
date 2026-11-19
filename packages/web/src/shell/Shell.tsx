@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { HubSnapshot, WorkSnapshot } from "@b-net/core";
 import type { DataMode } from "../data/useSnapshot.ts";
 import { useTheme } from "../lib/theme.ts";
-import type { RouteDef } from "../routes.tsx";
+import { routes, type RouteDef } from "../routes.tsx";
+import { CommandPalette } from "./CommandPalette.tsx";
+import { buildPaletteEntries } from "./palette.ts";
 import { Sidebar } from "./Sidebar.tsx";
 import { Topbar } from "./Topbar.tsx";
 
@@ -15,12 +17,29 @@ export interface ShellProps {
   children: ReactNode;
 }
 
-/** Page frame: skip link, sidebar (rail/drawer when narrow), top bar and the main landmark. */
+/** ⌘K on macOS, Ctrl K elsewhere: the one global shortcut that takes a modifier (useGoShortcuts ignores those). */
+const isPaletteKey = (e: KeyboardEvent) => (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "k";
+
+/** Page frame: skip link, sidebar (rail/drawer when narrow), top bar, command palette and the main landmark. */
 export function Shell({ route, snapshot, work = null, mode, children }: ShellProps) {
   const { pref, setPref } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+  const entries = useMemo(() => buildPaletteEntries(routes, work), [work]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isPaletteKey(e)) return;
+      e.preventDefault();
+      setDrawerOpen(false);
+      setPaletteOpen((o) => !o);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     document.title = `${route.label} · b-net`;
@@ -54,11 +73,13 @@ export function Shell({ route, snapshot, work = null, mode, children }: ShellPro
           onThemeChange={setPref}
           drawerOpen={drawerOpen}
           onToggleDrawer={() => setDrawerOpen((o) => !o)}
+          onOpenPalette={() => setPaletteOpen(true)}
         />
         <main id="main-content" ref={mainRef} className="sh-content" tabIndex={-1}>
           {children}
         </main>
       </div>
+      <CommandPalette open={paletteOpen} entries={entries} onClose={closePalette} />
     </div>
   );
 }

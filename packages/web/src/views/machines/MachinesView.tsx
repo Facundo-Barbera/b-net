@@ -47,6 +47,7 @@ export function MachinesView({ snapshot, initialSelectedId = null }: MachinesVie
   return (
     <section className="ui-view mv" data-testid="view-machines" aria-labelledby="mv-title">
       <PageHeader
+        eyebrow="Flota"
         title="Máquinas"
         titleId="mv-title"
         subtitle={<span className="num">{machines.length} máquinas en el tailnet · hub {snapshot.hubMachineId}</span>}

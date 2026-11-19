@@ -93,7 +93,7 @@ export function SecretsView({ snapshot }: SnapshotViewProps) {
 
   return (
     <section className="ui-view se" data-testid="view-secrets">
-      <PageHeader title="Secretos" subtitle="Inventario de credenciales: solo metadatos" />
+      <PageHeader eyebrow="Flota" title="Secretos" subtitle="Inventario de credenciales: solo metadatos" />
 
       <Callout tone="accent" role="note" data-testid="secrets-note" icon={<SecretsIcon />} className="se-note">
         <p>

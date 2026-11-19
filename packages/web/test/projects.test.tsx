@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { deriveWork, projectsFixture, snapshotFixture, workFixture, type WorkSnapshot } from "@b-net/core";
 import type { DataMode } from "../src/data/useSnapshot.ts";
 import { ProjectsView } from "../src/views/projects/ProjectsView.tsx";
@@ -36,6 +36,34 @@ describe("projects list", () => {
     view(deriveWork({ now: NOW_MS, threads: snapshotFixture.threads, sources: snapshotFixture.sources, catalog: null }));
     const gap = within(screen.getByTestId("projects-registered")).getByTestId("gap-projects");
     expect(gap.textContent).toContain("HUB_DATA_DIR");
+  });
+});
+
+describe("projects filters", () => {
+  const hrefs = (testId: string) => within(screen.getByTestId(testId)).queryAllByRole("link").map((l) => l.getAttribute("href"));
+
+  it("search narrows by name or description, accent-insensitive, and says when nothing matches", () => {
+    view();
+    const search = screen.getByRole("searchbox", { name: "Buscar proyectos" });
+    fireEvent.change(search, { target: { value: "MAQUINAS" } });
+    expect(hrefs("projects-registered")).toEqual(["#/projects/b-net"]);
+    fireEvent.change(search, { target: { value: "zzz-nada" } });
+    expect(hrefs("projects-registered")).toEqual([]);
+    expect(screen.getByTestId("projects-registered").textContent).toContain("Ningún proyecto coincide");
+  });
+
+  it("'Con actividad' keeps projects with something waiting or running, and marks them with words, not only an edge", () => {
+    view();
+    const group = screen.getByRole("group", { name: "Filtrar proyectos" });
+    fireEvent.click(within(group).getByRole("button", { name: /Con actividad/ }));
+    expect(within(group).getByRole("button", { name: /Con actividad/ }).getAttribute("aria-pressed")).toBe("true");
+    const kept = hrefs("projects-registered");
+    expect(kept).toContain("#/projects/b-net");
+    expect(kept).toContain("#/projects/bixku-bot");
+    expect(kept).not.toContain("#/projects/homelab-ops");
+    const bot = screen.getByTestId("project-bixku-bot");
+    expect(bot.getAttribute("data-attention")).toBe("waiting");
+    expect(bot.textContent).toContain("1 en espera");
   });
 });
 

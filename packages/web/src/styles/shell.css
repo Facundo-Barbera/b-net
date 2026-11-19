@@ -5,7 +5,7 @@
   min-height: 100dvh;
 }
 .sh-main { min-width: 0; display: flex; flex-direction: column; }
-.sh-content { flex: 1; min-width: 0; padding: 20px 24px 40px; }
+.sh-content { flex: 1; min-width: 0; padding: var(--sp-6) 32px 48px; }
 .sh-content > * { max-width: 1680px; }
 
 .sh-skip {
@@ -33,17 +33,20 @@
   flex-direction: column;
   gap: 18px;
   padding: 14px 10px;
-  background: var(--bg);
+  /* Sunken rail: the canvas (work) reads as the foreground, navigation recedes. */
+  background: var(--bg-sunken);
   border-right: 1px solid var(--border);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .sh-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px; font-weight: 600; letter-spacing: -0.01em; font-size: var(--fs-lg); }
+.sh-brand__text { display: grid; line-height: 1.15; }
+.sh-brand__tag { color: var(--text-muted); font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0; }
 .sh-brand:hover { text-decoration: none; }
 .sh-brand__mark {
   flex: none;
-  width: 18px; height: 18px;
+  width: 22px; height: 22px;
   border-radius: 5px;
   background: var(--accent);
   /* straw-hat-ish glyph: brim + crown */
@@ -63,7 +66,7 @@
   color: var(--text-muted);
   transition: background var(--ease), color var(--ease);
 }
-.sh-nav__link:hover { background: var(--bg-elev); color: var(--text); text-decoration: none; }
+.sh-nav__link:hover { background: var(--surface-hover); color: var(--text); text-decoration: none; }
 .sh-nav__link[aria-current="page"] {
   background: var(--bg-elev-2);
   border-color: var(--border);
@@ -121,8 +124,43 @@
   cursor: pointer;
 }
 .sh-topbar__menu:hover { background: var(--bg-elev); }
-.sh-topbar__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-lg); font-weight: 600; letter-spacing: -0.01em; }
-.sh-topbar__meta { display: flex; align-items: center; gap: 12px; flex: none; }
+/* Breadcrumb "b-net / Vista": the big title lives in the page header, the bar only says where you are. */
+.sh-topbar__crumbs { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; font-size: var(--fs-base); }
+.sh-topbar__home, .sh-topbar__sep { flex: none; color: var(--text-muted); }
+.sh-topbar__sep { color: var(--text-faint); }
+.sh-topbar__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+/* Search trigger: looks like a field, opens the command palette. */
+.sh-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: min(360px, 100%);
+  min-height: 34px;
+  margin: 0 auto;
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease);
+}
+.sh-search:hover { border-color: var(--border-strong); background: var(--bg-elev-2); color: var(--text); }
+.sh-search__glass { flex: none; font-size: var(--fs-lg); }
+.sh-search__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.sh-search__kbd, .sh-palette kbd {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-elev-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 18px;
+}
+.sh-topbar__meta { display: flex; align-items: center; gap: 12px; flex: none; margin-left: auto; }
 .sh-topbar__updated { display: inline-flex; align-items: baseline; gap: 6px; font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* Theme toggle */
@@ -183,6 +221,11 @@
   .sh-topbar__menu { display: grid; }
   .sh-topbar__meta { gap: 8px; }
   .sh-topbar__updated { display: none; }
+  .sh-topbar__home, .sh-topbar__sep { display: none; }
+  /* Icon-only trigger on phones; the label stays for assistive tech. */
+  .sh-search { width: 34px; padding: 0; justify-content: center; margin: 0 0 0 auto; }
+  .sh-search__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .sh-search__kbd { display: none; }
   .sh-content { padding: 14px 12px 28px; }
 }
 
@@ -198,4 +241,52 @@
   color: var(--text-faint);
   font-size: var(--fs-2xs);
   line-height: 16px;
+}
+
+/* ---------- Command palette ---------- */
+.sh-palette { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center; align-items: start; padding: 12vh var(--sp-4) var(--sp-4); }
+.sh-palette__backdrop { position: absolute; inset: 0; background: var(--overlay); backdrop-filter: blur(2px); }
+.sh-palette__panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(var(--palette-w), 100%);
+  max-height: min(560px, 76vh);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: ui-enter var(--enter) both;
+}
+.sh-palette__search { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); }
+.sh-palette__glass { flex: none; color: var(--text-muted); font-size: var(--fs-lg); }
+.sh-palette__input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-lg); }
+.sh-palette__input::placeholder { color: var(--text-faint); }
+.sh-palette__input:focus-visible { outline: none; }
+.sh-palette__list { overflow-y: auto; padding: var(--sp-2); }
+.sh-palette__group { padding: var(--sp-2) var(--sp-2) var(--sp-1); }
+.sh-palette__opt {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 38px;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+/* Active option: fill + accent bar, so the highlight does not depend on the fill colour alone. */
+.sh-palette__opt[aria-selected="true"] { background: var(--surface-hover); box-shadow: inset 2px 0 0 var(--accent); }
+.sh-palette__bullet { width: 10px; height: 10px; border: 1px solid var(--border-strong); border-radius: 3px; }
+.sh-palette__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.sh-palette__hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--fs-sm); }
+.sh-palette__empty { padding: var(--sp-6) var(--sp-4); color: var(--text-muted); text-align: center; }
+.sh-palette__foot { display: flex; flex-wrap: wrap; gap: var(--sp-4); padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--border); color: var(--text-muted); font-size: var(--fs-xs); }
+.sh-palette__foot kbd { margin-right: 2px; }
+@media (max-width: 599.98px) {
+  .sh-palette { padding-top: var(--sp-4); }
+  .sh-palette__opt { grid-template-columns: auto minmax(0, 1fr); }
+  .sh-palette__hint { grid-column: 2; }
+  .sh-palette__kbd { display: none; }
 }
