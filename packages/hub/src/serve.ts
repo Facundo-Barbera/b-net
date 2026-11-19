@@ -13,6 +13,7 @@ import { INGEST_MAX_BYTES, IngestRoutes } from "@b-net/core";
 import { createBeszelClient } from "@b-net/core/clients/beszel";
 import { createCliSource, createLocalApiSource, unixSocketRequester, type ExecFn } from "@b-net/core/clients/tailscale";
 import { ConfigError, loadHubConfig, withEnvFile } from "./config.ts";
+import { loadBoardConfig } from "./board/config.ts";
 import { createHandler, fsStaticReader, type Handler } from "./http.ts";
 import { createHub } from "./hub.ts";
 import { DeliverableFiles } from "./deliverables.ts";
@@ -52,7 +53,8 @@ export function toRequest(req: IncomingMessage, host: string): Request {
   const url = new URL(req.url ?? "/", `http://${host}`);
   const headers = new Headers();
   for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
-  if (req.method !== "POST") return new Request(url, { method: req.method, headers });
+  // Board's protocol is GET and POST; anything else with a body still streams instead of being dropped.
+  if (req.method === "GET" || req.method === "HEAD" || !req.method) return new Request(url, { method: req.method, headers });
   // Deliverable uploads stay a stream (duplex: "half") so they go to disk chunk by chunk, never buffered whole.
   const body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
   return new Request(url, { method: req.method, headers, body, duplex: "half" } as RequestInit);
@@ -109,7 +111,10 @@ function hubEnv(): Record<string, string | undefined> {
 }
 
 async function main() {
-  const cfg = loadHubConfig(hubEnv(), (p) => readFileSync(p, "utf8"));
+  const env = hubEnv();
+  const cfg = loadHubConfig(env, (p) => readFileSync(p, "utf8"));
+  const boardCfg = loadBoardConfig(env);
+  if (boardCfg && !cfg.dataDir) throw new ConfigError("HUB_BOARD_URL needs HUB_DATA_DIR (the board keeps its SQLite file there)");
 
   let store: UsageStore = new MemoryUsageStore();
   let projectStore: ProjectStore | null = null;
@@ -128,6 +133,15 @@ async function main() {
     projects = createProjectsApi({ store: projectStore, files, quotaBytes: cfg.deliverablesQuotaBytes });
   }
   const metrics = new SqliteMetricsStore(dbPath);
+
+  // Board lives in this process (no `vb serve`), its file under $HUB_DATA_DIR/board. Until the access and
+  // events modules are plugged in here (authenticate, watch, onStart), it refuses every caller and runs no watchers.
+  let boardService: import("./board/service.ts").BoardService | null = null;
+  if (boardCfg && cfg.dataDir) {
+    const { createBoardService, boardDir } = await import("./board/service.ts");
+    boardService = createBoardService({ config: boardCfg, storage: { dir: boardDir(cfg.dataDir) }, catalog: () => projects?.catalog() ?? [] });
+    await boardService.start();
+  }
 
   const tailscale =
     cfg.tailscale.source === "cli"
@@ -158,18 +172,23 @@ async function main() {
     projects,
     botTokens: cfg.botTokens,
     ingest: createIngestHandler({ store: metrics, knownMachines: new Set(cfg.machines.map((m) => m.id)) }),
+    board: boardService,
   });
 
   const stop = hub.start();
   const server = mount(handler, cfg.listenHost, cfg.listenPort);
-  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"})`);
+  console.log(`b-net listening on ${cfg.listenHost}:${cfg.listenPort} (machines: ${cfg.machines.length}, auth: ${cfg.apiToken ? "on" : "off"}, bots: ${cfg.botTokens.length}, projects: ${projects ? "on" : "off"}, board: ${boardService ? "on" : "off"})`);
   const shutdown = () => {
     stop();
     server.close(() => {
-      store.close?.();
-      projectStore?.close();
-      metrics.close();
-      process.exit(0);
+      void (boardService?.stop() ?? Promise.resolve())
+        .catch(() => undefined)
+        .finally(() => {
+          store.close?.();
+          projectStore?.close();
+          metrics.close();
+          process.exit(0);
+        });
     });
   };
   process.on("SIGTERM", shutdown);
