@@ -12,6 +12,7 @@
     "zod": "^4.1.0"
   },
   "scripts": {
-    "agent-token": "node scripts/agent-token.ts"
+    "agent-token": "node scripts/agent-token.ts",
+    "board-token": "node scripts/board-token.ts"
   }
 }
