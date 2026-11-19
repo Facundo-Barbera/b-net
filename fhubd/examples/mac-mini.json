@@ -1,0 +1,50 @@
+{
+  "_comment": "Copy to ~/.config/fhub/fhubd.json. Durations are Go strings (\"10s\"). Env values may use $VAR; command, cwd and log paths accept ~/. TODO: set machineId to the id the hub uses for the mini (defaults to the short hostname).",
+  "machineId": "mac-mini",
+  "listen": {
+    "host": "tailscale",
+    "port": 8790
+  },
+  "tokenFile": "~/.config/fhub/token",
+  "logDir": "~/Library/Logs/fhub",
+  "externalDisks": [
+    { "name": "taller", "mountpoint": "/Volumes/Taller" }
+  ],
+  "volumesRoot": "/Volumes",
+  "diskTimeout": "2s",
+  "env": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+  },
+  "services": [
+    {
+      "_comment": "TODO: (1) confirm the t3 launcher path on the mini (the Linux installer puts a shim in ~/.local/bin that execs ~/.t3/runtime/versions/<v>/t3). (2) T3 installs its own boot service ('t3 __service-launcher' as a LaunchAgent); disable it on the mini or two backends will fight over the same state, and the launchd one has no Full Disk Access. (3) T3CODE_HOME shared with the desktop app means both read the same state; decide whether headless replaces the desktop backend or gets its own --base-dir. (4) host 127.0.0.1 keeps T3 local; use the Tailscale IP or --tailscale-serve to reach it from other devices. Port 3790 avoids the desktop app's 3773.",
+      "name": "t3",
+      "description": "T3 Code headless server",
+      "command": "~/.local/bin/t3",
+      "args": ["serve", "--host", "127.0.0.1", "--port", "3790", "--no-browser"],
+      "cwd": "~",
+      "env": {
+        "T3CODE_HOME": "$HOME/.t3"
+      },
+      "autostart": true,
+      "actions": ["start", "stop", "restart"],
+      "healthcheck": {
+        "tcp": "127.0.0.1:3790",
+        "interval": "15s",
+        "timeout": "3s",
+        "startPeriod": "60s",
+        "failureThreshold": 4
+      },
+      "restart": {
+        "policy": "always",
+        "initialBackoff": "2s",
+        "maxBackoff": "2m",
+        "resetAfter": "5m",
+        "maxRestarts": 0
+      },
+      "stopTimeout": "15s",
+      "log": "~/Library/Logs/fhub/t3.log",
+      "logMaxBytes": 52428800
+    }
+  ]
+}
